@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Syllabus Quest</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>⚔️ Syllabus Quest</h1>
+    <div class="stats">
+      <span id="level">Level 1</span>
+      <div class="xp-bar"><div id="xp-fill"></div></div>
+      <span id="xp-text">0 XP</span>
+    </div>
+  </header>
+
+  <main>
+    <section id="setup">
+      <h2>Paste your syllabus</h2>
+      <p>The AI turns each unit into a world full of quests, with the test as the boss.</p>
+      <textarea id="syllabus" rows="10" placeholder="Course: AP Biology&#10;Unit 1: Cells ...&#10;Unit 2: Energy ..."></textarea>
+      <button id="generate">Generate my quest map</button>
+      <p id="status" role="status"></p>
+    </section>
+
+    <section id="map" hidden>
+      <h2 id="course-title"></h2>
+      <div id="worlds"></div>
+      <button id="reset" class="secondary">Start over with a new syllabus</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+:root {
+  --bg: #14121f;
+  --panel: #1f1c30;
+  --text: #f1eefc;
+  --muted: #a49fc0;
+  --accent: #ffb547;
+  --good: #5fd38d;
+  --boss: #ff6b6b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--panel);
+}
+
+h1 { margin: 0; font-size: 1.4rem; }
+
+.stats { display: flex; align-items: center; gap: 10px; }
+.xp-bar { width: 140px; height: 12px; background: #000; border-radius: 6px; overflow: hidden; }
+#xp-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.4s; }
+
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #3a3555;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+button {
+  margin-top: 12px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #1a1400;
+  font-weight: 700;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: wait; }
+button.secondary { background: transparent; color: var(--muted); border: 1px solid #3a3555; }
+
+#status { color: var(--muted); }
+
+.world { background: var(--panel); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.world h3 { margin: 0; }
+.world .topic { margin: 4px 0 12px; color: var(--muted); font-size: 0.9rem; }
+
+.quest {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.quest:hover { background: #2a2640; }
+.quest input { margin-top: 4px; width: 18px; height: 18px; }
+.quest .xp { margin-left: auto; color: var(--accent); white-space: nowrap; }
+.quest.done .title { text-decoration: line-through; color: var(--good); }
+.quest.boss { border: 1px solid var(--boss); margin-top: 8px; }
+.quest.boss.locked { opacity: 0.5; cursor: not-allowed; }
+.quest p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }

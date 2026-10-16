@@ -1,0 +1,14 @@
+{
+  "name": "syllabus-quest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Paste a class syllabus and an AI turns it into a quest map with XP, levels and boss battles.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "express": "^4.21.2"
+  }
+}
