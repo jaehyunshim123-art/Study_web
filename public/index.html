@@ -4,34 +4,98 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Syllabus Quest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <h1>⚔️ Syllabus Quest</h1>
+    <div class="brand">
+      <div id="header-avatar" class="mini-avatar" aria-hidden="true"></div>
+      <h1>Syllabus Quest</h1>
+    </div>
     <div class="stats">
-      <span id="level">Level 1</span>
-      <div class="xp-bar"><div id="xp-fill"></div></div>
-      <span id="xp-text">0 XP</span>
+      <span class="chip" title="Study streak">🔥 <b id="streak">0</b></span>
+      <span class="chip" title="Coins">🪙 <b id="coins">0</b></span>
+      <span class="chip level" id="level">Lv 1</span>
+      <div class="xp-bar" title="XP to next level"><div id="xp-fill"></div></div>
     </div>
   </header>
 
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="play" role="tab">🗺️ Play</button>
+    <button class="tab" data-tab="avatar" role="tab">🧍 Avatar</button>
+    <button class="tab" data-tab="badges" role="tab">🏅 Badges</button>
+    <button class="tab" data-tab="coach" role="tab">💬 Coach</button>
+  </nav>
+
   <main>
-    <section id="setup">
-      <h2>Paste your syllabus</h2>
-      <p>The AI turns each unit into a world full of quests, with the test as the boss.</p>
-      <textarea id="syllabus" rows="10" placeholder="Course: AP Biology&#10;Unit 1: Cells ...&#10;Unit 2: Energy ..."></textarea>
-      <button id="generate">Generate my quest map</button>
-      <p id="status" role="status"></p>
+    <!-- PLAY: syllabus setup, then the obby map -->
+    <section id="tab-play" class="panel">
+      <div id="setup" class="card">
+        <h2>Load your syllabus</h2>
+        <p class="muted">Upload the PDF your teacher gave you, or paste the text. Each unit becomes a world to climb, and the test is the boss at the top.</p>
+        <label class="upload">
+          <input type="file" id="pdf" accept="application/pdf" />
+          <span>📄 Upload syllabus PDF</span>
+        </label>
+        <p id="pdf-name" class="muted"></p>
+        <textarea id="syllabus" rows="7" placeholder="…or paste it here&#10;Course: AP Biology&#10;Unit 1: Cells …"></textarea>
+        <button id="generate" class="big">Build my world ▶</button>
+        <p id="status" role="status" class="muted"></p>
+      </div>
+
+      <div id="map" hidden>
+        <h2 id="course-title"></h2>
+        <div id="worlds"></div>
+        <button id="reset" class="ghost">Load a different syllabus</button>
+      </div>
     </section>
 
-    <section id="map" hidden>
-      <h2 id="course-title"></h2>
-      <div id="worlds"></div>
-      <button id="reset" class="secondary">Start over with a new syllabus</button>
+    <!-- AVATAR: customize and shop -->
+    <section id="tab-avatar" class="panel" hidden>
+      <div class="card avatar-card">
+        <div id="avatar-preview" class="avatar-preview"></div>
+        <div class="customize">
+          <h2>Your avatar</h2>
+          <div class="color-row"><span>Skin</span><div class="swatches" data-part="skin"></div></div>
+          <div class="color-row"><span>Shirt</span><div class="swatches" data-part="shirt"></div></div>
+          <div class="color-row"><span>Pants</span><div class="swatches" data-part="pants"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Shop <span class="muted small">earn 🪙 by finishing quests</span></h2>
+        <div id="shop" class="shop"></div>
+      </div>
+    </section>
+
+    <!-- BADGES -->
+    <section id="tab-badges" class="panel" hidden>
+      <div class="card">
+        <h2>Badges</h2>
+        <p class="muted" id="streak-text"></p>
+        <div id="badges" class="badges"></div>
+      </div>
+    </section>
+
+    <!-- COACH: AI tutor chat -->
+    <section id="tab-coach" class="panel" hidden>
+      <div class="card coach">
+        <h2>Study coach</h2>
+        <p class="muted" id="coach-context">Ask about any topic in your class, or tap "Ask coach" on a quest.</p>
+        <div id="chat" class="chat" aria-live="polite"></div>
+        <form id="coach-form" class="coach-form">
+          <input id="coach-input" autocomplete="off" placeholder="e.g. Explain osmosis like I'm 10" />
+          <button type="submit">Send</button>
+        </form>
+      </div>
     </section>
   </main>
 
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="levelup" class="levelup" hidden></div>
+
+  <script src="avatar.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
