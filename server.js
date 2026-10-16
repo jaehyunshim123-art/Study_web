@@ -44,6 +44,11 @@ const questSchema = {
               additionalProperties: false,
             },
           },
+          keyConcepts: {
+            type: "array",
+            description: "5-10 key terms, facts or skills from this unit, taken from the syllabus. Quizzes are written from these.",
+            items: { type: "string" },
+          },
           boss: {
             type: "object",
             description: "The unit's test, project or big assignment, framed as a boss battle.",
@@ -56,7 +61,7 @@ const questSchema = {
             additionalProperties: false,
           },
         },
-        required: ["name", "topic", "quests", "boss"],
+        required: ["name", "topic", "keyConcepts", "quests", "boss"],
         additionalProperties: false,
       },
     },
@@ -69,7 +74,39 @@ const questSchema = {
 const systemPrompt = `You are the game master for Syllabus Quest, a study game for high school and college students.
 Turn the student's syllabus into a quest map: one world per unit, 3-5 quests per world, and one boss per world.
 Quests must be real, specific study actions tied to the syllabus content, not vague advice.
-Keep names playful but keep the actual tasks clear and useful.`;
+Keep names playful but keep the actual tasks clear and useful.
+For each world, list the unit's key concepts as they appear in the syllabus; quizzes will be written from them.`;
+
+// The shape of a quiz the AI writes for one quest or boss.
+const quizSchema = {
+  type: "object",
+  properties: {
+    questions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          question: { type: "string" },
+          choices: { type: "array", items: { type: "string" }, description: "Exactly 4 answer choices." },
+          answerIndex: { type: "integer", description: "Index (0-3) of the correct choice." },
+          explanation: { type: "string", description: "One or two sentences on why the answer is right." },
+        },
+        required: ["question", "choices", "answerIndex", "explanation"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["questions"],
+  additionalProperties: false,
+};
+
+const quizPrompt = `You write multiple-choice quiz questions for Syllabus Quest, a study game.
+Questions must test real understanding of the course material at the level of the course, not trivia about the quest.
+Each question has exactly 4 choices with one clearly correct answer, and plausible wrong answers.
+Vary the questions: definitions, applying an idea to an example, and comparing concepts.`;
+
+const QUEST_QUESTIONS = 4;
+const BOSS_QUESTIONS = 6;
 
 // The study coach's personality. It explains and guides instead of doing the work.
 const coachPrompt = `You are the friendly study coach inside Syllabus Quest.
@@ -129,6 +166,56 @@ app.post("/api/quests", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong talking to the AI. Check the server log." });
+  }
+});
+
+// Shuffle the choices so the right answer isn't always in the same spot, and drop malformed questions.
+function cleanQuiz(questions) {
+  return questions
+    .filter((q) => Array.isArray(q.choices) && q.choices.length === 4 && Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex < 4)
+    .map((q) => {
+      const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+      return { ...q, choices: order.map((i) => q.choices[i]), answerIndex: order.indexOf(q.answerIndex) };
+    });
+}
+
+app.post("/api/quiz", async (req, res) => {
+  const { course = "", topic = "", concepts = [], quest = "", boss = false, syllabus = "", world = 0 } = req.body || {};
+  const count = boss ? BOSS_QUESTIONS : QUEST_QUESTIONS;
+
+  if (!client) {
+    // Demo mode: hand-written questions from demo-quests.json.
+    const demo = JSON.parse(readFileSync("demo-quests.json", "utf8"));
+    const pool = demo.worlds[Number(world)]?.demoQuiz || demo.worlds[0].demoQuiz;
+    return res.json({ questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) });
+  }
+
+  const conceptList = (Array.isArray(concepts) ? concepts : []).map(String).slice(0, 20).join("; ");
+  const prompt = [
+    `Course: ${String(course).slice(0, 200)}`,
+    `Unit: ${String(topic).slice(0, 300)}`,
+    conceptList && `Key concepts from the syllabus: ${conceptList}`,
+    boss ? "This is the unit boss: cover the whole unit, a bit harder than regular quests." : `Quest: ${String(quest).slice(0, 500)}`,
+    syllabus && `Syllabus text:\n${String(syllabus).slice(0, 20000)}`,
+    `Write ${count} questions.`,
+  ].filter(Boolean).join("\n\n");
+
+  try {
+    const response = await askClaude({
+      system: quizPrompt,
+      output_config: { effort: "low", format: { type: "json_schema", schema: quizSchema } },
+      messages: [{ role: "user", content: prompt }],
+    });
+    if (response.stop_reason === "refusal") {
+      return res.status(422).json({ error: "The AI couldn't write a quiz for this one. Try again." });
+    }
+    const text = response.content.find((block) => block.type === "text")?.text;
+    const questions = cleanQuiz(JSON.parse(text).questions || []).slice(0, count);
+    if (questions.length === 0) return res.status(502).json({ error: "The quiz came back empty. Try again." });
+    res.json({ questions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Couldn't make the quiz. Check the server log." });
   }
 });
 

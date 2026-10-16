@@ -27,6 +27,7 @@ function load() {
   data = data || {};
   return {
     map: data.map || null,
+    syllabus: data.syllabus || "", // pasted syllabus text, sent along when making quizzes
     done: data.done || {},
     profile: { xp: 0, coins: 0, days: [], badges: {}, owned: [], look: { ...DEFAULT_LOOK }, asked: false, ...data.profile },
   };
@@ -75,12 +76,13 @@ const BADGES = [
   { id: "level-5", icon: pixelIcon("arrow", 32), name: "Rising Star", desc: "Reach level 5", test: () => level() >= 5 },
   { id: "xp-1000", icon: pixelIcon("gem", 32), name: "XP Hoarder", desc: "Earn 1,000 XP", test: () => save.profile.xp >= 1000 },
   { id: "shopper", icon: pixelIcon("bag", 32), name: "Drip Check", desc: "Buy something in the shop", test: () => save.profile.owned.length >= 1 },
+  { id: "perfect", icon: pixelIcon("star", 32, { y: "#38e0e0" }), name: "Perfect Score", desc: "Get every question right on a quiz", test: () => save.profile.perfect },
   { id: "curious", icon: pixelIcon("question", 32), name: "Curious Mind", desc: "Ask the study coach a question", test: () => save.profile.asked },
 ];
 
 // Small icon per badge for the unlock toast (the BADGES list holds the big version).
 const ICON_OF = { "first-quest": "star", "ten-quests": "book", "first-boss": "sword", "three-bosses": "crown", "streak-3": "flame",
-  "streak-7": "flame", "level-5": "arrow", "xp-1000": "gem", shopper: "bag", curious: "question" };
+  "streak-7": "flame", "level-5": "arrow", "xp-1000": "gem", shopper: "bag", perfect: "star", curious: "question" };
 
 function checkBadges() {
   for (const badge of BADGES) {
@@ -187,8 +189,8 @@ function platform({ id, title, detail, xp, boss, locked, offset, here }) {
     actions.innerHTML = `<span class="cleared">[X] CLEARED</span>`;
   } else if (!locked) {
     const go = document.createElement("button");
-    go.textContent = boss ? "I BEAT IT" : "DONE";
-    go.addEventListener("click", () => complete(id, xp, title));
+    go.textContent = boss ? "FIGHT BOSS" : "START QUIZ";
+    go.addEventListener("click", () => startQuiz({ id, xp, title, detail, boss: Boolean(boss) }));
     actions.append(go);
   }
   if (!locked) {
@@ -351,6 +353,7 @@ $("generate").addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     save.map = data;
+    save.syllabus = $("syllabus").value.slice(0, 20000);
     save.done = {};
     persist();
     $("status").textContent = "";
@@ -365,6 +368,7 @@ $("generate").addEventListener("click", async () => {
 $("reset").addEventListener("click", () => {
   if (!confirm("Load a new syllabus? Your map resets, but you keep your XP, coins, avatar and badges.")) return;
   save.map = null;
+  save.syllabus = "";
   save.done = {};
   pdfData = null;
   $("pdf").value = "";

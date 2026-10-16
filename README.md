@@ -5,6 +5,7 @@ Upload or paste a class syllabus, and an AI (Claude) turns it into a game. Each 
 ## Features
 
 - **Obby-style quest map:** your avatar hops from platform to platform as you finish quests. Bosses stay locked until you clear the world.
+- **AI quiz battles:** every quest is a 4-question quiz the AI writes from your syllabus (pass with 3/4). Bosses are 6-question quizzes covering the whole unit (pass with 5/6). Miss and you can retry with new questions or ask the coach.
 - **Avatar + shop:** a blocky avatar you can recolor, plus hats, glasses, capes and wings you buy with coins earned from quests.
 - **XP, levels, streaks & badges:** level-up screen, a daily study streak, and 10 badges to unlock.
 - **PDF upload:** upload the syllabus PDF directly; Claude reads it.
@@ -38,15 +39,17 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 
 | File | What it does |
 |---|---|
-| `server.js` | Small Express server. `POST /api/quests` sends the syllabus (text or PDF) to Claude with a system prompt and a JSON schema and returns the quest map. `POST /api/coach` runs the study coach chat. The API key stays on the server. |
+| `server.js` | Small Express server. `POST /api/quests` sends the syllabus (text or PDF) to Claude with a system prompt and a JSON schema and returns the quest map. `POST /api/quiz` writes a quiz for one quest or boss. `POST /api/coach` runs the study coach chat. The API key stays on the server. |
 | `public/index.html` | The page and its four tabs. |
 | `public/app.js` | Game logic: map, XP, coins, levels, streaks, badges, shop, coach chat, saving progress in the browser. |
+| `public/quiz.js` | The quiz screen: loads questions, checks answers, shows explanations and results. |
 | `public/avatar.js` | Draws the blocky avatar and lists the shop items. |
 | `public/style.css` | The look. |
 | `demo-quests.json` | Sample data used when there's no API key. |
 
 Easy places to change things:
 - How the AI builds quests: `systemPrompt` and `questSchema` in `server.js`.
+- How quizzes are written: `quizPrompt`, `QUEST_QUESTIONS` and `BOSS_QUESTIONS` in `server.js`; pass marks are `PASS_RATE` in `public/quiz.js`.
 - How the coach talks: `coachPrompt` in `server.js`.
 - Badges: the `BADGES` list in `public/app.js`.
 - Shop items: the `SHOP` list in `public/avatar.js` (each item is a few lines of SVG).

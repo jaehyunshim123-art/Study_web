@@ -231,6 +231,36 @@ textarea::placeholder, input::placeholder { color: #6b6694; }
 .levelup-title { font-family: var(--head); font-size: 22px; color: var(--gold); text-shadow: 4px 4px 0 var(--red-dark); animation: blink 0.4s steps(2) infinite; }
 .levelup-num { font-family: var(--head); font-size: 56px; margin-top: 18px; color: var(--text); text-shadow: 6px 6px 0 var(--blue-dark); }
 
+/* ---------- quiz ---------- */
+
+body.no-scroll { overflow: hidden; }
+.quiz { position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, 0.82); overflow-y: auto; padding: 16px; }
+.quiz-box { max-width: 560px; margin: 24px auto; }
+.quiz-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.quiz-head h2 { font-size: 11px; }
+.quiz-progress { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--head); font-size: 9px; color: var(--muted); margin: 6px 0 14px; }
+.pips { display: flex; gap: 4px; }
+.pip { width: 14px; height: 14px; border: 2px solid var(--muted); }
+.pip.right { background: var(--green); border-color: var(--green); }
+.pip.wrong { background: var(--red); border-color: var(--red); }
+.quiz-question { font-size: 24px; margin: 0 0 14px; }
+.choices { display: grid; gap: 8px; margin-bottom: 12px; }
+.choice {
+  display: flex; gap: 10px; align-items: baseline; width: 100%; text-align: left;
+  font-family: var(--body); font-size: 21px; padding: 10px 12px;
+  background: var(--panel-2); box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.35);
+}
+.choice .letter { font-family: var(--head); font-size: 10px; color: var(--gold); }
+.choice:disabled { opacity: 0.6; cursor: default; }
+.choice.right { background: var(--green); color: #000; opacity: 1; }
+.choice.wrong { background: var(--red); opacity: 1; }
+.choice.right .letter, .choice.wrong .letter { color: inherit; }
+.explain { border-left: var(--px) solid var(--green); padding: 6px 10px; margin-bottom: 12px; background: #0a0916; }
+.explain.wrong { border-left-color: var(--red); }
+.explain strong { font-family: var(--head); font-weight: 400; font-size: 9px; }
+.quiz-message h3 { color: var(--gold); }
+.quiz-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
 [hidden] { display: none !important; }
 
 </style>
@@ -323,13 +353,36 @@ textarea::placeholder, input::placeholder { color: #6b6694; }
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <div id="levelup" class="levelup" hidden></div>
 
+  <!-- QUIZ: opens over everything when you start a quest -->
+  <div id="quiz" class="quiz" role="dialog" aria-modal="true" aria-labelledby="quiz-title" hidden>
+    <div class="box quiz-box">
+      <div class="quiz-head">
+        <h2 id="quiz-title"></h2>
+        <button id="quiz-close" class="ghost small" aria-label="Close quiz">X</button>
+      </div>
+      <div id="quiz-progress" class="quiz-progress"></div>
+      <div id="quiz-body"></div>
+    </div>
+  </div>
+
   <script>
-const DEMO_QUESTS = {"courseTitle":"AP Biology (demo)","worlds":[{"name":"The Cell Citadel","topic":"Unit 1: Cell structure and function","quests":[{"title":"Map the Citadel","task":"Draw and label a plant cell and an animal cell from memory, then check against the textbook.","xp":20},{"title":"Membrane Gatekeeper","task":"Explain diffusion, osmosis and active transport in your own words, one paragraph each.","xp":25},{"title":"Organelle Flashcards","task":"Make 12 flashcards: organelle on the front, job on the back.","xp":15}],"boss":{"name":"The Mitochondrial Golem","challenge":"Unit 1 test: score 80% or better on a practice test first.","xp":100}},{"name":"Energy Forge","topic":"Unit 2: Cellular respiration and photosynthesis","quests":[{"title":"Follow the Glucose","task":"Write the inputs and outputs of glycolysis, the Krebs cycle and the electron transport chain.","xp":30},{"title":"Sunlight Smith","task":"Compare light and dark reactions in a two-column table.","xp":20},{"title":"Teach It Back","task":"Explain photosynthesis to a friend or family member in under 2 minutes.","xp":15}],"boss":{"name":"The Chloroplast Dragon","challenge":"Lab report on photosynthesis rate, due end of unit.","xp":120}}],"demo":true};
-window.fetch = async (url) => {
+const DEMO_QUESTS = {"courseTitle":"AP Biology (demo)","worlds":[{"name":"The Cell Citadel","topic":"Unit 1: Cell structure and function","quests":[{"title":"Map the Citadel","task":"Draw and label a plant cell and an animal cell from memory, then check against the textbook.","xp":20},{"title":"Membrane Gatekeeper","task":"Explain diffusion, osmosis and active transport in your own words, one paragraph each.","xp":25},{"title":"Organelle Flashcards","task":"Make 12 flashcards: organelle on the front, job on the back.","xp":15}],"boss":{"name":"The Mitochondrial Golem","challenge":"Unit 1 test: score 80% or better on a practice test first.","xp":100},"keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles."}]},{"name":"Energy Forge","topic":"Unit 2: Cellular respiration and photosynthesis","quests":[{"title":"Follow the Glucose","task":"Write the inputs and outputs of glycolysis, the Krebs cycle and the electron transport chain.","xp":30},{"title":"Sunlight Smith","task":"Compare light and dark reactions in a two-column table.","xp":20},{"title":"Teach It Back","task":"Explain photosynthesis to a friend or family member in under 2 minutes.","xp":15}],"boss":{"name":"The Chloroplast Dragon","challenge":"Lab report on photosynthesis rate, due end of unit.","xp":120},"keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."}]}],"demo":true};
+const shuffle = (list) => [...list].sort(() => Math.random() - 0.5);
+function demoQuiz(request) {
+  const pool = (DEMO_QUESTS.worlds[request.world] || DEMO_QUESTS.worlds[0]).demoQuiz;
+  return shuffle(pool).slice(0, request.boss ? 6 : 4).map((q) => {
+    const order = shuffle([0, 1, 2, 3]);
+    return { ...q, choices: order.map((i) => q.choices[i]), answerIndex: order.indexOf(q.answerIndex) };
+  });
+}
+window.fetch = async (url, options = {}) => {
   await new Promise((done) => setTimeout(done, 400));
+  const request = options.body ? JSON.parse(options.body) : {};
   const body = url.endsWith("/api/coach")
     ? { reply: "This is the preview, so I can't really answer. In the full app with an API key, I'd explain this topic and quiz you on it." }
-    : DEMO_QUESTS;
+    : url.endsWith("/api/quiz")
+      ? { questions: demoQuiz(request) }
+      : DEMO_QUESTS;
   return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
 };</script>
 <script>
@@ -454,6 +507,7 @@ function load() {
   data = data || {};
   return {
     map: data.map || null,
+    syllabus: data.syllabus || "", // pasted syllabus text, sent along when making quizzes
     done: data.done || {},
     profile: { xp: 0, coins: 0, days: [], badges: {}, owned: [], look: { ...DEFAULT_LOOK }, asked: false, ...data.profile },
   };
@@ -502,12 +556,13 @@ const BADGES = [
   { id: "level-5", icon: pixelIcon("arrow", 32), name: "Rising Star", desc: "Reach level 5", test: () => level() >= 5 },
   { id: "xp-1000", icon: pixelIcon("gem", 32), name: "XP Hoarder", desc: "Earn 1,000 XP", test: () => save.profile.xp >= 1000 },
   { id: "shopper", icon: pixelIcon("bag", 32), name: "Drip Check", desc: "Buy something in the shop", test: () => save.profile.owned.length >= 1 },
+  { id: "perfect", icon: pixelIcon("star", 32, { y: "#38e0e0" }), name: "Perfect Score", desc: "Get every question right on a quiz", test: () => save.profile.perfect },
   { id: "curious", icon: pixelIcon("question", 32), name: "Curious Mind", desc: "Ask the study coach a question", test: () => save.profile.asked },
 ];
 
 // Small icon per badge for the unlock toast (the BADGES list holds the big version).
 const ICON_OF = { "first-quest": "star", "ten-quests": "book", "first-boss": "sword", "three-bosses": "crown", "streak-3": "flame",
-  "streak-7": "flame", "level-5": "arrow", "xp-1000": "gem", shopper: "bag", curious: "question" };
+  "streak-7": "flame", "level-5": "arrow", "xp-1000": "gem", shopper: "bag", perfect: "star", curious: "question" };
 
 function checkBadges() {
   for (const badge of BADGES) {
@@ -614,8 +669,8 @@ function platform({ id, title, detail, xp, boss, locked, offset, here }) {
     actions.innerHTML = `<span class="cleared">[X] CLEARED</span>`;
   } else if (!locked) {
     const go = document.createElement("button");
-    go.textContent = boss ? "I BEAT IT" : "DONE";
-    go.addEventListener("click", () => complete(id, xp, title));
+    go.textContent = boss ? "FIGHT BOSS" : "START QUIZ";
+    go.addEventListener("click", () => startQuiz({ id, xp, title, detail, boss: Boolean(boss) }));
     actions.append(go);
   }
   if (!locked) {
@@ -778,6 +833,7 @@ $("generate").addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     save.map = data;
+    save.syllabus = $("syllabus").value.slice(0, 20000);
     save.done = {};
     persist();
     $("status").textContent = "";
@@ -792,6 +848,7 @@ $("generate").addEventListener("click", async () => {
 $("reset").addEventListener("click", () => {
   if (!confirm("Load a new syllabus? Your map resets, but you keep your XP, coins, avatar and badges.")) return;
   save.map = null;
+  save.syllabus = "";
   save.done = {};
   pdfData = null;
   $("pdf").value = "";
@@ -859,6 +916,165 @@ $("coin-icon").innerHTML = pixelIcon("coin", 14);
 $("streak-icon").innerHTML = pixelIcon("flame", 14);
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => switchTab(tab.dataset.tab)));
 render();
+
+// Quiz battles: every quest and boss is cleared by passing a quiz the AI writes from your syllabus.
+// startQuiz() opens the quiz screen, asks the server for questions, then walks through them one by one.
+
+const PASS_RATE = { quest: 0.75, boss: 0.8 }; // share of questions you must get right
+
+let quiz = null; // { quest, questions, index, score, results }
+
+function startQuiz(quest) {
+  quiz = { quest, questions: [], index: 0, score: 0, results: [] };
+  $("quiz").hidden = false;
+  document.body.classList.add("no-scroll");
+  $("quiz-title").textContent = quest.boss ? `BOSS BATTLE: ${quest.title}` : `QUIZ: ${quest.title}`;
+  $("quiz-progress").replaceChildren();
+  showQuizMessage("GENERATING QUIZ...", "The AI is writing questions from your syllabus.");
+  loadQuiz(quiz);
+}
+
+async function loadQuiz(thisQuiz) {
+  const { quest } = thisQuiz;
+  const w = Number(quest.id.match(/^w(\d+)/)[1]);
+  const world = save.map.worlds[w];
+  try {
+    const res = await fetch("/api/quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        course: save.map.courseTitle,
+        topic: world.topic,
+        concepts: world.keyConcepts || [],
+        quest: `${quest.title}: ${quest.detail}`,
+        boss: quest.boss,
+        syllabus: save.syllabus,
+        world: w,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    if (quiz !== thisQuiz) return; // closed or restarted while loading
+    quiz.questions = data.questions;
+    showQuestion();
+  } catch (err) {
+    if (quiz !== thisQuiz) return;
+    showQuizMessage("ERROR", err.message || "Couldn't load the quiz.", [
+      ["TRY AGAIN", () => startQuiz(quest)],
+      ["BACK", closeQuiz, "ghost"],
+    ]);
+  }
+}
+
+function closeQuiz() {
+  quiz = null;
+  $("quiz").hidden = true;
+  document.body.classList.remove("no-scroll");
+}
+
+// A title, a line of text and some buttons: used for loading, errors and the results screen.
+function showQuizMessage(title, text, buttons = []) {
+  const body = $("quiz-body");
+  body.innerHTML = `<div class="quiz-message"><h3>${escapeHTML(title)}</h3><p>${escapeHTML(text)}</p></div>`;
+  const row = document.createElement("div");
+  row.className = "quiz-buttons";
+  for (const [label, onClick, kind] of buttons) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    if (kind) b.className = kind;
+    b.addEventListener("click", onClick);
+    row.append(b);
+  }
+  body.append(row);
+  row.querySelector("button")?.focus();
+}
+
+function renderProgress() {
+  const n = quiz.questions.length;
+  const pips = quiz.questions
+    .map((_, i) => `<span class="pip ${quiz.results[i] === true ? "right" : quiz.results[i] === false ? "wrong" : ""}"></span>`)
+    .join("");
+  $("quiz-progress").innerHTML = `<span>Q ${Math.min(quiz.index + 1, n)}/${n}</span><span class="pips">${pips}</span><span>SCORE ${quiz.score}</span>`;
+}
+
+function showQuestion() {
+  renderProgress();
+  const q = quiz.questions[quiz.index];
+  const body = $("quiz-body");
+  body.innerHTML = `<p class="quiz-question">${escapeHTML(q.question)}</p>`;
+
+  const choices = document.createElement("div");
+  choices.className = "choices";
+  q.choices.forEach((choice, i) => {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.innerHTML = `<span class="letter">${"ABCD"[i]}</span> ${escapeHTML(choice)}`;
+    b.addEventListener("click", () => answer(i));
+    choices.append(b);
+  });
+  body.append(choices);
+  choices.querySelector("button").focus();
+}
+
+function answer(picked) {
+  const q = quiz.questions[quiz.index];
+  const right = picked === q.answerIndex;
+  if (right) quiz.score++;
+  quiz.results[quiz.index] = right;
+  renderProgress();
+
+  const buttons = $("quiz-body").querySelectorAll(".choice");
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.answerIndex) b.classList.add("right");
+    else if (i === picked) b.classList.add("wrong");
+  });
+
+  const explain = document.createElement("div");
+  explain.className = `explain ${right ? "right" : "wrong"}`;
+  explain.innerHTML = `<strong>${right ? "CORRECT!" : "NOT QUITE."}</strong> ${escapeHTML(q.explanation)}`;
+
+  const last = quiz.index === quiz.questions.length - 1;
+  const next = document.createElement("button");
+  next.textContent = last ? "SEE RESULTS" : "NEXT";
+  next.addEventListener("click", () => {
+    quiz.index++;
+    last ? finishQuiz() : showQuestion();
+  });
+  $("quiz-body").append(explain, next);
+  next.focus();
+}
+
+function finishQuiz() {
+  const { quest, score } = quiz;
+  const total = quiz.questions.length;
+  const needed = Math.ceil(total * (quest.boss ? PASS_RATE.boss : PASS_RATE.quest));
+  renderProgress();
+
+  if (score >= needed) {
+    if (score === total) save.profile.perfect = true;
+    showQuizMessage(quest.boss ? "BOSS DEFEATED!" : "QUEST CLEARED!", `You got ${score}/${total}.`, [
+      [`COLLECT +${quest.xp} XP`, () => {
+        closeQuiz();
+        complete(quest.id, quest.xp, quest.title);
+      }],
+    ]);
+  } else {
+    showQuizMessage("NOT YET", `You got ${score}/${total}. You need ${needed} to clear it.`, [
+      ["RETRY", () => startQuiz(quest)],
+      ["ASK COACH", () => {
+        closeQuiz();
+        openCoach(`${quest.title}: ${quest.detail}`);
+      }, "ghost"],
+      ["BACK", closeQuiz, "ghost"],
+    ]);
+  }
+}
+
+$("quiz-close").addEventListener("click", closeQuiz);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && quiz) closeQuiz();
+});
 
 </script>
 </body>

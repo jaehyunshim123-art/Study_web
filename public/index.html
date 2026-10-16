@@ -96,8 +96,21 @@
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <div id="levelup" class="levelup" hidden></div>
 
+  <!-- QUIZ: opens over everything when you start a quest -->
+  <div id="quiz" class="quiz" role="dialog" aria-modal="true" aria-labelledby="quiz-title" hidden>
+    <div class="box quiz-box">
+      <div class="quiz-head">
+        <h2 id="quiz-title"></h2>
+        <button id="quiz-close" class="ghost small" aria-label="Close quiz">X</button>
+      </div>
+      <div id="quiz-progress" class="quiz-progress"></div>
+      <div id="quiz-body"></div>
+    </div>
+  </div>
+
   <script src="pixel.js"></script>
   <script src="avatar.js"></script>
   <script src="app.js"></script>
+  <script src="quiz.js"></script>
 </body>
 </html>

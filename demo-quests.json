@@ -5,21 +5,206 @@
       "name": "The Cell Citadel",
       "topic": "Unit 1: Cell structure and function",
       "quests": [
-        { "title": "Map the Citadel", "task": "Draw and label a plant cell and an animal cell from memory, then check against the textbook.", "xp": 20 },
-        { "title": "Membrane Gatekeeper", "task": "Explain diffusion, osmosis and active transport in your own words, one paragraph each.", "xp": 25 },
-        { "title": "Organelle Flashcards", "task": "Make 12 flashcards: organelle on the front, job on the back.", "xp": 15 }
+        {
+          "title": "Map the Citadel",
+          "task": "Draw and label a plant cell and an animal cell from memory, then check against the textbook.",
+          "xp": 20
+        },
+        {
+          "title": "Membrane Gatekeeper",
+          "task": "Explain diffusion, osmosis and active transport in your own words, one paragraph each.",
+          "xp": 25
+        },
+        {
+          "title": "Organelle Flashcards",
+          "task": "Make 12 flashcards: organelle on the front, job on the back.",
+          "xp": 15
+        }
       ],
-      "boss": { "name": "The Mitochondrial Golem", "challenge": "Unit 1 test: score 80% or better on a practice test first.", "xp": 100 }
+      "boss": {
+        "name": "The Mitochondrial Golem",
+        "challenge": "Unit 1 test: score 80% or better on a practice test first.",
+        "xp": 100
+      },
+      "keyConcepts": [
+        "organelles",
+        "plant vs animal cells",
+        "cell membrane",
+        "diffusion",
+        "osmosis",
+        "active transport",
+        "protein synthesis"
+      ],
+      "demoQuiz": [
+        {
+          "question": "Which organelle makes most of a cell's ATP?",
+          "choices": [
+            "Nucleus",
+            "Mitochondrion",
+            "Ribosome",
+            "Golgi apparatus"
+          ],
+          "answerIndex": 1,
+          "explanation": "Mitochondria run cellular respiration, which produces most of the cell's ATP."
+        },
+        {
+          "question": "Which structure is found in plant cells but not in animal cells?",
+          "choices": [
+            "Cell membrane",
+            "Ribosome",
+            "Cell wall",
+            "Mitochondrion"
+          ],
+          "answerIndex": 2,
+          "explanation": "Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."
+        },
+        {
+          "question": "Water moving across a membrane toward the side with more dissolved solute is called:",
+          "choices": [
+            "Active transport",
+            "Osmosis",
+            "Endocytosis",
+            "Phosphorylation"
+          ],
+          "answerIndex": 1,
+          "explanation": "Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."
+        },
+        {
+          "question": "Which of these needs energy from ATP?",
+          "choices": [
+            "Simple diffusion",
+            "Osmosis",
+            "Facilitated diffusion",
+            "The sodium-potassium pump"
+          ],
+          "answerIndex": 3,
+          "explanation": "The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."
+        },
+        {
+          "question": "Where are proteins made in the cell?",
+          "choices": [
+            "Ribosomes",
+            "Lysosomes",
+            "Vacuoles",
+            "Cell wall"
+          ],
+          "answerIndex": 0,
+          "explanation": "Ribosomes read mRNA and link amino acids into proteins."
+        },
+        {
+          "question": "Which organelle modifies and packages proteins to be shipped out?",
+          "choices": [
+            "Golgi apparatus",
+            "Nucleolus",
+            "Chloroplast",
+            "Centriole"
+          ],
+          "answerIndex": 0,
+          "explanation": "The Golgi apparatus modifies, sorts and packages proteins into vesicles."
+        }
+      ]
     },
     {
       "name": "Energy Forge",
       "topic": "Unit 2: Cellular respiration and photosynthesis",
       "quests": [
-        { "title": "Follow the Glucose", "task": "Write the inputs and outputs of glycolysis, the Krebs cycle and the electron transport chain.", "xp": 30 },
-        { "title": "Sunlight Smith", "task": "Compare light and dark reactions in a two-column table.", "xp": 20 },
-        { "title": "Teach It Back", "task": "Explain photosynthesis to a friend or family member in under 2 minutes.", "xp": 15 }
+        {
+          "title": "Follow the Glucose",
+          "task": "Write the inputs and outputs of glycolysis, the Krebs cycle and the electron transport chain.",
+          "xp": 30
+        },
+        {
+          "title": "Sunlight Smith",
+          "task": "Compare light and dark reactions in a two-column table.",
+          "xp": 20
+        },
+        {
+          "title": "Teach It Back",
+          "task": "Explain photosynthesis to a friend or family member in under 2 minutes.",
+          "xp": 15
+        }
       ],
-      "boss": { "name": "The Chloroplast Dragon", "challenge": "Lab report on photosynthesis rate, due end of unit.", "xp": 120 }
+      "boss": {
+        "name": "The Chloroplast Dragon",
+        "challenge": "Lab report on photosynthesis rate, due end of unit.",
+        "xp": 120
+      },
+      "keyConcepts": [
+        "glycolysis",
+        "Krebs cycle",
+        "electron transport chain",
+        "ATP",
+        "light-dependent reactions",
+        "Calvin cycle"
+      ],
+      "demoQuiz": [
+        {
+          "question": "Where does glycolysis take place?",
+          "choices": [
+            "Mitochondrial matrix",
+            "Cytoplasm",
+            "Thylakoid membrane",
+            "Nucleus"
+          ],
+          "answerIndex": 1,
+          "explanation": "Glycolysis happens in the cytoplasm and doesn't need oxygen."
+        },
+        {
+          "question": "Which stage of cellular respiration makes the most ATP?",
+          "choices": [
+            "Glycolysis",
+            "Krebs cycle",
+            "Electron transport chain",
+            "Fermentation"
+          ],
+          "answerIndex": 2,
+          "explanation": "The electron transport chain powers ATP synthase and makes most of the ATP."
+        },
+        {
+          "question": "What is the final electron acceptor in aerobic respiration?",
+          "choices": [
+            "Oxygen",
+            "Carbon dioxide",
+            "Glucose",
+            "NADH"
+          ],
+          "answerIndex": 0,
+          "explanation": "Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."
+        },
+        {
+          "question": "The light-dependent reactions of photosynthesis happen in the:",
+          "choices": [
+            "Stroma",
+            "Thylakoid membranes",
+            "Cytoplasm",
+            "Cell wall"
+          ],
+          "answerIndex": 1,
+          "explanation": "The light reactions run in the thylakoid membranes, where chlorophyll captures light."
+        },
+        {
+          "question": "Which gas is released by the light-dependent reactions?",
+          "choices": [
+            "Carbon dioxide",
+            "Nitrogen",
+            "Oxygen",
+            "Methane"
+          ],
+          "answerIndex": 2,
+          "explanation": "Splitting water in the light reactions releases oxygen."
+        },
+        {
+          "question": "The Calvin cycle uses ATP and NADPH to:",
+          "choices": [
+            "Split water",
+            "Turn CO2 into sugar",
+            "Make oxygen",
+            "Absorb light"
+          ],
+          "answerIndex": 1,
+          "explanation": "The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."
+        }
+      ]
     }
   ]
 }
