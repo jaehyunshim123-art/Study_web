@@ -51,7 +51,8 @@ button:focus-visible, .drop:focus-within, summary:focus-visible { outline: 3px s
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
 .brand .plus { color: var(--accent); }
 .brand-mark { width: 14px; height: 14px; background: var(--accent); box-shadow: 6px 6px 0 var(--ink); }
-.top-note { color: var(--muted); font-size: 14px; }
+.top-note { color: var(--muted); font-size: 14px; text-decoration: none; }
+.top-note:hover { color: var(--ink); }
 @media (max-width: 480px) { .top-note { display: none; } }
 
 .hero {
@@ -128,6 +129,16 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .screen-text.busy { color: var(--accent); }
 @keyframes blink { 50% { opacity: 0.25; } }
 
+/* how it works (landing) */
+.how { max-width: 1180px; width: 100%; margin: 0 auto; padding: 8px clamp(16px, 5vw, 56px) 32px; }
+.how h2 { font-size: 22px; letter-spacing: -0.02em; margin: 0 0 16px; }
+.how ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.how li { border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.how-num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: #fff; font-family: var(--pixel); font-size: 10px; }
+.how h3 { font-size: 16px; margin: 12px 0 6px; }
+.how p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 15px; }
+@media (max-width: 820px) { .how ol { grid-template-columns: 1fr; } }
+
 .foot { padding: 18px clamp(16px, 5vw, 56px) 28px; color: var(--muted); font-size: 13px; text-align: center; }
 
 @media (max-width: 820px) {
@@ -165,9 +176,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 
 /* two screens side by side; the shop slides in over the game */
 .views { display: flex; height: 100%; transition: transform 480ms cubic-bezier(0.65, 0, 0.35, 1); }
-.views.at-shop { transform: translateX(-100%); }
 .view { flex: 0 0 100%; height: 100%; overflow-y: auto; padding: 14px clamp(14px, 3.5vw, 30px) 24px; }
-.view > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+.view > * { max-width: 640px; margin-left: auto; margin-right: auto; }
 .view.bare .hud, .view.bare .trailbox { display: none; }
 
 /* control deck: joystick + four answer buttons */
@@ -225,51 +235,62 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   white-space: nowrap;
 }
 .hud-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
-.hud-shop { margin-left: auto; background: var(--accent); color: #fff; }
+.hud-help { margin-left: auto; padding-left: 13px; padding-right: 13px; }
+.hud-shop { background: var(--accent); color: #fff; }
+@media (max-width: 480px) {
+  .hud { gap: 6px; }
+  .hud-btn { font-size: 8px; padding: 9px 8px; }
+  .hud-help { padding-left: 10px; padding-right: 10px; }
+  .hud-shop .arrow { display: none; }
+  .hud-stat { padding: 0 2px; }
+  .hud-stat .v { font-size: 12px; }
+  .hud-stat .k { font-size: 7px; }
+}
+@media (max-width: 360px) { .hud .lbl { display: none; } }
 .hud-stat { display: grid; gap: 4px; padding: 0 6px; }
 .hud-stat .k { font-family: var(--pixel); font-size: 8px; color: var(--muted); }
 .hud-stat .v { font-family: var(--pixel); font-size: 14px; }
 .hud-stat .v.bump { animation: bump 400ms ease-out; }
 @keyframes bump { 30% { transform: scale(1.35); color: var(--good); } }
 
-.scene { margin-top: 14px; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; line-height: 0; background: #e9f3fb; }
-.scene > svg { width: 100%; height: auto; display: block; }
+.scene { margin-top: 10px; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; line-height: 0; background: #e9f3fb; }
+.scene > svg { width: 100%; height: auto; aspect-ratio: 320 / 90; max-height: clamp(70px, 16vh, 150px); display: block; }
 .wagon { transition: transform 700ms steps(8); }
 
-.leg { margin-top: 10px; }
+.leg { margin-top: 8px; }
 .leg-names, .leg-meta { display: flex; justify-content: space-between; gap: 12px; }
 .leg-names { font-family: var(--pixel); font-size: 9px; line-height: 1.6; }
 .leg-names span:last-child { text-align: right; color: var(--accent); }
-.leg-bar { height: 10px; margin: 8px 0 6px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; }
+.leg-bar { height: 8px; margin: 6px 0 4px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; }
 #leg-fill { height: 100%; width: 0; background: var(--good); transition: width 500ms ease-out; }
 .leg-meta { font-size: 13px; color: var(--muted); }
 
-.play { margin-top: 18px; }
+.play { margin-top: 12px; }
 .view.bare .play { margin-top: 0; min-height: 100%; display: grid; align-content: center; }
-.card { background: #fff; border: 2px solid var(--ink); border-radius: 14px; padding: clamp(16px, 3vw, 24px); box-shadow: 0 4px 0 var(--ink); }
-.q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
+.card { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: clamp(12px, 2.4vw, 18px); box-shadow: 0 3px 0 var(--ink); }
+.q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 8px; }
 .q-count { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 0; }
 .link-btn { border: 0; background: none; padding: 4px 0; font-family: var(--pixel); font-size: 8px; color: var(--b); text-decoration: underline; text-underline-offset: 3px; }
-.q-text { font-size: clamp(19px, 2.6vw, 23px); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; margin: 0 0 18px; }
-.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.q-text { font-size: clamp(16px, 2vw, 19px); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; margin: 0 0 12px; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 560px) { .answers { grid-template-columns: 1fr; } }
 .answer {
   display: flex;
   align-items: center;
   gap: 12px;
   text-align: left;
-  padding: 14px;
-  min-height: 64px;
+  padding: 8px 10px;
+  min-height: 46px;
   border: 2px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.3;
   transition: border-color 120ms, transform 120ms, background 120ms;
 }
 .answer:hover:not(:disabled) { border-color: var(--ink); transform: translateY(-2px); }
-.answer .key { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-family: var(--pixel); font-size: 10px; border: 2px solid var(--ink); }
+.answer .key { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-family: var(--pixel); font-size: 10px; border: 2px solid var(--ink); }
 .answer:nth-child(1) .key { background: var(--a); }
 .answer:nth-child(2) .key { background: var(--b); }
 .answer:nth-child(3) .key { background: var(--c); }
@@ -279,11 +300,11 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .answer.right { border-color: var(--good); background: var(--good-soft); opacity: 1; }
 .answer.wrong { border-color: var(--bad); background: var(--bad-soft); opacity: 1; }
 
-.feedback { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.feedback { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .feedback .gain { font-family: var(--pixel); font-size: 11px; color: var(--good); }
 .feedback .loss { font-family: var(--pixel); font-size: 11px; color: var(--bad); }
-.feedback .why { flex-basis: 100%; margin: 0; color: var(--muted); line-height: 1.5; }
-.btn-next { font-family: var(--pixel); font-size: 10px; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 10px; background: var(--ink); color: #fff; box-shadow: 0 3px 0 #000; }
+.feedback .why { flex-basis: 100%; margin: 0; color: var(--muted); line-height: 1.45; font-size: 14px; }
+.btn-next { font-family: var(--pixel); font-size: 10px; padding: 10px 14px; border: 2px solid var(--ink); border-radius: 10px; background: var(--ink); color: #fff; box-shadow: 0 3px 0 #000; }
 .btn-next .hint { display: inline-block; margin-left: 8px; width: 18px; height: 18px; line-height: 15px; border-radius: 50%; background: var(--a); border: 2px solid #fff; font-size: 7px; text-align: center; vertical-align: 1px; }
 .btn-ghost { font-family: var(--pixel); font-size: 10px; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
 
@@ -299,17 +320,17 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 
 /* lesson summary before each unit */
 .lesson .eyebrow-px { font-family: var(--pixel); font-size: 9px; color: var(--accent); margin: 0 0 10px; }
-.lesson h2 { font-size: clamp(22px, 3.2vw, 28px); letter-spacing: -0.02em; line-height: 1.2; margin: 0 0 10px; }
-.lesson .overview { font-size: 17px; line-height: 1.6; color: var(--ink); margin: 0 0 18px; }
-.lesson h3 { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 18px 0 10px; }
+.lesson h2 { font-size: clamp(19px, 2.6vw, 24px); letter-spacing: -0.02em; line-height: 1.2; margin: 0 0 10px; }
+.lesson .overview { font-size: 15px; line-height: 1.55; color: var(--ink); margin: 0 0 18px; }
+.lesson h3 { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 14px 0 8px; }
 .lesson ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.lesson li { position: relative; padding-left: 20px; line-height: 1.5; }
+.lesson li { position: relative; padding-left: 20px; line-height: 1.45; font-size: 15px; }
 .lesson li::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 8px; height: 8px; background: var(--accent); }
 .terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 0; }
 .terms div { border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .terms dt { font-weight: 700; margin-bottom: 2px; }
 .terms dd { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
-.lesson .btn-next { margin-top: 22px; }
+.lesson .btn-next { margin-top: 16px; }
 
 /* loading screen */
 .loading { text-align: left; max-width: 460px; margin: 0 auto; width: 100%; }
@@ -325,6 +346,20 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .steps li.done .box { background: var(--good); border-color: var(--good); color: #fff; }
 .loading .error { color: var(--bad); margin: 18px 0 0; line-height: 1.5; }
 .loading .btn-next { margin-top: 14px; }
+
+/* ---------- help (its own screen) ---------- */
+
+.help-steps { list-style: none; margin: 0 auto; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .help-steps { grid-template-columns: 1fr; } }
+.help-steps li { display: flex; gap: 12px; background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 14px; box-shadow: 0 3px 0 var(--ink); }
+.help-steps .num { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink); color: #fff; font-family: var(--pixel); font-size: 10px; background: var(--a); }
+.help-steps li:nth-child(2) .num { background: var(--b); }
+.help-steps li:nth-child(3) .num { background: var(--c); }
+.help-steps li:nth-child(4) .num { background: var(--d); }
+.help-steps li:nth-child(5) .num { background: var(--accent); }
+.help-steps li:nth-child(6) .num { background: var(--ink); }
+.help-steps h3 { margin: 2px 0 4px; font-size: 15px; }
+.help-steps p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 
 /* ---------- shop (its own screen) ---------- */
 
@@ -354,7 +389,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   <div id="landing" class="landing">
     <header class="top">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
-      <span class="top-note">A study arcade</span>
+      <a class="top-note" href="#how">How it works</a>
     </header>
 
     <main class="hero">
@@ -416,6 +451,15 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
       </div>
     </main>
 
+    <section class="how" id="how" aria-labelledby="how-title">
+      <h2 id="how-title">How it works</h2>
+      <ol>
+        <li><span class="how-num">1</span><h3>Insert your syllabus</h3><p>Upload the PDF (or paste the text). The AI turns each unit into a stop on a wagon journey to the final exam.</p></li>
+        <li><span class="how-num">2</span><h3>Read the lesson</h3><p>Every unit opens with a short summary: an overview, the key points and the key terms.</p></li>
+        <li><span class="how-num">3</span><h3>Answer to travel</h3><p>Right answers earn coins and move your wagon. Spend coins on upgrades and reach the finish.</p></li>
+      </ol>
+    </section>
+
     <footer class="foot">Questions are written by AI from your syllabus. Double-check anything that matters for a grade.</footer>
   </div>
 
@@ -427,10 +471,11 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
           <div class="views" id="views">
             <section class="view" id="view-play">
               <div class="hud" id="hud">
-                <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
+                <button id="exit" class="hud-btn" aria-label="Exit to the arcade">&lt;<span class="lbl"> EXIT</span></button>
                 <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
                 <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
-                <button id="shop-btn" class="hud-btn hud-shop">SHOP &gt;</button>
+                <button id="help-btn" class="hud-btn hud-help" aria-label="How to play">?</button>
+                <button id="shop-btn" class="hud-btn hud-shop">SHOP<span class="arrow"> &gt;</span></button>
               </div>
               <div class="trailbox" id="trailbox">
                 <div class="scene" id="scene"></div>
@@ -451,6 +496,22 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
               </div>
               <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
               <div id="shop-list" class="shop-list"></div>
+            </section>
+
+            <section class="view" id="view-help" inert>
+              <div class="hud">
+                <button id="help-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
+                <h2 class="shop-title">HOW TO PLAY</h2>
+              </div>
+              <p class="shop-intro" id="help-intro">Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.</p>
+              <ol class="help-steps">
+                <li><span class="num">1</span><div><h3>Read the lesson</h3><p>Every unit starts with a short summary: an overview, key points and key terms. Reopen it from any question with REVIEW LESSON.</p></div></li>
+                <li><span class="num">2</span><div><h3>Answer questions</h3><p>Pick A, B, C or D. Tap an answer, press the arcade buttons under the screen, or use keys 1-4.</p></div></li>
+                <li><span class="num">3</span><div><h3>Earn coins and miles</h3><p>Right answers earn coins and move your wagon. 100 miles reaches the unit's landmark and opens the next lesson.</p></div></li>
+                <li><span class="num">4</span><div><h3>Keep a streak</h3><p>Answers in a row build a streak. A wrong answer resets it and costs a few coins, and that question comes back later so you can learn it.</p></div></li>
+                <li><span class="num">5</span><div><h3>Upgrade in the shop</h3><p>Spend coins on Earnings (more coins), Streak bonus (extra coins per streak) and Stronger oxen (more miles per answer).</p></div></li>
+                <li><span class="num">6</span><div><h3>Reach the final exam</h3><p>Clear every unit to finish the trail and see your accuracy and best streak. EXIT saves your game anytime.</p></div></li>
+              </ol>
             </section>
           </div>
         </div>
@@ -641,7 +702,7 @@ window.fetch = async (url, options = {}) => {
 // Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
 // then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
 // the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
-// to win. Coins buy upgrades in the shop, which slides in as its own screen.
+// to win. Coins buy upgrades in the shop; the shop and the How to Play help slide in as their own screens.
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
@@ -953,7 +1014,7 @@ function drawScene() {
   s += unit === 0 && !game.finished ? px(22, 50, 2, 16, "#6e4a2b") + px(16, 48, 14, 6, "#e5d3ae") : fort(24, "#3b6fe0");
   s += fort(292, game.finished ? "#1f9d55" : "#ff4d2e");
   s += `<g id="wagon" class="wagon">${wagon()}</g>`;
-  $("scene").innerHTML = `<svg viewBox="0 0 320 90" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
+  $("scene").innerHTML = `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
 
   // roll the wagon from where it was to where it is now
   const el = $("wagon");
@@ -962,24 +1023,44 @@ function drawScene() {
   lastWagon = x;
 }
 
-// ---------- shop: its own screen that slides in ----------
+// ---------- screens: play, shop and help slide side by side ----------
 
-const shopOpen = () => $("views").classList.contains("at-shop");
+const VIEWS = ["play", "shop", "help"];
+const HELP_SEEN_KEY = "study-helper-help-seen";
+let view = "play";
+const shopOpen = () => view !== "play"; // any screen other than the game
+
+function showView(name, focusId) {
+  view = name;
+  $("views").style.transform = `translateX(-${VIEWS.indexOf(name) * 100}%)`;
+  for (const v of VIEWS) $(`view-${v}`).inert = v !== name;
+  $(`view-${name}`).scrollTop = 0;
+  if (focusId) setTimeout(() => $(focusId).focus({ preventScroll: true }), 50);
+}
 
 function openShop() {
   renderShop();
-  $("views").classList.add("at-shop");
-  $("view-play").inert = true;
-  $("view-shop").inert = false;
-  $("view-shop").scrollTop = 0;
-  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 50);
+  showView("shop", "shop-back");
 }
 
 function closeShop() {
-  $("views").classList.remove("at-shop");
-  $("view-shop").inert = true;
-  $("view-play").inert = false;
-  setTimeout(() => $("shop-btn").focus({ preventScroll: true }), 50);
+  showView("play", view === "help" ? "help-btn" : "shop-btn");
+}
+
+// first = shown automatically the first time someone plays
+function openHelp(first = false) {
+  $("help-intro").textContent = (first ? "Welcome! " : "") +
+    "Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.";
+  $("help-back").innerHTML = first ? "LET'S GO &gt;" : "&lt; BACK";
+  showView("help", "help-back");
+}
+
+function helpSeen() {
+  try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
+}
+
+function markHelpSeen() {
+  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
 }
 
 function renderShop() {
@@ -1047,22 +1128,31 @@ document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click",
 
 function startGame() {
   $("view-play").classList.remove("bare");
-  closeShop();
+  showView("play");
   lastWagon = null;
   shownCoins = null;
   renderHUD();
   drawScene();
   if (game.finished) renderWin();
   else startUnit();
+  if (!helpSeen()) openHelp(true);
 }
 
 $("shop-btn").addEventListener("click", openShop);
 $("shop-back").addEventListener("click", closeShop);
+$("help-btn").addEventListener("click", () => openHelp());
+$("help-back").addEventListener("click", () => {
+  markHelpSeen();
+  closeShop();
+});
 
 // Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === "Escape" && shopOpen()) return closeShop();
+  if (e.key === "Escape" && shopOpen()) {
+    if (view === "help") markHelpSeen();
+    return closeShop();
+  }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
   if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
   const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());

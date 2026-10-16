@@ -2,7 +2,7 @@
 // Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
 // then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
 // the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
-// to win. Coins buy upgrades in the shop, which slides in as its own screen.
+// to win. Coins buy upgrades in the shop; the shop and the How to Play help slide in as their own screens.
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
@@ -314,7 +314,7 @@ function drawScene() {
   s += unit === 0 && !game.finished ? px(22, 50, 2, 16, "#6e4a2b") + px(16, 48, 14, 6, "#e5d3ae") : fort(24, "#3b6fe0");
   s += fort(292, game.finished ? "#1f9d55" : "#ff4d2e");
   s += `<g id="wagon" class="wagon">${wagon()}</g>`;
-  $("scene").innerHTML = `<svg viewBox="0 0 320 90" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
+  $("scene").innerHTML = `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
 
   // roll the wagon from where it was to where it is now
   const el = $("wagon");
@@ -323,24 +323,44 @@ function drawScene() {
   lastWagon = x;
 }
 
-// ---------- shop: its own screen that slides in ----------
+// ---------- screens: play, shop and help slide side by side ----------
 
-const shopOpen = () => $("views").classList.contains("at-shop");
+const VIEWS = ["play", "shop", "help"];
+const HELP_SEEN_KEY = "study-helper-help-seen";
+let view = "play";
+const shopOpen = () => view !== "play"; // any screen other than the game
+
+function showView(name, focusId) {
+  view = name;
+  $("views").style.transform = `translateX(-${VIEWS.indexOf(name) * 100}%)`;
+  for (const v of VIEWS) $(`view-${v}`).inert = v !== name;
+  $(`view-${name}`).scrollTop = 0;
+  if (focusId) setTimeout(() => $(focusId).focus({ preventScroll: true }), 50);
+}
 
 function openShop() {
   renderShop();
-  $("views").classList.add("at-shop");
-  $("view-play").inert = true;
-  $("view-shop").inert = false;
-  $("view-shop").scrollTop = 0;
-  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 50);
+  showView("shop", "shop-back");
 }
 
 function closeShop() {
-  $("views").classList.remove("at-shop");
-  $("view-shop").inert = true;
-  $("view-play").inert = false;
-  setTimeout(() => $("shop-btn").focus({ preventScroll: true }), 50);
+  showView("play", view === "help" ? "help-btn" : "shop-btn");
+}
+
+// first = shown automatically the first time someone plays
+function openHelp(first = false) {
+  $("help-intro").textContent = (first ? "Welcome! " : "") +
+    "Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.";
+  $("help-back").innerHTML = first ? "LET'S GO &gt;" : "&lt; BACK";
+  showView("help", "help-back");
+}
+
+function helpSeen() {
+  try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
+}
+
+function markHelpSeen() {
+  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
 }
 
 function renderShop() {
@@ -408,22 +428,31 @@ document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click",
 
 function startGame() {
   $("view-play").classList.remove("bare");
-  closeShop();
+  showView("play");
   lastWagon = null;
   shownCoins = null;
   renderHUD();
   drawScene();
   if (game.finished) renderWin();
   else startUnit();
+  if (!helpSeen()) openHelp(true);
 }
 
 $("shop-btn").addEventListener("click", openShop);
 $("shop-back").addEventListener("click", closeShop);
+$("help-btn").addEventListener("click", () => openHelp());
+$("help-back").addEventListener("click", () => {
+  markHelpSeen();
+  closeShop();
+});
 
 // Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === "Escape" && shopOpen()) return closeShop();
+  if (e.key === "Escape" && shopOpen()) {
+    if (view === "help") markHelpSeen();
+    return closeShop();
+  }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
   if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
   const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());

@@ -8,6 +8,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. You can reopen the lesson from any question.
 - **Answer to move:** right answers earn coins and move your wagon toward the unit's landmark; each unit is a 100-mile leg. Reach the last landmark to win.
 - **Arcade controls:** the four buttons under the screen answer A-D (keys 1-4 work too) and press the screen's main button on other screens.
+- **Help:** the ? button opens How to Play, which slides in as its own screen. It also opens automatically the first time you play.
 - **Streaks and the shop:** the shop slides in as its own screen with three upgrades: Earnings, Streak bonus and Stronger oxen.
 - **Saved:** progress stays in your browser, so you can exit to the arcade and continue later.
 

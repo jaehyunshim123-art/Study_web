@@ -13,7 +13,7 @@
   <div id="landing" class="landing">
     <header class="top">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
-      <span class="top-note">A study arcade</span>
+      <a class="top-note" href="#how">How it works</a>
     </header>
 
     <main class="hero">
@@ -75,6 +75,15 @@
       </div>
     </main>
 
+    <section class="how" id="how" aria-labelledby="how-title">
+      <h2 id="how-title">How it works</h2>
+      <ol>
+        <li><span class="how-num">1</span><h3>Insert your syllabus</h3><p>Upload the PDF (or paste the text). The AI turns each unit into a stop on a wagon journey to the final exam.</p></li>
+        <li><span class="how-num">2</span><h3>Read the lesson</h3><p>Every unit opens with a short summary: an overview, the key points and the key terms.</p></li>
+        <li><span class="how-num">3</span><h3>Answer to travel</h3><p>Right answers earn coins and move your wagon. Spend coins on upgrades and reach the finish.</p></li>
+      </ol>
+    </section>
+
     <footer class="foot">Questions are written by AI from your syllabus. Double-check anything that matters for a grade.</footer>
   </div>
 
@@ -86,10 +95,11 @@
           <div class="views" id="views">
             <section class="view" id="view-play">
               <div class="hud" id="hud">
-                <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
+                <button id="exit" class="hud-btn" aria-label="Exit to the arcade">&lt;<span class="lbl"> EXIT</span></button>
                 <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
                 <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
-                <button id="shop-btn" class="hud-btn hud-shop">SHOP &gt;</button>
+                <button id="help-btn" class="hud-btn hud-help" aria-label="How to play">?</button>
+                <button id="shop-btn" class="hud-btn hud-shop">SHOP<span class="arrow"> &gt;</span></button>
               </div>
               <div class="trailbox" id="trailbox">
                 <div class="scene" id="scene"></div>
@@ -110,6 +120,22 @@
               </div>
               <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
               <div id="shop-list" class="shop-list"></div>
+            </section>
+
+            <section class="view" id="view-help" inert>
+              <div class="hud">
+                <button id="help-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
+                <h2 class="shop-title">HOW TO PLAY</h2>
+              </div>
+              <p class="shop-intro" id="help-intro">Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.</p>
+              <ol class="help-steps">
+                <li><span class="num">1</span><div><h3>Read the lesson</h3><p>Every unit starts with a short summary: an overview, key points and key terms. Reopen it from any question with REVIEW LESSON.</p></div></li>
+                <li><span class="num">2</span><div><h3>Answer questions</h3><p>Pick A, B, C or D. Tap an answer, press the arcade buttons under the screen, or use keys 1-4.</p></div></li>
+                <li><span class="num">3</span><div><h3>Earn coins and miles</h3><p>Right answers earn coins and move your wagon. 100 miles reaches the unit's landmark and opens the next lesson.</p></div></li>
+                <li><span class="num">4</span><div><h3>Keep a streak</h3><p>Answers in a row build a streak. A wrong answer resets it and costs a few coins, and that question comes back later so you can learn it.</p></div></li>
+                <li><span class="num">5</span><div><h3>Upgrade in the shop</h3><p>Spend coins on Earnings (more coins), Streak bonus (extra coins per streak) and Stronger oxen (more miles per answer).</p></div></li>
+                <li><span class="num">6</span><div><h3>Reach the final exam</h3><p>Clear every unit to finish the trail and see your accuracy and best streak. EXIT saves your game anytime.</p></div></li>
+              </ol>
             </section>
           </div>
         </div>
