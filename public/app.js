@@ -12,6 +12,7 @@ const XP_PER_LEVEL = 100;
 const SAVE_KEY = "syllabus-quest-save";
 
 const $ = (id) => document.getElementById(id);
+const COIN = pixelIcon("coin", 14);
 const save = load();
 
 // ---------- saving ----------
@@ -65,23 +66,27 @@ const bossesBeaten = () => Object.keys(save.done).filter((id) => id.endsWith("-b
 const questsDone = () => Object.keys(save.done).length;
 
 const BADGES = [
-  { id: "first-quest", icon: "⭐", name: "First Steps", desc: "Finish your first quest", test: () => questsDone() >= 1 },
-  { id: "ten-quests", icon: "📚", name: "Bookworm", desc: "Finish 10 quests", test: () => questsDone() >= 10 },
-  { id: "first-boss", icon: "⚔️", name: "Boss Slayer", desc: "Defeat a boss", test: () => bossesBeaten() >= 1 },
-  { id: "three-bosses", icon: "🐉", name: "Dragon Tamer", desc: "Defeat 3 bosses", test: () => bossesBeaten() >= 3 },
-  { id: "streak-3", icon: "🔥", name: "On Fire", desc: "3-day study streak", test: () => streak() >= 3 },
-  { id: "streak-7", icon: "🌋", name: "Unstoppable", desc: "7-day study streak", test: () => streak() >= 7 },
-  { id: "level-5", icon: "🚀", name: "Rising Star", desc: "Reach level 5", test: () => level() >= 5 },
-  { id: "xp-1000", icon: "💎", name: "XP Hoarder", desc: "Earn 1,000 XP", test: () => save.profile.xp >= 1000 },
-  { id: "shopper", icon: "🛍️", name: "Drip Check", desc: "Buy something in the shop", test: () => save.profile.owned.length >= 1 },
-  { id: "curious", icon: "🤔", name: "Curious Mind", desc: "Ask the study coach a question", test: () => save.profile.asked },
+  { id: "first-quest", icon: pixelIcon("star", 32), name: "First Steps", desc: "Finish your first quest", test: () => questsDone() >= 1 },
+  { id: "ten-quests", icon: pixelIcon("book", 32), name: "Bookworm", desc: "Finish 10 quests", test: () => questsDone() >= 10 },
+  { id: "first-boss", icon: pixelIcon("sword", 32), name: "Boss Slayer", desc: "Defeat a boss", test: () => bossesBeaten() >= 1 },
+  { id: "three-bosses", icon: pixelIcon("crown", 32), name: "Dragon Tamer", desc: "Defeat 3 bosses", test: () => bossesBeaten() >= 3 },
+  { id: "streak-3", icon: pixelIcon("flame", 32), name: "On Fire", desc: "3-day study streak", test: () => streak() >= 3 },
+  { id: "streak-7", icon: pixelIcon("flame", 32, { r: "#3f7fff", o: "#38e0e0", y: "#f4f4f4" }), name: "Unstoppable", desc: "7-day study streak", test: () => streak() >= 7 },
+  { id: "level-5", icon: pixelIcon("arrow", 32), name: "Rising Star", desc: "Reach level 5", test: () => level() >= 5 },
+  { id: "xp-1000", icon: pixelIcon("gem", 32), name: "XP Hoarder", desc: "Earn 1,000 XP", test: () => save.profile.xp >= 1000 },
+  { id: "shopper", icon: pixelIcon("bag", 32), name: "Drip Check", desc: "Buy something in the shop", test: () => save.profile.owned.length >= 1 },
+  { id: "curious", icon: pixelIcon("question", 32), name: "Curious Mind", desc: "Ask the study coach a question", test: () => save.profile.asked },
 ];
+
+// Small icon per badge for the unlock toast (the BADGES list holds the big version).
+const ICON_OF = { "first-quest": "star", "ten-quests": "book", "first-boss": "sword", "three-bosses": "crown", "streak-3": "flame",
+  "streak-7": "flame", "level-5": "arrow", "xp-1000": "gem", shopper: "bag", curious: "question" };
 
 function checkBadges() {
   for (const badge of BADGES) {
     if (!save.profile.badges[badge.id] && badge.test()) {
       save.profile.badges[badge.id] = dayKey();
-      toast(`${badge.icon} Badge unlocked: <b>${badge.name}</b>`, "badge");
+      toast(`${pixelIcon(ICON_OF[badge.id], 16)} BADGE UNLOCKED: <b>${badge.name}</b>`, "badge");
     }
   }
 }
@@ -97,7 +102,7 @@ function complete(id, xp, title) {
   save.profile.coins += coins;
   if (!save.profile.days.includes(dayKey())) save.profile.days.push(dayKey());
 
-  toast(`✅ ${escapeHTML(title)} <b>+${xp} XP</b> <b>+${coins} 🪙</b>`);
+  toast(`&gt; ${escapeHTML(title)} <b>+${xp} XP</b> <b>+${coins}</b>${COIN}`);
   if (level() > before) showLevelUp(level());
   checkBadges();
   persist();
@@ -138,9 +143,9 @@ function switchTab(name) {
 
 function renderStats() {
   const xp = save.profile.xp;
-  $("level").textContent = `Lv ${level()}`;
+  $("level").textContent = `LV ${String(level()).padStart(2, "0")}`;
   $("xp-fill").style.width = `${((xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100}%`;
-  $("coins").textContent = save.profile.coins;
+  $("coins").textContent = String(save.profile.coins).padStart(3, "0");
   $("streak").textContent = streak();
   $("header-avatar").innerHTML = avatarSVG(save.profile.look);
 }
@@ -171,25 +176,25 @@ function platform({ id, title, detail, xp, boss, locked, offset, here }) {
   block.className = "block";
   block.innerHTML = `
     <div class="block-top">
-      <strong>${boss ? "👹 " : ""}${escapeHTML(title)}</strong>
+      <strong>${boss ? "BOSS: " : ""}${escapeHTML(title)}</strong>
       <span class="reward">+${xp} XP</span>
     </div>
-    <p>${locked ? "🔒 Finish every quest in this world to unlock the boss." : escapeHTML(detail)}</p>`;
+    <p>${locked ? "LOCKED. Finish every quest in this world to unlock the boss." : escapeHTML(detail)}</p>`;
 
   const actions = document.createElement("div");
   actions.className = "block-actions";
   if (done) {
-    actions.innerHTML = `<span class="cleared">✔ Cleared</span>`;
+    actions.innerHTML = `<span class="cleared">[X] CLEARED</span>`;
   } else if (!locked) {
     const go = document.createElement("button");
-    go.textContent = boss ? "I beat it!" : "Done!";
+    go.textContent = boss ? "I BEAT IT" : "DONE";
     go.addEventListener("click", () => complete(id, xp, title));
     actions.append(go);
   }
   if (!locked) {
     const ask = document.createElement("button");
     ask.className = "ghost small";
-    ask.textContent = "💬 Ask coach";
+    ask.textContent = "ASK COACH";
     ask.addEventListener("click", () => openCoach(`${title}: ${detail}`));
     actions.append(ask);
   }
@@ -213,7 +218,7 @@ function renderMap() {
     const section = document.createElement("div");
     section.className = "world";
     const cleared = world.quests.every((_, q) => save.done[`w${w}-q${q}`]);
-    section.innerHTML = `<div class="world-head"><h3>🌍 World ${w + 1}: ${escapeHTML(world.name)}</h3><p class="muted">${escapeHTML(world.topic)}</p></div>`;
+    section.innerHTML = `<div class="world-head"><h3>WORLD ${w + 1}</h3><p class="world-name">${escapeHTML(world.name)}</p><p class="muted">${escapeHTML(world.topic)}</p></div>`;
 
     world.quests.forEach((quest, q) => {
       const id = `w${w}-q${q}`;
@@ -227,7 +232,7 @@ function renderMap() {
   if (!here) {
     const win = document.createElement("div");
     win.className = "card win";
-    win.innerHTML = "🏆 You cleared every world in this course!";
+    win.innerHTML = `${pixelIcon("crown", 32)}<div>ALL WORLDS CLEARED</div>`;
     worlds.append(win);
   }
 }
@@ -263,13 +268,13 @@ function renderAvatar() {
 
       const b = document.createElement("button");
       if (!owned) {
-        b.textContent = `🪙 ${item.cost}`;
+        b.innerHTML = `${COIN} ${item.cost}`;
         b.disabled = save.profile.coins < item.cost;
         b.addEventListener("click", () => {
           save.profile.coins -= item.cost;
           save.profile.owned.push(item.id);
           save.profile.look[item.slot] = item.id;
-          toast(`🛍️ You got the <b>${item.name}</b>!`);
+          toast(`&gt; GOT <b>${item.name}</b>`);
           checkBadges();
           persist();
           render();
@@ -292,14 +297,14 @@ function renderAvatar() {
 function renderBadges() {
   const s = streak();
   $("streak-text").textContent = s
-    ? `🔥 ${s}-day streak. Finish a quest every day to keep it going.`
+    ? `${s}-day streak. Finish a quest every day to keep it going.`
     : "Finish a quest today to start a streak.";
   $("badges").replaceChildren(
     ...BADGES.map((badge) => {
       const earned = save.profile.badges[badge.id];
       const el = document.createElement("div");
       el.className = "badge" + (earned ? " earned" : "");
-      el.innerHTML = `<div class="badge-icon">${earned ? badge.icon : "🔒"}</div><strong>${badge.name}</strong><span class="muted small">${badge.desc}</span>`;
+      el.innerHTML = `<div class="badge-icon">${earned ? badge.icon : pixelIcon("lock", 32)}</div><strong>${badge.name}</strong><span class="muted small">${badge.desc}</span>`;
       return el;
     })
   );
@@ -328,7 +333,7 @@ $("pdf").addEventListener("change", () => {
   const reader = new FileReader();
   reader.onload = () => {
     pdfData = String(reader.result).split(",")[1]; // strip the "data:application/pdf;base64," part
-    $("pdf-name").textContent = `📎 ${file.name}`;
+    $("pdf-name").textContent = `Loaded: ${file.name}`;
   };
   reader.readAsDataURL(file);
 });
@@ -423,5 +428,7 @@ $("coach-form").addEventListener("submit", async (event) => {
 
 // ---------- start ----------
 
+$("coin-icon").innerHTML = pixelIcon("coin", 14);
+$("streak-icon").innerHTML = pixelIcon("flame", 14);
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => switchTab(tab.dataset.tab)));
 render();

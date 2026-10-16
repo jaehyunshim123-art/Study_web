@@ -5,88 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Syllabus Quest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <div class="brand">
       <div id="header-avatar" class="mini-avatar" aria-hidden="true"></div>
-      <h1>Syllabus Quest</h1>
+      <h1>SYLLABUS<br />QUEST</h1>
     </div>
-    <div class="stats">
-      <span class="chip" title="Study streak">🔥 <b id="streak">0</b></span>
-      <span class="chip" title="Coins">🪙 <b id="coins">0</b></span>
-      <span class="chip level" id="level">Lv 1</span>
+    <div class="hud">
+      <span class="hud-item" id="level">LV 01</span>
       <div class="xp-bar" title="XP to next level"><div id="xp-fill"></div></div>
+      <span class="hud-item" title="Coins"><span id="coin-icon"></span><b id="coins">000</b></span>
+      <span class="hud-item" title="Study streak"><span id="streak-icon"></span><b id="streak">0</b></span>
     </div>
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="play" role="tab">🗺️ Play</button>
-    <button class="tab" data-tab="avatar" role="tab">🧍 Avatar</button>
-    <button class="tab" data-tab="badges" role="tab">🏅 Badges</button>
-    <button class="tab" data-tab="coach" role="tab">💬 Coach</button>
+    <button class="tab active" data-tab="play" role="tab">PLAY</button>
+    <button class="tab" data-tab="avatar" role="tab">AVATAR</button>
+    <button class="tab" data-tab="badges" role="tab">BADGES</button>
+    <button class="tab" data-tab="coach" role="tab">COACH</button>
   </nav>
 
   <main>
     <!-- PLAY: syllabus setup, then the obby map -->
     <section id="tab-play" class="panel">
-      <div id="setup" class="card">
-        <h2>Load your syllabus</h2>
+      <div id="setup" class="box">
+        <h2>LOAD SYLLABUS</h2>
         <p class="muted">Upload the PDF your teacher gave you, or paste the text. Each unit becomes a world to climb, and the test is the boss at the top.</p>
         <label class="upload">
           <input type="file" id="pdf" accept="application/pdf" />
-          <span>📄 Upload syllabus PDF</span>
+          <span>[ UPLOAD PDF ]</span>
         </label>
         <p id="pdf-name" class="muted"></p>
-        <textarea id="syllabus" rows="7" placeholder="…or paste it here&#10;Course: AP Biology&#10;Unit 1: Cells …"></textarea>
-        <button id="generate" class="big">Build my world ▶</button>
+        <textarea id="syllabus" rows="7" placeholder="...or paste it here&#10;Course: AP Biology&#10;Unit 1: Cells ..."></textarea>
+        <button id="generate" class="big">PRESS START</button>
         <p id="status" role="status" class="muted"></p>
       </div>
 
       <div id="map" hidden>
         <h2 id="course-title"></h2>
         <div id="worlds"></div>
-        <button id="reset" class="ghost">Load a different syllabus</button>
+        <button id="reset" class="ghost">LOAD A DIFFERENT SYLLABUS</button>
       </div>
     </section>
 
     <!-- AVATAR: customize and shop -->
     <section id="tab-avatar" class="panel" hidden>
-      <div class="card avatar-card">
+      <div class="box avatar-box">
         <div id="avatar-preview" class="avatar-preview"></div>
         <div class="customize">
-          <h2>Your avatar</h2>
-          <div class="color-row"><span>Skin</span><div class="swatches" data-part="skin"></div></div>
-          <div class="color-row"><span>Shirt</span><div class="swatches" data-part="shirt"></div></div>
-          <div class="color-row"><span>Pants</span><div class="swatches" data-part="pants"></div></div>
+          <h2>YOUR AVATAR</h2>
+          <div class="color-row"><span>SKIN</span><div class="swatches" data-part="skin"></div></div>
+          <div class="color-row"><span>SHIRT</span><div class="swatches" data-part="shirt"></div></div>
+          <div class="color-row"><span>PANTS</span><div class="swatches" data-part="pants"></div></div>
         </div>
       </div>
-      <div class="card">
-        <h2>Shop <span class="muted small">earn 🪙 by finishing quests</span></h2>
-        <div id="shop" class="shop"></div>
+      <div class="box">
+        <h2>SHOP</h2>
+        <p class="muted">Earn coins by finishing quests.</p>
+        <div id="shop" class="grid"></div>
       </div>
     </section>
 
     <!-- BADGES -->
     <section id="tab-badges" class="panel" hidden>
-      <div class="card">
-        <h2>Badges</h2>
+      <div class="box">
+        <h2>BADGES</h2>
         <p class="muted" id="streak-text"></p>
-        <div id="badges" class="badges"></div>
+        <div id="badges" class="grid"></div>
       </div>
     </section>
 
     <!-- COACH: AI tutor chat -->
     <section id="tab-coach" class="panel" hidden>
-      <div class="card coach">
-        <h2>Study coach</h2>
-        <p class="muted" id="coach-context">Ask about any topic in your class, or tap "Ask coach" on a quest.</p>
+      <div class="box coach">
+        <h2>STUDY COACH</h2>
+        <p class="muted" id="coach-context">Ask about any topic in your class, or press ASK COACH on a quest.</p>
         <div id="chat" class="chat" aria-live="polite"></div>
         <form id="coach-form" class="coach-form">
-          <input id="coach-input" autocomplete="off" placeholder="e.g. Explain osmosis like I'm 10" />
-          <button type="submit">Send</button>
+          <input id="coach-input" autocomplete="off" placeholder="e.g. explain osmosis like I'm 10" />
+          <button type="submit">SEND</button>
         </form>
       </div>
     </section>
@@ -95,6 +96,7 @@
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <div id="levelup" class="levelup" hidden></div>
 
+  <script src="pixel.js"></script>
   <script src="avatar.js"></script>
   <script src="app.js"></script>
 </body>
