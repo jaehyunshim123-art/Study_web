@@ -1,13 +1,13 @@
 // Study Helper + Syllabus — a tiny web server.
 // It serves the website in /public and two API routes that talk to Claude:
 //   POST /api/trail  syllabus (text or PDF) -> the route: one landmark per unit, with key concepts
-//   POST /api/unit   one unit -> a lesson summary and a batch of multiple-choice questions
+//   POST /api/unit   one unit -> a lesson summary and a batch of questions (or, with more: true, just more questions)
 // What the AI is told lives in shared/prompts.js.
 
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync, existsSync } from "node:fs";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "./shared/prompts.js";
+import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizMoreSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "./shared/prompts.js";
 
 // Load .env by hand so there's one less dependency to learn about.
 if (existsSync(".env")) {
@@ -90,7 +90,7 @@ app.post("/api/unit", async (req, res) => {
   try {
     const response = await askClaude({
       system: quizPrompt,
-      output_config: { effort: "low", format: { type: "json_schema", schema: quizSchema } },
+      output_config: { effort: "low", format: { type: "json_schema", schema: body.more ? quizMoreSchema : quizSchema } },
       messages: [{ role: "user", content: quizRequest({ ...body, count }) }],
     });
     if (response.stop_reason === "refusal") {
@@ -99,7 +99,7 @@ app.post("/api/unit", async (req, res) => {
     const data = JSON.parse(textOf(response));
     const questions = cleanQuiz(data.questions).slice(0, count);
     if (questions.length === 0) return res.status(502).json({ error: "The questions came back empty. Try again." });
-    res.json({ lesson: cleanLesson(data.lesson), questions });
+    res.json(body.more ? { questions } : { lesson: cleanLesson(data.lesson), questions });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Couldn't make the quiz. Check the server log." });

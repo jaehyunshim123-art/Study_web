@@ -10,14 +10,14 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
-import { THEMES, trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
+import { THEMES, trailPrompt, trailSchema, quizPrompt, quizSchema, quizMoreSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const demo = JSON.parse(read("demo-quests.json"));
 
 // Stands in for server.js's two API routes.
 const previewServer = `
-const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema })};
+const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema, quizMoreSchema })};
 const THEMES = ${JSON.stringify(THEMES)};
 const DEMO_TRAIL = ${JSON.stringify({ ...demo, demo: true })};
 ${quizRequest}
@@ -88,10 +88,10 @@ async function handle(path, req) {
       const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
       return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
-    const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }), { cache: false });
+    const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }), { cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
-    return { lesson: cleanLesson(data?.lesson), questions };
+    return req.more ? { questions } : { lesson: cleanLesson(data?.lesson), questions };
   }
   throw new Error("Unknown route");
 }

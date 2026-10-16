@@ -41,6 +41,15 @@ const Sound = (() => {
     blip: (a) => { note(a, 880, 0, 0.04, { volume: 0.03 }); note(a, 1175, 0.05, 0.04, { volume: 0.03 }); },
     insert: (a) => { note(a, 180, 0, 0.04, { type: "triangle", volume: 0.1 }); note(a, 988, 0.08, 0.08); note(a, 1319, 0.16, 0.25); },
     coin: (a) => { note(a, 988, 0, 0.07); note(a, 1319, 0.07, 0.2); },
+    // a coin dropping onto a counter: metallic pings that bounce closer and closer together, then settle
+    coindrop: (a) => {
+      [0, 0.13, 0.23, 0.3, 0.35, 0.385, 0.41].forEach((t, i) => {
+        const volume = 0.07 * Math.pow(0.78, i);
+        note(a, 2900 - i * 60, t, 0.09, { type: "sine", volume });
+        note(a, 4350 - i * 90, t, 0.05, { type: "sine", volume: volume * 0.5 });
+      });
+      note(a, 1500, 0.44, 0.3, { type: "triangle", volume: 0.025, slide: 1400 });
+    },
     right: (a) => tune(a, [523, 659, 784, 1047], 0.06),
     wrong: (a) => { note(a, 220, 0, 0.18, { type: "sawtooth", volume: 0.05, slide: 110 }); note(a, 165, 0.2, 0.25, { type: "sawtooth", volume: 0.05, slide: 82 }); },
     whoosh: (a) => note(a, 180, 0, 0.9, { type: "triangle", volume: 0.08, slide: 1400 }),

@@ -87,6 +87,7 @@ function readPdf(file) {
     setStatus("");
     setScreen("READY<br />PRESS START");
     Sound.play("insert");
+    setTimeout(() => Sound.play("coindrop"), 330); // the coin lands inside the machine
     updateStart();
   };
   reader.readAsDataURL(file);

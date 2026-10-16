@@ -7,7 +7,9 @@
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
-const BATCH = 10;      // questions fetched per unit
+const FIRST_BATCH = 15;      // questions that come with the lesson, so play can start quickly
+const MORE_BATCH = 20;       // questions per follow-up batch, fetched in the background
+const TARGET_QUESTIONS = 50; // keep adding batches until a unit has this many
 
 // Shop upgrades. values[level] is what you get at that level; costs[level] is the price of the next one.
 const UPGRADES = [
@@ -70,7 +72,7 @@ async function fetchUnit(unit) {
   const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: BATCH, demo: game.demo }),
+    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: FIRST_BATCH, demo: game.demo }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
@@ -79,6 +81,51 @@ async function fetchUnit(unit) {
   game.banks[unit] = data.questions;
   persistGame();
   return data.questions;
+}
+
+const sameQuestion = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const filling = {}; // units being topped up
+
+// Keep asking for more questions in the background until the unit has TARGET_QUESTIONS,
+// so there are always fresh ones (especially after wrong answers). Repeats are dropped.
+async function fillBank(unit) {
+  if (filling[unit] || game.demo) return;
+  filling[unit] = true;
+  const thisGame = game;
+  try {
+    for (let tries = 0; tries < 8 && thisGame === game; tries++) {
+      const bank = game.banks[unit];
+      if (!bank || bank.length >= TARGET_QUESTIONS) break;
+      const u = game.trail.units[unit];
+      const res = await fetch("/api/unit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit,
+          more: true, count: Math.min(MORE_BATCH, TARGET_QUESTIONS - bank.length + 5), avoid: bank.map((q) => q.question),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || thisGame !== game) break;
+      const known = new Set(bank.map((q) => sameQuestion(q.question)));
+      const fresh = (data.questions || []).filter((q) => {
+        const key = sameQuestion(q.question);
+        if (known.has(key)) return false;
+        known.add(key);
+        return true;
+      });
+      if (!fresh.length) continue;
+      const start = bank.length;
+      bank.push(...fresh);
+      // New questions join the current unit's shuffle right away.
+      if (game.unit === unit) game.queue.push(...shuffle(fresh.map((_, i) => start + i)));
+      persistGame();
+    }
+  } catch {
+    // Offline or the AI is busy: play continues with the questions already here.
+  } finally {
+    filling[unit] = false;
+  }
 }
 
 // Start (or resume) the current unit: lesson first, then questions.
@@ -94,6 +141,7 @@ async function startUnit() {
     }
     if (game.unit !== unit) return;
   }
+  fillBank(unit);
   if (!game.lessonSeen[unit] && game.lessons[unit]) renderLesson(false);
   else showNext();
 }
@@ -175,7 +223,7 @@ function renderQuestion(q, returning = false) {
   $("play").innerHTML = `
     <div class="card qcard">
       <div class="q-top">
-        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length} &middot; ${game.banks[game.unit].length} QUESTIONS${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
       </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
@@ -228,7 +276,7 @@ function answer(picked) {
     game.legMiles = Math.min(LEG_MILES, game.legMiles + miles);
     feedback.innerHTML = `<span class="gain">+${earned} COINS</span><span class="gain">+${miles} MI</span>`;
     Sound.play("right");
-    setTimeout(() => Sound.play("coin"), 260);
+    setTimeout(() => Sound.play("coindrop"), 260);
     botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;

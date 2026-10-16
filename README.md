@@ -5,11 +5,11 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 ## How it plays
 
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
-- **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. You can reopen the lesson from any question.
+- **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
 - **A world that fits the subject:** the AI picks a theme from your syllabus (law, science, math, literature, tech, health, business, or the frontier), and the trail's scenery and landmarks match it: courthouses for law, labs for science, pyramids for math.
 - **Answer to move:** right answers earn coins and move your wagon toward the unit's landmark; each unit is a 100-mile leg. Reach the last landmark to win.
 - **BYTE, the AI helper:** a Game Boy-style bot under every question. Ask it for a hint (written by the AI from your syllabus; a hint halves the coins for that question), and it explains your mistakes.
-- **Arcade sounds:** chiptune sound effects made in the browser. The speaker grille on the control panel (or the landing page button) turns them on and off.
+- **Arcade sounds:** chiptune sound effects made in the browser, including a coin dropping into the machine on every right answer. The speaker grille on the control panel (or the landing page button) turns them on and off.
 - **Arcade controls:** the four buttons under the screen answer A-D (keys 1-4 work too) and press the screen's main button on other screens.
 - **Help:** the ? button opens How to Play, which slides in as its own screen. It also opens automatically the first time you play.
 - **The general store:** the trail window zooms in and grows into a store with a pixel shopkeeper who talks to you. Buy three upgrades (Earnings, Streak bonus, Stronger oxen) and paint jobs for your wagon.
@@ -40,7 +40,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 
 | File | What it does |
 |---|---|
-| `server.js` | Small Express server. `POST /api/trail` sends the syllabus (text or PDF) to Claude and returns the route (one landmark per unit). `POST /api/unit` writes a lesson summary and a batch of questions for one unit. The API key stays on the server. |
+| `server.js` | Small Express server. `POST /api/trail` sends the syllabus (text or PDF) to Claude and returns the route (one landmark per unit). `POST /api/unit` writes a lesson summary and a batch of questions for one unit; with `more: true` it writes extra questions that avoid the ones the unit already has. The API key stays on the server. |
 | `shared/prompts.js` | Everything the AI is told: the prompts and JSON shapes for the route, lessons and questions. Used by the server and the preview. |
 | `public/index.html` | The arcade landing page and the game screen. |
 | `public/app.js` | Landing page: syllabus upload, saving, the loading steps, and the zoom into the machine. |
@@ -53,5 +53,5 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 
 Easy places to change things:
 - What the AI is told: `shared/prompts.js`.
-- Upgrade prices and values, leg length and questions per unit: `UPGRADES`, `LEG_MILES` and `BATCH` at the top of `public/game.js`.
+- Upgrade prices and values, leg length and questions per unit: `UPGRADES`, `LEG_MILES`, `FIRST_BATCH`, `MORE_BATCH` and `TARGET_QUESTIONS` at the top of `public/game.js`.
 - Colors and fonts: the variables at the top of `public/style.css`.

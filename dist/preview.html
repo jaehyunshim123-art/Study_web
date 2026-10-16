@@ -760,21 +760,24 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 </script>
 <script>
 
-const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false}};
+const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false},"quizMoreSchema":{"type":"object","properties":{"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["questions"],"additionalProperties":false}};
 const THEMES = ["frontier","law","science","math","literature","tech","health","business"];
 const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP.","hint":"Think about which organelle is called the cell's powerhouse."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.","hint":"Plants need something rigid to stand upright."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.","hint":"It's the special name for water's diffusion."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.","hint":"Which one moves things against their gradient?"},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins.","hint":"These tiny structures read mRNA."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles.","hint":"Think of a cell's shipping department."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.","hint":"It's a gatekeeper, not a wall."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus.","hint":"The control center of the cell."}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen.","hint":"It happens before the mitochondria are involved."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP.","hint":"Think of the last, most productive stage."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.","hint":"It's the gas you breathe in."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light.","hint":"These membranes are stacked inside the chloroplast."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen.","hint":"Plants give off the gas animals need."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.","hint":"Its job is building sugar from carbon dioxide."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.","hint":"The name means 'sugar splitting'."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.","hint":"It's the pigment that makes leaves green."}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"theme":"science","demo":true};
 function quizRequest(r) {
+  const avoid = (Array.isArray(r.avoid) ? r.avoid : []).map((q) => `- ${String(q).slice(0, 160)}`).slice(0, 80).join("\n");
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
   return [
     `Course: ${String(r.course || "").slice(0, 200)}`,
     `Unit: ${String(r.topic || "").slice(0, 300)}`,
     concepts && `Key concepts from the syllabus: ${concepts}`,
     r.syllabus && `Syllabus text:\n${String(r.syllabus).slice(0, 20000)}`,
-    `Write the lesson summary and ${r.count} questions about this unit.`,
+    r.more
+      ? `Write ${r.count} NEW questions about this unit (no lesson). Cover different concepts and angles than these existing questions, and don't reword them:\n${avoid}`
+      : `Write the lesson summary and ${r.count} questions about this unit.`,
   ].filter(Boolean).join("\n\n");
 }
 function quizCount(n) {
-  return Math.min(12, Math.max(3, Math.round(Number(n) || 10)));
+  return Math.min(25, Math.max(3, Math.round(Number(n) || 15)));
 }
 function cleanQuiz(questions) {
   return (Array.isArray(questions) ? questions : [])
@@ -857,10 +860,10 @@ async function handle(path, req) {
       const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
       return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
-    const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }), { cache: false });
+    const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }), { cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
-    return { lesson: cleanLesson(data?.lesson), questions };
+    return req.more ? { questions } : { lesson: cleanLesson(data?.lesson), questions };
   }
   throw new Error("Unknown route");
 }
@@ -921,6 +924,15 @@ const Sound = (() => {
     blip: (a) => { note(a, 880, 0, 0.04, { volume: 0.03 }); note(a, 1175, 0.05, 0.04, { volume: 0.03 }); },
     insert: (a) => { note(a, 180, 0, 0.04, { type: "triangle", volume: 0.1 }); note(a, 988, 0.08, 0.08); note(a, 1319, 0.16, 0.25); },
     coin: (a) => { note(a, 988, 0, 0.07); note(a, 1319, 0.07, 0.2); },
+    // a coin dropping onto a counter: metallic pings that bounce closer and closer together, then settle
+    coindrop: (a) => {
+      [0, 0.13, 0.23, 0.3, 0.35, 0.385, 0.41].forEach((t, i) => {
+        const volume = 0.07 * Math.pow(0.78, i);
+        note(a, 2900 - i * 60, t, 0.09, { type: "sine", volume });
+        note(a, 4350 - i * 90, t, 0.05, { type: "sine", volume: volume * 0.5 });
+      });
+      note(a, 1500, 0.44, 0.3, { type: "triangle", volume: 0.025, slide: 1400 });
+    },
     right: (a) => tune(a, [523, 659, 784, 1047], 0.06),
     wrong: (a) => { note(a, 220, 0, 0.18, { type: "sawtooth", volume: 0.05, slide: 110 }); note(a, 165, 0.2, 0.25, { type: "sawtooth", volume: 0.05, slide: 82 }); },
     whoosh: (a) => note(a, 180, 0, 0.9, { type: "triangle", volume: 0.08, slide: 1400 }),
@@ -1275,7 +1287,9 @@ const StudyTimer = (() => {
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
-const BATCH = 10;      // questions fetched per unit
+const FIRST_BATCH = 15;      // questions that come with the lesson, so play can start quickly
+const MORE_BATCH = 20;       // questions per follow-up batch, fetched in the background
+const TARGET_QUESTIONS = 50; // keep adding batches until a unit has this many
 
 // Shop upgrades. values[level] is what you get at that level; costs[level] is the price of the next one.
 const UPGRADES = [
@@ -1338,7 +1352,7 @@ async function fetchUnit(unit) {
   const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: BATCH, demo: game.demo }),
+    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: FIRST_BATCH, demo: game.demo }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
@@ -1347,6 +1361,51 @@ async function fetchUnit(unit) {
   game.banks[unit] = data.questions;
   persistGame();
   return data.questions;
+}
+
+const sameQuestion = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const filling = {}; // units being topped up
+
+// Keep asking for more questions in the background until the unit has TARGET_QUESTIONS,
+// so there are always fresh ones (especially after wrong answers). Repeats are dropped.
+async function fillBank(unit) {
+  if (filling[unit] || game.demo) return;
+  filling[unit] = true;
+  const thisGame = game;
+  try {
+    for (let tries = 0; tries < 8 && thisGame === game; tries++) {
+      const bank = game.banks[unit];
+      if (!bank || bank.length >= TARGET_QUESTIONS) break;
+      const u = game.trail.units[unit];
+      const res = await fetch("/api/unit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit,
+          more: true, count: Math.min(MORE_BATCH, TARGET_QUESTIONS - bank.length + 5), avoid: bank.map((q) => q.question),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || thisGame !== game) break;
+      const known = new Set(bank.map((q) => sameQuestion(q.question)));
+      const fresh = (data.questions || []).filter((q) => {
+        const key = sameQuestion(q.question);
+        if (known.has(key)) return false;
+        known.add(key);
+        return true;
+      });
+      if (!fresh.length) continue;
+      const start = bank.length;
+      bank.push(...fresh);
+      // New questions join the current unit's shuffle right away.
+      if (game.unit === unit) game.queue.push(...shuffle(fresh.map((_, i) => start + i)));
+      persistGame();
+    }
+  } catch {
+    // Offline or the AI is busy: play continues with the questions already here.
+  } finally {
+    filling[unit] = false;
+  }
 }
 
 // Start (or resume) the current unit: lesson first, then questions.
@@ -1362,6 +1421,7 @@ async function startUnit() {
     }
     if (game.unit !== unit) return;
   }
+  fillBank(unit);
   if (!game.lessonSeen[unit] && game.lessons[unit]) renderLesson(false);
   else showNext();
 }
@@ -1443,7 +1503,7 @@ function renderQuestion(q, returning = false) {
   $("play").innerHTML = `
     <div class="card qcard">
       <div class="q-top">
-        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length} &middot; ${game.banks[game.unit].length} QUESTIONS${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
       </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
@@ -1496,7 +1556,7 @@ function answer(picked) {
     game.legMiles = Math.min(LEG_MILES, game.legMiles + miles);
     feedback.innerHTML = `<span class="gain">+${earned} COINS</span><span class="gain">+${miles} MI</span>`;
     Sound.play("right");
-    setTimeout(() => Sound.play("coin"), 260);
+    setTimeout(() => Sound.play("coindrop"), 260);
     botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;
@@ -2140,6 +2200,7 @@ function readPdf(file) {
     setStatus("");
     setScreen("READY<br />PRESS START");
     Sound.play("insert");
+    setTimeout(() => Sound.play("coindrop"), 330); // the coin lands inside the machine
     updateStart();
   };
   reader.readAsDataURL(file);

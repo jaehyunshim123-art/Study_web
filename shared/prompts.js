@@ -88,21 +88,33 @@ export const quizSchema = {
   additionalProperties: false,
 };
 
-// The request text for one batch of questions. r = { course, topic, concepts, syllabus, count }
+// Follow-up batches are questions only (the lesson was written with the first batch).
+export const quizMoreSchema = {
+  type: "object",
+  properties: { questions: quizSchema.properties.questions },
+  required: ["questions"],
+  additionalProperties: false,
+};
+
+// The request text for one batch. r = { course, topic, concepts, syllabus, count, more, avoid }
+// more: a follow-up batch; avoid: questions already written, so new ones don't repeat them.
 export function quizRequest(r) {
+  const avoid = (Array.isArray(r.avoid) ? r.avoid : []).map((q) => `- ${String(q).slice(0, 160)}`).slice(0, 80).join("\n");
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
   return [
     `Course: ${String(r.course || "").slice(0, 200)}`,
     `Unit: ${String(r.topic || "").slice(0, 300)}`,
     concepts && `Key concepts from the syllabus: ${concepts}`,
     r.syllabus && `Syllabus text:\n${String(r.syllabus).slice(0, 20000)}`,
-    `Write the lesson summary and ${r.count} questions about this unit.`,
+    r.more
+      ? `Write ${r.count} NEW questions about this unit (no lesson). Cover different concepts and angles than these existing questions, and don't reword them:\n${avoid}`
+      : `Write the lesson summary and ${r.count} questions about this unit.`,
   ].filter(Boolean).join("\n\n");
 }
 
 // How many questions one batch may have.
 export function quizCount(n) {
-  return Math.min(12, Math.max(3, Math.round(Number(n) || 10)));
+  return Math.min(25, Math.max(3, Math.round(Number(n) || 15)));
 }
 
 // Make sure a lesson has every field the game shows.
