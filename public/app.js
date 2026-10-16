@@ -12,7 +12,7 @@ function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!data?.trail?.units?.length) return null;
-    return { lessons: {}, lessonSeen: {}, ...data };
+    return { lessons: {}, lessonSeen: {}, paint: "canvas", paints: [], ...data };
   } catch {
     return null;
   }
@@ -29,13 +29,14 @@ function persistGame() {
 
 function newGame(trail, syllabus) {
   return {
-    trail: { courseTitle: trail.courseTitle, units: trail.units },
+    trail: { courseTitle: trail.courseTitle, theme: trail.theme || "frontier", units: trail.units },
     demo: Boolean(trail.demo),
     syllabus: syllabus.slice(0, 20000), // sent along when asking for questions
     banks: {},      // questions per unit
     lessons: {},    // lesson summary per unit
     lessonSeen: {}, // units whose lesson has been read
     levels: {},
+    paint: "canvas", paints: [], // wagon paint in use, and paints bought
     unit: 0, legMiles: 0, queue: [],
     coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false,
   };
@@ -85,6 +86,7 @@ function readPdf(file) {
     $("pdf-name").textContent = file.name;
     setStatus("");
     setScreen("READY<br />PRESS START");
+    Sound.play("insert");
     updateStart();
   };
   reader.readAsDataURL(file);
@@ -149,7 +151,6 @@ function updateResume() {
 // ---------- the zoom into (and out of) the arcade screen ----------
 
 const ZOOM_MS = 1100;
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The part of the cabinet drawing to zoom into: the screen plus the control deck below it
 // (in the drawing's own units; the drawing is 300 wide).
@@ -179,6 +180,7 @@ function enterMachine(show) {
     const z = zoomTransform();
     landing.style.transformOrigin = z.origin;
     landing.classList.add("zooming");
+    Sound.play("whoosh");
     requestAnimationFrame(() => (landing.style.transform = z.transform));
   }
   return new Promise((done) => setTimeout(() => {
@@ -195,7 +197,7 @@ function enterMachine(show) {
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
-  closeShop();
+  resetScreens();
   $("game").hidden = true;
   if (clear) {
     game = null;
@@ -213,6 +215,7 @@ function exitGame(clear = false) {
   landing.style.transform = z.transform;
   landing.getBoundingClientRect(); // apply the zoomed-in state before animating out of it
   landing.classList.add("unzooming");
+  Sound.play("unwhoosh");
   landing.style.transform = "";
   setTimeout(() => landing.classList.remove("unzooming"), ZOOM_MS);
 }
@@ -221,6 +224,8 @@ $("exit").addEventListener("click", () => exitGame());
 
 // ---------- start ----------
 
+$("landing-sound").addEventListener("click", toggleSound);
+syncSound();
 game = loadGame();
 updateResume();
 updateStart();

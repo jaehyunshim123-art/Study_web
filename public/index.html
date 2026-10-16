@@ -13,7 +13,7 @@
   <div id="landing" class="landing">
     <header class="top">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
-      <a class="top-note" href="#how">How it works</a>
+      <div class="top-links"><a class="top-note" href="#how">How it works</a><button class="top-sound" id="landing-sound" aria-pressed="true">Sound on</button></div>
     </header>
 
     <main class="hero">
@@ -112,16 +112,6 @@
               <div class="play" id="play" aria-live="polite"></div>
             </section>
 
-            <section class="view" id="view-shop" inert>
-              <div class="hud">
-                <button id="shop-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
-                <h2 class="shop-title">SHOP</h2>
-                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
-              </div>
-              <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
-              <div id="shop-list" class="shop-list"></div>
-            </section>
-
             <section class="view" id="view-help" inert>
               <div class="hud">
                 <button id="help-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
@@ -138,11 +128,32 @@
               </ol>
             </section>
           </div>
+
+          <!-- SHOP: grows out of the trail window to fill the screen -->
+          <div class="shop" id="shop" role="dialog" aria-modal="true" aria-labelledby="shop-title" hidden>
+            <div class="store-scene" id="store-scene">
+              <div class="store-sign" id="shop-title">GENERAL STORE</div>
+              <p class="speech" id="keeper-say" aria-live="polite"></p>
+            </div>
+            <div class="shop-body">
+              <div class="hud">
+                <button id="shop-back" class="hud-btn" aria-label="Back to the trail">&lt; BACK</button>
+                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
+              </div>
+              <h3 class="shelf-title">UPGRADES</h3>
+              <div id="shop-list" class="shop-list"></div>
+              <h3 class="shelf-title">WAGON PAINT</h3>
+              <div id="paint-list" class="paint-list"></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="deck">
         <div class="stick" id="stick" aria-hidden="true"><span class="ball"></span></div>
+        <button class="speaker" id="sound-btn" aria-pressed="true" aria-label="Sound is on. Press to mute.">
+          <span class="grille" aria-hidden="true"></span><span class="spk-label" id="sound-label">SOUND ON</span>
+        </button>
         <div class="pads" aria-label="Answer buttons">
           <button class="pad" data-i="0" aria-label="Answer A">A</button>
           <button class="pad" data-i="1" aria-label="Answer B">B</button>
@@ -155,6 +166,8 @@
 
   <div id="toast" class="toast" role="status" hidden></div>
 
+  <script src="sound.js"></script>
+  <script src="sprites.js"></script>
   <script src="game.js"></script>
   <script src="app.js"></script>
 </body>

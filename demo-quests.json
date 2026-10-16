@@ -23,7 +23,8 @@
             "Golgi apparatus"
           ],
           "answerIndex": 1,
-          "explanation": "Mitochondria run cellular respiration, which produces most of the cell's ATP."
+          "explanation": "Mitochondria run cellular respiration, which produces most of the cell's ATP.",
+          "hint": "Think about which organelle is called the cell's powerhouse."
         },
         {
           "question": "Which structure is found in plant cells but not in animal cells?",
@@ -34,7 +35,8 @@
             "Mitochondrion"
           ],
           "answerIndex": 2,
-          "explanation": "Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."
+          "explanation": "Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.",
+          "hint": "Plants need something rigid to stand upright."
         },
         {
           "question": "Water moving across a membrane toward the side with more dissolved solute is called:",
@@ -45,7 +47,8 @@
             "Phosphorylation"
           ],
           "answerIndex": 1,
-          "explanation": "Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."
+          "explanation": "Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.",
+          "hint": "It's the special name for water's diffusion."
         },
         {
           "question": "Which of these needs energy from ATP?",
@@ -56,7 +59,8 @@
             "The sodium-potassium pump"
           ],
           "answerIndex": 3,
-          "explanation": "The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."
+          "explanation": "The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.",
+          "hint": "Which one moves things against their gradient?"
         },
         {
           "question": "Where are proteins made in the cell?",
@@ -67,7 +71,8 @@
             "Cell wall"
           ],
           "answerIndex": 0,
-          "explanation": "Ribosomes read mRNA and link amino acids into proteins."
+          "explanation": "Ribosomes read mRNA and link amino acids into proteins.",
+          "hint": "These tiny structures read mRNA."
         },
         {
           "question": "Which organelle modifies and packages proteins to be shipped out?",
@@ -78,7 +83,8 @@
             "Centriole"
           ],
           "answerIndex": 0,
-          "explanation": "The Golgi apparatus modifies, sorts and packages proteins into vesicles."
+          "explanation": "The Golgi apparatus modifies, sorts and packages proteins into vesicles.",
+          "hint": "Think of a cell's shipping department."
         },
         {
           "question": "What does a selectively permeable membrane do?",
@@ -89,7 +95,8 @@
             "Makes proteins"
           ],
           "answerIndex": 2,
-          "explanation": "The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps."
+          "explanation": "The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.",
+          "hint": "It's a gatekeeper, not a wall."
         },
         {
           "question": "Which organelle holds most of a eukaryotic cell's DNA?",
@@ -100,7 +107,8 @@
             "Cell wall"
           ],
           "answerIndex": 0,
-          "explanation": "In eukaryotic cells, DNA is stored inside the nucleus."
+          "explanation": "In eukaryotic cells, DNA is stored inside the nucleus.",
+          "hint": "The control center of the cell."
         }
       ],
       "demoLesson": {
@@ -153,7 +161,8 @@
             "Nucleus"
           ],
           "answerIndex": 1,
-          "explanation": "Glycolysis happens in the cytoplasm and doesn't need oxygen."
+          "explanation": "Glycolysis happens in the cytoplasm and doesn't need oxygen.",
+          "hint": "It happens before the mitochondria are involved."
         },
         {
           "question": "Which stage of cellular respiration makes the most ATP?",
@@ -164,7 +173,8 @@
             "Fermentation"
           ],
           "answerIndex": 2,
-          "explanation": "The electron transport chain powers ATP synthase and makes most of the ATP."
+          "explanation": "The electron transport chain powers ATP synthase and makes most of the ATP.",
+          "hint": "Think of the last, most productive stage."
         },
         {
           "question": "What is the final electron acceptor in aerobic respiration?",
@@ -175,7 +185,8 @@
             "NADH"
           ],
           "answerIndex": 0,
-          "explanation": "Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."
+          "explanation": "Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.",
+          "hint": "It's the gas you breathe in."
         },
         {
           "question": "The light-dependent reactions of photosynthesis happen in the:",
@@ -186,7 +197,8 @@
             "Cell wall"
           ],
           "answerIndex": 1,
-          "explanation": "The light reactions run in the thylakoid membranes, where chlorophyll captures light."
+          "explanation": "The light reactions run in the thylakoid membranes, where chlorophyll captures light.",
+          "hint": "These membranes are stacked inside the chloroplast."
         },
         {
           "question": "Which gas is released by the light-dependent reactions?",
@@ -197,7 +209,8 @@
             "Methane"
           ],
           "answerIndex": 2,
-          "explanation": "Splitting water in the light reactions releases oxygen."
+          "explanation": "Splitting water in the light reactions releases oxygen.",
+          "hint": "Plants give off the gas animals need."
         },
         {
           "question": "The Calvin cycle uses ATP and NADPH to:",
@@ -208,7 +221,8 @@
             "Absorb light"
           ],
           "answerIndex": 1,
-          "explanation": "The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."
+          "explanation": "The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.",
+          "hint": "Its job is building sugar from carbon dioxide."
         },
         {
           "question": "Glycolysis splits one glucose molecule into two molecules of:",
@@ -219,7 +233,8 @@
             "Water"
           ],
           "answerIndex": 0,
-          "explanation": "Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle."
+          "explanation": "Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.",
+          "hint": "The name means 'sugar splitting'."
         },
         {
           "question": "Which pigment captures light energy in plants?",
@@ -230,7 +245,8 @@
             "Keratin"
           ],
           "answerIndex": 1,
-          "explanation": "Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."
+          "explanation": "Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.",
+          "hint": "It's the pigment that makes leaves green."
         }
       ],
       "demoLesson": {
@@ -262,5 +278,6 @@
         ]
       }
     }
-  ]
+  ],
+  "theme": "science"
 }

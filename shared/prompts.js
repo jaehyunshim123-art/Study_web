@@ -3,9 +3,13 @@
 
 // ---------- the route, built from a syllabus ----------
 
+// Worlds the trail can travel through; each has its own scenery in public/sprites.js.
+export const THEMES = ["frontier", "law", "science", "math", "literature", "tech", "health", "business"];
+
 export const trailPrompt = `You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.
 Turn the syllabus into the route: one stop per unit, in syllabus order.
-Each stop is a landmark (a town, fort or pass) named playfully after the unit's topic, like "Fort Mitochondria".
+First pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).
+Each stop is a landmark in that world, named playfully after the unit's topic: "Precedent Plaza" for law, "Fort Mitochondria" for biology, "Derivative Peak" for calculus.
 For each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.
 Use only what is in the syllabus.`;
 
@@ -13,6 +17,7 @@ export const trailSchema = {
   type: "object",
   properties: {
     courseTitle: { type: "string" },
+    theme: { type: "string", enum: THEMES, description: "The world the journey travels through." },
     units: {
       type: "array",
       description: "One stop per unit, in syllabus order.",
@@ -28,7 +33,7 @@ export const trailSchema = {
       },
     },
   },
-  required: ["courseTitle", "units"],
+  required: ["courseTitle", "theme", "units"],
   additionalProperties: false,
 };
 
@@ -72,8 +77,9 @@ export const quizSchema = {
           choices: { type: "array", items: { type: "string" }, description: "Exactly 4 answer choices." },
           answerIndex: { type: "integer", description: "Index (0-3) of the correct choice." },
           explanation: { type: "string", description: "One sentence on why the answer is right." },
+          hint: { type: "string", description: "One sentence that nudges toward the answer without giving it away." },
         },
-        required: ["question", "choices", "answerIndex", "explanation"],
+        required: ["question", "choices", "answerIndex", "explanation", "hint"],
         additionalProperties: false,
       },
     },
@@ -116,6 +122,6 @@ export function cleanQuiz(questions) {
       Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex < 4)
     .map((q) => {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || "") };
+      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || "") };
     });
 }

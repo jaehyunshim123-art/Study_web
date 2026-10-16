@@ -1,29 +1,55 @@
 // The game inside the machine.
-// Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
-// then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
-// the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
-// to win. Coins buy upgrades in the shop; the shop and the How to Play help slide in as their own screens.
+// Each unit of the course is one leg of a wagon journey through a world that fits the subject
+// (a courthouse district for law, a lab campus for science...). A unit starts with a short lesson,
+// then questions written from your syllabus. BYTE, the AI helper under each question, gives hints
+// and explains mistakes. Right answers earn coins and move the wagon; reach the last landmark to win.
+// The general store grows out of the trail window; How to Play slides in as its own screen.
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
 const BATCH = 10;      // questions fetched per unit
 
-// The shop. values[level] is what you get at that level; costs[level] is the price of the next one.
+// Shop upgrades. values[level] is what you get at that level; costs[level] is the price of the next one.
 const UPGRADES = [
   { id: "earnings", name: "Earnings", desc: "Coins for each right answer", values: [10, 20, 40, 80, 150], costs: [60, 200, 600, 1500], unit: "coins" },
   { id: "streak", name: "Streak bonus", desc: "Extra coins for every answer in a row", values: [0, 5, 10, 20, 40], costs: [40, 150, 500, 1200], unit: "per streak" },
   { id: "oxen", name: "Stronger oxen", desc: "Miles the wagon moves per right answer", values: [10, 15, 20, 30, 40], costs: [80, 250, 700, 1800], unit: "miles" },
 ];
 
+// Wagon paint jobs (just for looks).
+const PAINTS = [
+  { id: "canvas", name: "Canvas", color: "#fbfaf6", cost: 0 },
+  { id: "red", name: "Barn red", color: "#e5484d", cost: 80 },
+  { id: "blue", name: "River blue", color: "#6b9cf0", cost: 80 },
+  { id: "gold", name: "Gold rush", color: "#ffc94d", cost: 250 },
+];
+
+const BOT = {
+  start: ["You've got this!", "Think back to the lesson.", "Read every choice before you pick.", "Stuck? Tap HINT. A hint halves the coins for this question."],
+  right: ["Correct!", "Nailed it!", "That's right!", "Great job!"],
+  lesson: "Read this first. Press A when you're ready for questions!",
+};
+
+const KEEPER = {
+  welcome: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!", "Stronger oxen get you to the next landmark sooner."],
+  bought: ["Pleasure doing business!", "Fine choice, partner.", "That'll serve you well on the trail."],
+  paint: "Looking sharp! Your wagon's freshly painted.",
+  poor: (n) => `You'll need ${n} more coins for that. Answer a few more questions!`,
+};
+
 const $ = (id) => document.getElementById(id);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
 let game = null;        // the saved game (see newGame in app.js)
 let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
+let hintUsed = false;   // the player asked BYTE for a hint on this question
 const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
+const paintColor = () => (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
 const shuffle = (list) => list.map((x) => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function escapeHTML(text) {
   const div = document.createElement("div");
@@ -85,14 +111,52 @@ function renderLesson(review) {
       ${lesson.keyPoints.length ? `<h3>KEY POINTS</h3><ul>${lesson.keyPoints.map((p) => `<li>${escapeHTML(p)}</li>`).join("")}</ul>` : ""}
       ${lesson.keyTerms.length ? `<h3>KEY TERMS</h3><dl class="terms">${lesson.keyTerms.map((t) => `<div><dt>${escapeHTML(t.term)}</dt><dd>${escapeHTML(t.definition)}</dd></div>`).join("")}</dl>` : ""}
       <button class="btn-next" id="lesson-go">${review ? "BACK TO THE QUESTION" : "START THE QUESTIONS"}<span class="hint" aria-hidden="true">A</span></button>
+      ${helperHTML(false)}
     </article>`;
   $("view-play").scrollTop = 0;
+  botSay(review ? "Take another look, then head back to the question." : BOT.lesson, "talk");
   $("lesson-go").addEventListener("click", () => {
-    if (review) return renderQuestion(game.banks[game.unit][current]);
+    if (review) return renderQuestion(game.banks[game.unit][current], true);
     game.lessonSeen[unit] = true;
     persistGame();
     showNext();
   });
+}
+
+// ---------- BYTE, the AI helper ----------
+
+function helperHTML(withHint) {
+  return `<div class="helper">
+    <div class="bot" id="bot"></div>
+    <p class="bubble" id="bot-say"></p>
+    ${withHint ? `<button class="hint-btn" id="hint" title="A hint halves the coins for this question">HINT</button>` : ""}
+  </div>`;
+}
+
+let typing;
+// Show a line from BYTE, typed out like an old game.
+function botSay(text, mood = "idle") {
+  const bot = $("bot");
+  const say = $("bot-say");
+  if (!bot || !say) return;
+  bot.innerHTML = botSVG(mood === "talk" ? "talk" : mood);
+  bot.className = `bot ${mood}`;
+  clearInterval(typing);
+  if (reducedMotion()) {
+    say.textContent = text;
+  } else {
+    let i = 0;
+    say.textContent = "";
+    typing = setInterval(() => {
+      i += 2;
+      say.textContent = text.slice(0, i);
+      if (i >= text.length) {
+        clearInterval(typing);
+        if (mood === "talk" && $("bot")) $("bot").innerHTML = botSVG("idle");
+      }
+    }, 18);
+  }
+  Sound.play("blip");
 }
 
 // ---------- questions ----------
@@ -104,11 +168,12 @@ function showNext() {
   renderQuestion(bank[current]);
 }
 
-function renderQuestion(q) {
+function renderQuestion(q, returning = false) {
   answering = true;
+  if (!returning) hintUsed = false;
   const units = game.trail.units;
   $("play").innerHTML = `
-    <div class="card">
+    <div class="card qcard">
       <div class="q-top">
         <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
@@ -116,14 +181,31 @@ function renderQuestion(q) {
       <p class="q-text">${escapeHTML(q.question)}</p>
       <div class="answers">${q.choices.map((c, i) => `<button class="answer" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`).join("")}</div>
       <div class="feedback" id="feedback"></div>
+      ${helperHTML(true)}
     </div>`;
   $("play").querySelectorAll(".answer").forEach((b) => b.addEventListener("click", () => answer(Number(b.dataset.i))));
   $("review")?.addEventListener("click", () => renderLesson(true));
+  $("hint").addEventListener("click", useHint);
+  if (hintUsed) {
+    $("hint").disabled = true;
+    botSay(`Hint: ${q.hint || "Rule out the answers you're sure are wrong."}`, "think");
+  } else if (game.answered === 0) botSay(BOT.start[3], "talk");
+  else if (game.streak >= 3) botSay(`Streak x${game.streak}! Keep it going!`, "happy");
+  else botSay(pick(BOT.start.slice(0, 3)), "talk");
+}
+
+function useHint() {
+  if (!answering || hintUsed) return;
+  hintUsed = true;
+  $("hint").disabled = true;
+  const q = game.banks[game.unit][current];
+  botSay(`Hint: ${q.hint || "Rule out the answers you're sure are wrong."}`, "think");
 }
 
 function answer(picked) {
   if (!answering) return;
   answering = false;
+  clearInterval(typing);
   const q = game.banks[game.unit][current];
   const right = picked === q.answerIndex;
   $("play").querySelectorAll(".answer").forEach((b, i) => {
@@ -131,6 +213,7 @@ function answer(picked) {
     b.classList.add(i === q.answerIndex ? "right" : i === picked ? "wrong" : "dim");
   });
   $("review")?.remove();
+  $("hint")?.remove();
 
   game.answered++;
   const feedback = $("feedback");
@@ -138,17 +221,23 @@ function answer(picked) {
     game.correct++;
     game.streak++;
     game.bestStreak = Math.max(game.bestStreak, game.streak);
-    const earned = upgradeValue("earnings") + upgradeValue("streak") * Math.min(game.streak - 1, 10);
+    let earned = upgradeValue("earnings") + upgradeValue("streak") * Math.min(game.streak - 1, 10);
+    if (hintUsed) earned = Math.ceil(earned / 2);
     const miles = upgradeValue("oxen");
     game.coins += earned;
     game.legMiles = Math.min(LEG_MILES, game.legMiles + miles);
     feedback.innerHTML = `<span class="gain">+${earned} COINS</span><span class="gain">+${miles} MI</span>`;
+    Sound.play("right");
+    setTimeout(() => Sound.play("coin"), 260);
+    botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;
     const lost = Math.min(game.coins, Math.round(upgradeValue("earnings") / 2));
     game.coins -= lost;
     game.queue.splice(2, 0, current); // see it again soon
-    feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span><p class="why">${escapeHTML(q.explanation)}</p>`;
+    feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span>`;
+    Sound.play("wrong");
+    botSay(`Not quite. ${q.explanation}`, "sad");
   }
   persistGame();
   renderHUD(right);
@@ -160,14 +249,14 @@ function answer(picked) {
 
   const next = arrived ? arrive : showNext;
   if (right) {
-    setTimeout(() => { if (!$("game").hidden) next(); }, 1100);
+    setTimeout(() => { if (!$("game").hidden && !answering) next(); }, 1300);
   } else {
     const b = document.createElement("button");
     b.className = "btn-next";
     b.innerHTML = `CONTINUE<span class="hint" aria-hidden="true">A</span>`;
     b.addEventListener("click", next);
     feedback.append(b);
-    b.focus();
+    b.focus({ preventScroll: true });
   }
 }
 
@@ -184,6 +273,7 @@ function arrive() {
     return renderWin();
   }
   persistGame();
+  Sound.play("arrive");
   const next = units[game.unit];
   renderMessage(`YOU REACHED ${reached.name.toUpperCase()}`,
     `Unit ${game.unit} complete. Next stop: ${next.name}, covering ${next.topic}.`,
@@ -193,6 +283,7 @@ function arrive() {
 function renderWin() {
   answering = false;
   drawScene();
+  Sound.play("win");
   const accuracy = game.answered ? Math.round((game.correct / game.answered) * 100) : 0;
   $("play").innerHTML = `
     <div class="card message">
@@ -226,7 +317,7 @@ function renderMessage(title, text, buttons = [], loading = false) {
     b.addEventListener("click", onClick);
     card.append(b);
   });
-  card.querySelector("button")?.focus();
+  card.querySelector("button")?.focus({ preventScroll: true });
 }
 
 // ---------- the loading screen (while the syllabus is read) ----------
@@ -237,6 +328,8 @@ const LOAD_STEPS = ["Reading your syllabus", "Mapping out the units", "Writing t
 function renderLoading(step, error = "", onBack = null) {
   answering = false;
   $("view-play").classList.add("bare");
+  if (step > 0 && !error) Sound.play("step");
+  if (error) Sound.play("deny");
   const pct = Math.round((step / LOAD_STEPS.length) * 100);
   $("play").innerHTML = `
     <div class="card loading">
@@ -282,20 +375,6 @@ function renderHUD(gained = false) {
   $("leg-miles").textContent = `${miles} / ${LEG_MILES} mi`;
 }
 
-const px = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
-
-function fort(x, flag) {
-  return px(x - 7, 50, 15, 16, "#b07a4a") + px(x - 8, 48, 17, 3, "#6e4a2b") + px(x - 2, 58, 4, 8, "#4a3020") +
-    px(x - 7, 46, 3, 3, "#b07a4a") + px(x + 5, 46, 3, 3, "#b07a4a") + px(x, 34, 1, 14, "#6e4a2b") + px(x + 1, 34, 7, 5, flag);
-}
-
-function wagon() {
-  return px(-11, 49, 14, 2, "#fff") + px(-12, 51, 16, 8, "#fbfaf6") + px(-12, 51, 1, 8, "#111418") + px(3, 51, 1, 8, "#111418") +
-    px(-11, 48, 14, 1, "#111418") + px(-13, 59, 18, 4, "#8a5a32") +
-    px(-12, 62, 5, 5, "#111418") + px(-1, 62, 5, 5, "#111418") + px(-11, 63, 3, 3, "#c9a27a") + px(0, 63, 3, 3, "#c9a27a") +
-    px(5, 60, 3, 1, "#6e4a2b") + px(8, 56, 9, 6, "#7a4a1e") + px(16, 54, 4, 5, "#7a4a1e") + px(9, 62, 2, 5, "#5a3a1a") + px(14, 62, 2, 5, "#5a3a1a");
-}
-
 let lastWagon = null;
 
 function drawScene() {
@@ -303,32 +382,28 @@ function drawScene() {
   const unit = Math.min(game.unit, units.length - 1);
   const miles = game.finished ? LEG_MILES : game.legMiles;
   const x = Math.round(44 + (226 * miles) / LEG_MILES);
-
-  let s = px(0, 0, 320, 90, "#e9f3fb");
-  s += px(40, 14, 22, 5, "#fff") + px(46, 10, 12, 4, "#fff") + px(180, 20, 28, 5, "#fff") + px(188, 16, 14, 4, "#fff");
-  s += px(270, 10, 12, 12, "#ffc94d");
-  for (let i = 0; i < 6; i++) s += px(i * 60 - 10, 44 - (i % 3) * 4, 80, 30, "#d3e7c6"); // far hills
-  s += px(0, 62, 320, 28, "#a9d39a") + px(0, 62, 320, 2, "#93c585");
-  s += px(0, 66, 320, 5, "#e5d3ae");
-  for (let gx = 8; gx < 320; gx += 26) s += px(gx, 76 + ((gx * 7) % 8), 3, 2, "#93c585");
-  s += unit === 0 && !game.finished ? px(22, 50, 2, 16, "#6e4a2b") + px(16, 48, 14, 6, "#e5d3ae") : fort(24, "#3b6fe0");
-  s += fort(292, game.finished ? "#1f9d55" : "#ff4d2e");
-  s += `<g id="wagon" class="wagon">${wagon()}</g>`;
-  $("scene").innerHTML = `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
-
+  const from = lastWagon !== null && lastWagon <= x ? lastWagon : x;
+  $("scene").innerHTML = trailSceneSVG({
+    theme: game.trail.theme,
+    startSign: unit === 0 && !game.finished,
+    reached: game.finished,
+    x: from,
+    cover: paintColor(),
+    label: `Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}`,
+  });
   // roll the wagon from where it was to where it is now
   const el = $("wagon");
-  el.style.transform = `translateX(${lastWagon !== null && lastWagon <= x ? lastWagon : x}px)`;
   requestAnimationFrame(() => requestAnimationFrame(() => (el.style.transform = `translateX(${x}px)`)));
   lastWagon = x;
 }
 
-// ---------- screens: play, shop and help slide side by side ----------
+// ---------- How to Play: slides in beside the game ----------
 
-const VIEWS = ["play", "shop", "help"];
+const VIEWS = ["play", "help"];
 const HELP_SEEN_KEY = "study-helper-help-seen";
 let view = "play";
-const shopOpen = () => view !== "play"; // any screen other than the game
+let shopIsOpen = false;
+const overlayOpen = () => shopIsOpen || view !== "play"; // anything covering the game
 
 function showView(name, focusId) {
   view = name;
@@ -338,29 +413,105 @@ function showView(name, focusId) {
   if (focusId) setTimeout(() => $(focusId).focus({ preventScroll: true }), 50);
 }
 
-function openShop() {
-  renderShop();
-  showView("shop", "shop-back");
-}
-
-function closeShop() {
-  showView("play", view === "help" ? "help-btn" : "shop-btn");
-}
-
 // first = shown automatically the first time someone plays
 function openHelp(first = false) {
   $("help-intro").textContent = (first ? "Welcome! " : "") +
     "Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.";
   $("help-back").innerHTML = first ? "LET'S GO &gt;" : "&lt; BACK";
+  Sound.play("open");
   showView("help", "help-back");
+}
+
+function closeHelp() {
+  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
+  Sound.play("close");
+  showView("play", "help-btn");
 }
 
 function helpSeen() {
   try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
 }
 
-function markHelpSeen() {
-  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
+// ---------- the general store: grows out of the trail window ----------
+
+// The trail window's position inside the screen, as a clip-path.
+function windowClip() {
+  const scene = $("scene").getBoundingClientRect();
+  const screen = document.querySelector(".screen").getBoundingClientRect();
+  const top = Math.max(0, scene.top - screen.top);
+  const left = Math.max(0, scene.left - screen.left);
+  const right = Math.max(0, screen.right - scene.right);
+  const bottom = Math.max(0, screen.bottom - scene.bottom);
+  return `inset(${top}px ${right}px ${bottom}px ${left}px round 10px)`;
+}
+
+function openShop() {
+  if (shopIsOpen) return;
+  shopIsOpen = true;
+  renderShop();
+  keeperSay(pick(KEEPER.welcome), "idle");
+  const shop = $("shop");
+  Sound.play("open");
+  // 1: zoom into the trail window...
+  $("scene").classList.add("zoom-in");
+  shop.classList.add("instant");
+  shop.style.clipPath = windowClip();
+  shop.hidden = false;
+  shop.scrollTop = 0;
+  shop.getBoundingClientRect(); // apply the starting clip before animating
+  // 2: ...then the window grows into the whole store.
+  setTimeout(() => {
+    shop.classList.remove("instant");
+    shop.style.clipPath = "inset(0px 0px 0px 0px round 8px)";
+  }, reducedMotion() ? 0 : 220);
+  setTimeout(() => $("scene").classList.remove("zoom-in"), 800);
+  $("view-play").inert = true;
+  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 700);
+}
+
+function closeShop() {
+  if (!shopIsOpen) return;
+  shopIsOpen = false;
+  Sound.play("close");
+  const shop = $("shop");
+  shop.scrollTop = 0;
+  shop.style.clipPath = windowClip(); // shrink back into the trail window
+  setTimeout(() => {
+    shop.hidden = true;
+    $("view-play").inert = false;
+    $("shop-btn").focus({ preventScroll: true });
+  }, reducedMotion() ? 0 : 560);
+}
+
+// Put the game screens back to normal right away (used when leaving the machine).
+function resetScreens() {
+  shopIsOpen = false;
+  $("shop").hidden = true;
+  $("view-play").inert = false;
+  showView("play");
+}
+
+let keeperTimer;
+function keeperSay(text, mood = "idle") {
+  $("store-scene").querySelector("svg")?.remove();
+  $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
+  $("keeper-say").textContent = text;
+  clearTimeout(keeperTimer);
+  if (mood === "happy") keeperTimer = setTimeout(() => {
+    $("store-scene").querySelector("svg")?.remove();
+    $("store-scene").insertAdjacentHTML("afterbegin", storeSVG("idle"));
+  }, 1200);
+}
+
+// Try to spend coins; the shopkeeper tells you when you're short.
+function spend(cost) {
+  if (game.coins >= cost) {
+    game.coins -= cost;
+    return true;
+  }
+  Sound.play("deny");
+  keeperSay(KEEPER.poor(cost - game.coins));
+  return false;
 }
 
 function renderShop() {
@@ -371,33 +522,54 @@ function renderShop() {
     const el = document.createElement("div");
     el.className = "upgrade";
     el.innerHTML = `
-      <h3>${u.name}</h3>
-      <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
-      <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>`;
+      <div class="item-icon">${itemIcon(u.id)}</div>
+      <div class="item-text">
+        <h3>${u.name}</h3>
+        <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
+        <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>
+      </div>`;
     const buy = document.createElement("button");
-    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]} COINS`;
+    buy.className = "price" + (!maxed && game.coins < u.costs[lvl] ? " short" : "");
+    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
     buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
-    buy.disabled = maxed || game.coins < u.costs[lvl];
+    buy.disabled = maxed;
     buy.addEventListener("click", () => {
-      game.coins -= u.costs[lvl];
+      if (!spend(u.costs[lvl])) return;
       game.levels[u.id] = lvl + 1;
       persistGame();
+      Sound.play("buy");
+      keeperSay(pick(KEEPER.bought), "happy");
       renderShop();
       renderHUD();
-      toast(`${u.name.toUpperCase()} UPGRADED: ${u.values[lvl + 1]} ${u.unit.toUpperCase()}`);
     });
     el.append(buy);
     return el;
   }));
-}
 
-let toastTimer;
-function toast(text) {
-  const el = $("toast");
-  el.textContent = text;
-  el.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), 2200);
+  $("paint-list").replaceChildren(...PAINTS.map((p) => {
+    const owned = p.cost === 0 || game.paints.includes(p.id);
+    const using = (game.paint || "canvas") === p.id;
+    const b = document.createElement("button");
+    b.className = "paint" + (using ? " using" : "");
+    b.innerHTML = `<span class="paint-pic">${paintIcon(p.color)}</span><span class="paint-name">${p.name}</span>
+      <span class="paint-tag ${!owned && game.coins < p.cost ? "short" : ""}">${using ? "IN USE" : owned ? "USE" : p.cost}</span>`;
+    b.setAttribute("aria-label", using ? `${p.name} paint, in use` : owned ? `Use ${p.name} paint` : `Buy ${p.name} paint for ${p.cost} coins`);
+    b.addEventListener("click", () => {
+      if (using) return;
+      if (!owned) {
+        if (!spend(p.cost)) return;
+        game.paints.push(p.id);
+      }
+      game.paint = p.id;
+      persistGame();
+      Sound.play("buy");
+      keeperSay(KEEPER.paint, "happy");
+      renderShop();
+      renderHUD();
+      drawScene();
+    });
+    return b;
+  }));
 }
 
 // ---------- the arcade controls ----------
@@ -417,18 +589,37 @@ function pressPad(i) {
   pad.classList.add("pressed");
   setTimeout(() => pad.classList.remove("pressed"), 120);
   wiggleStick(i < 2 ? "left" : "right");
-  if (shopOpen()) return;
+  Sound.play("press");
+  if (overlayOpen()) return;
   if (answering) return answer(i);
   $("play").querySelector(".btn-next")?.click();
 }
 
 document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click", () => pressPad(Number(pad.dataset.i))));
 
+// The speaker grille on the deck (and the landing page button) turns sound on and off.
+function syncSound() {
+  const on = !Sound.isMuted();
+  $("sound-btn").setAttribute("aria-pressed", String(on));
+  $("sound-btn").setAttribute("aria-label", on ? "Sound is on. Press to mute." : "Sound is off. Press to turn it on.");
+  $("sound-label").textContent = on ? "SOUND ON" : "SOUND OFF";
+  $("sound-btn").classList.toggle("off", !on);
+  $("landing-sound").textContent = on ? "Sound on" : "Sound off";
+  $("landing-sound").setAttribute("aria-pressed", String(on));
+}
+
+function toggleSound() {
+  Sound.toggle();
+  syncSound();
+}
+
+$("sound-btn").addEventListener("click", toggleSound);
+
 // ---------- start ----------
 
 function startGame() {
   $("view-play").classList.remove("bare");
-  showView("play");
+  resetScreens();
   lastWagon = null;
   shownCoins = null;
   renderHUD();
@@ -441,20 +632,18 @@ function startGame() {
 $("shop-btn").addEventListener("click", openShop);
 $("shop-back").addEventListener("click", closeShop);
 $("help-btn").addEventListener("click", () => openHelp());
-$("help-back").addEventListener("click", () => {
-  markHelpSeen();
-  closeShop();
-});
+$("help-back").addEventListener("click", closeHelp);
 
-// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
+// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape closes the store or help.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === "Escape" && shopOpen()) {
-    if (view === "help") markHelpSeen();
-    return closeShop();
+  if (e.key === "Escape") {
+    if (shopIsOpen) return closeShop();
+    if (view === "help") return closeHelp();
+    return;
   }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
-  if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  if (overlayOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
   const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
   if (i < 0) return;
   // Letter keys only answer questions; on other screens Enter/Space already press the focused button.

@@ -361,20 +361,112 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .help-steps h3 { margin: 2px 0 4px; font-size: 15px; }
 .help-steps p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 
-/* ---------- shop (its own screen) ---------- */
-
 .shop-title { font-family: var(--pixel); font-size: 14px; margin: 0 0 0 4px; }
-.shop-wallet { margin-left: auto; text-align: right; }
 .shop-intro { color: var(--muted); margin: 16px auto 14px; }
-.shop-list { display: grid; gap: 12px; }
-.upgrade { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; box-shadow: 0 4px 0 var(--ink); }
-.upgrade h3 { margin: 0; font-size: 17px; }
-.upgrade p { margin: 0; color: var(--muted); font-size: 14px; grid-column: 1; }
-.pips { display: flex; gap: 4px; grid-column: 1; margin-top: 4px; }
-.pips i { width: 18px; height: 8px; border-radius: 2px; background: var(--line); }
+
+/* ---------- the general store (grows out of the trail window) ---------- */
+
+.screen { position: relative; }
+.shop {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow-y: auto;
+  background: var(--screen);
+  transition: clip-path 560ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.shop.instant { transition: none; }
+.scene.zoom-in > svg { transform: scale(1.12); transition: transform 240ms ease-in; }
+.scene > svg { transition: transform 240ms ease-out; }
+
+.store-scene { position: relative; line-height: 0; border-bottom: 3px solid var(--ink); }
+.store-scene > svg { width: 100%; height: auto; aspect-ratio: 320 / 90; max-height: clamp(110px, 26vh, 220px); display: block; }
+.store-sign {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  font-family: var(--pixel); font-size: clamp(9px, 1.6vw, 12px); line-height: 1;
+  background: #6e4a2b; color: #ffd23f; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 4px; white-space: nowrap;
+}
+.speech {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-118%);
+  max-width: min(44%, 280px); margin: 0; padding: 8px 10px;
+  background: #fff; border: 2px solid var(--ink); border-radius: 10px;
+  font-size: 13px; line-height: 1.35; color: var(--ink);
+}
+.speech::after { content: ""; position: absolute; right: -9px; bottom: 12px; border: 8px solid transparent; border-left-color: var(--ink); border-right: 0; }
+
+@media (max-width: 560px) {
+  .speech { position: static; transform: none; max-width: none; margin: 10px 14px 12px; }
+  .speech::after { right: auto; left: 50%; top: -9px; bottom: auto; border: 8px solid transparent; border-bottom-color: var(--ink); border-top: 0; }
+}
+
+.shop-body { max-width: 640px; margin: 0 auto; padding: 14px clamp(14px, 3.5vw, 30px) 24px; }
+.shop-wallet { margin-left: auto; text-align: right; }
+.shelf-title { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 18px 0 10px; }
+.shop-list { display: grid; gap: 10px; }
+.upgrade { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 12px; display: flex; gap: 12px; align-items: center; box-shadow: 0 3px 0 var(--ink); }
+.item-icon { flex: none; width: 48px; height: 48px; display: grid; place-items: center; background: #f6efe2; border: 2px solid var(--ink); border-radius: 10px; }
+.item-icon svg { width: 34px; height: 34px; }
+.item-text { flex: 1; min-width: 0; }
+.upgrade h3 { margin: 0 0 2px; font-size: 16px; }
+.upgrade p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.pips { display: flex; gap: 4px; margin-top: 6px; }
+.pips i { width: 16px; height: 7px; border-radius: 2px; background: var(--line); }
 .pips i.on { background: var(--accent); }
-.upgrade button { grid-column: 2; grid-row: 1 / span 3; font-family: var(--pixel); font-size: 10px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--ink); min-width: 100px; }
-.upgrade button:disabled { background: var(--line); color: var(--muted); box-shadow: none; cursor: not-allowed; border-color: var(--line); }
+.price {
+  flex: none; font-family: var(--pixel); font-size: 10px; padding: 10px 12px; min-width: 70px;
+  border: 2px solid var(--ink); border-radius: 10px; background: #ffd23f; color: var(--ink); box-shadow: 0 3px 0 var(--ink);
+}
+.price::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #e0a100; border: 1px solid var(--ink); vertical-align: -1px; }
+.price.short { background: #fff; color: var(--muted); }
+.price:disabled { background: var(--line); color: var(--muted); box-shadow: none; border-color: var(--line); cursor: default; }
+.price:disabled::before { display: none; }
+.price:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+
+.paint-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 480px) { .paint-list { grid-template-columns: repeat(2, 1fr); } }
+.paint { display: grid; justify-items: center; gap: 4px; padding: 10px 6px; background: #fff; border: 2px solid var(--line); border-radius: 12px; color: var(--ink); }
+.paint:hover { border-color: var(--ink); }
+.paint.using { border-color: var(--good); background: var(--good-soft); }
+.paint-pic svg { width: 64px; height: 42px; display: block; }
+.paint-name { font-size: 13px; font-weight: 600; }
+.paint-tag { font-family: var(--pixel); font-size: 8px; color: var(--ink); }
+.paint-tag.short { color: var(--muted); }
+.paint.using .paint-tag { color: var(--good); }
+
+/* ---------- BYTE, the AI helper ---------- */
+
+.helper { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 2px dashed var(--line); }
+.bot { flex: none; width: 38px; height: 46px; animation: bob 1.6s steps(2) infinite; }
+.bot svg { width: 100%; height: 100%; display: block; }
+.bot.happy { animation: hop 0.5s steps(3) 2; }
+.bot.sad { animation: none; transform: translateY(2px); }
+@keyframes bob { 50% { transform: translateY(-2px); } }
+@keyframes hop { 50% { transform: translateY(-6px); } }
+.bubble {
+  position: relative; flex: 1; margin: 0; min-height: 34px; padding: 7px 10px;
+  background: #e8f0d0; border: 2px solid #0f380f; border-radius: 8px;
+  color: #0f380f; font-size: 13px; line-height: 1.4;
+}
+.bubble::before { content: ""; position: absolute; left: -8px; top: 12px; border: 7px solid transparent; border-right-color: #0f380f; border-left: 0; }
+.hint-btn { flex: none; font-family: var(--pixel); font-size: 9px; padding: 9px 10px; border: 2px solid var(--ink); border-radius: 8px; background: #9bbc0f; color: #0f380f; box-shadow: 0 3px 0 var(--ink); }
+.hint-btn:disabled { background: var(--line); color: var(--muted); box-shadow: none; border-color: var(--line); cursor: default; }
+.lesson .helper { margin-top: 16px; }
+
+/* ---------- speaker grille on the deck ---------- */
+
+.speaker { display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--muted); }
+.grille {
+  width: 64px; height: 28px; border: 2px solid var(--ink); border-radius: 8px; background: #fff;
+  background-image: repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 7px);
+  background-size: 52px 16px; background-position: center; background-repeat: no-repeat;
+}
+.speaker.off .grille { opacity: 0.35; }
+.spk-label { font-family: var(--pixel); font-size: 7px; }
+@media (max-width: 420px) { .grille { width: 40px; background-size: 30px 14px; } .spk-label { display: none; } }
+
+.top-links { display: flex; align-items: center; gap: 16px; }
+.top-sound { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
+.top-sound:hover { color: var(--ink); border-color: var(--ink); }
 
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: #fff; font-family: var(--pixel); font-size: 10px; line-height: 1.6; padding: 12px 16px; border-radius: 10px; max-width: calc(100vw - 32px); text-align: center; }
 
@@ -389,7 +481,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   <div id="landing" class="landing">
     <header class="top">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
-      <a class="top-note" href="#how">How it works</a>
+      <div class="top-links"><a class="top-note" href="#how">How it works</a><button class="top-sound" id="landing-sound" aria-pressed="true">Sound on</button></div>
     </header>
 
     <main class="hero">
@@ -488,16 +580,6 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
               <div class="play" id="play" aria-live="polite"></div>
             </section>
 
-            <section class="view" id="view-shop" inert>
-              <div class="hud">
-                <button id="shop-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
-                <h2 class="shop-title">SHOP</h2>
-                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
-              </div>
-              <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
-              <div id="shop-list" class="shop-list"></div>
-            </section>
-
             <section class="view" id="view-help" inert>
               <div class="hud">
                 <button id="help-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
@@ -514,11 +596,32 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
               </ol>
             </section>
           </div>
+
+          <!-- SHOP: grows out of the trail window to fill the screen -->
+          <div class="shop" id="shop" role="dialog" aria-modal="true" aria-labelledby="shop-title" hidden>
+            <div class="store-scene" id="store-scene">
+              <div class="store-sign" id="shop-title">GENERAL STORE</div>
+              <p class="speech" id="keeper-say" aria-live="polite"></p>
+            </div>
+            <div class="shop-body">
+              <div class="hud">
+                <button id="shop-back" class="hud-btn" aria-label="Back to the trail">&lt; BACK</button>
+                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
+              </div>
+              <h3 class="shelf-title">UPGRADES</h3>
+              <div id="shop-list" class="shop-list"></div>
+              <h3 class="shelf-title">WAGON PAINT</h3>
+              <div id="paint-list" class="paint-list"></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="deck">
         <div class="stick" id="stick" aria-hidden="true"><span class="ball"></span></div>
+        <button class="speaker" id="sound-btn" aria-pressed="true" aria-label="Sound is on. Press to mute.">
+          <span class="grille" aria-hidden="true"></span><span class="spk-label" id="sound-label">SOUND ON</span>
+        </button>
         <div class="pads" aria-label="Answer buttons">
           <button class="pad" data-i="0" aria-label="Answer A">A</button>
           <button class="pad" data-i="1" aria-label="Answer B">B</button>
@@ -581,8 +684,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 </script>
 <script>
 
-const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nEach stop is a landmark (a town, fort or pass) named playfully after the unit's topic, like \"Fort Mitochondria\".\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."}},"required":["question","choices","answerIndex","explanation"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false}};
-const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus."}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"demo":true};
+const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false}};
+const THEMES = ["frontier","law","science","math","literature","tech","health","business"];
+const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP.","hint":"Think about which organelle is called the cell's powerhouse."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.","hint":"Plants need something rigid to stand upright."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.","hint":"It's the special name for water's diffusion."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.","hint":"Which one moves things against their gradient?"},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins.","hint":"These tiny structures read mRNA."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles.","hint":"Think of a cell's shipping department."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.","hint":"It's a gatekeeper, not a wall."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus.","hint":"The control center of the cell."}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen.","hint":"It happens before the mitochondria are involved."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP.","hint":"Think of the last, most productive stage."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.","hint":"It's the gas you breathe in."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light.","hint":"These membranes are stacked inside the chloroplast."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen.","hint":"Plants give off the gas animals need."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.","hint":"Its job is building sugar from carbon dioxide."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.","hint":"The name means 'sugar splitting'."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.","hint":"It's the pigment that makes leaves green."}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"theme":"science","demo":true};
 function quizRequest(r) {
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
   return [
@@ -602,7 +706,7 @@ function cleanQuiz(questions) {
       Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex < 4)
     .map((q) => {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || "") };
+      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || "") };
     });
 }
 function cleanLesson(l) {
@@ -648,7 +752,7 @@ function cleanTrail(t) {
       keyConcepts: Array.isArray(u.keyConcepts) ? u.keyConcepts.map(String) : [],
     }));
   if (!units.length) throw new Error("The AI's route came back empty. Try again.");
-  return { courseTitle: String(t.courseTitle || "Your course"), units };
+  return { courseTitle: String(t.courseTitle || "Your course"), theme: THEMES.includes(t.theme) ? t.theme : "frontier", units };
 }
 
 async function handle(path, req) {
@@ -698,32 +802,310 @@ window.fetch = async (url, options = {}) => {
 };
 </script>
 <script>
+// Arcade sound effects, made on the fly with the Web Audio API (no audio files).
+// Sound.play("coin") plays one; Sound.toggle() mutes or unmutes, and the choice is remembered.
+// Browsers only allow audio after the player clicks or presses a key, so the first sounds
+// start with that first interaction.
+
+const Sound = (() => {
+  const KEY = "study-helper-muted";
+  let ctx = null;
+  let muted = false;
+  try { muted = localStorage.getItem(KEY) === "1"; } catch { /* storage blocked: sound on */ }
+
+  function audio() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      ctx = new AudioCtx();
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // One note: frequency in Hz, start offset and length in seconds, optional slide to another pitch.
+  function note(a, freq, at, length, { type = "square", volume = 0.06, slide = null } = {}) {
+    const t = a.currentTime + at;
+    const osc = a.createOscillator();
+    const gain = a.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(slide, t + length);
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    osc.connect(gain).connect(a.destination);
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+  }
+
+  const tune = (a, notes, step, opts) => notes.forEach((f, i) => note(a, f, i * step, step * 1.4, opts));
+
+  const EFFECTS = {
+    press: (a) => note(a, 520, 0, 0.05, { volume: 0.04 }),
+    blip: (a) => { note(a, 880, 0, 0.04, { volume: 0.03 }); note(a, 1175, 0.05, 0.04, { volume: 0.03 }); },
+    insert: (a) => { note(a, 180, 0, 0.04, { type: "triangle", volume: 0.1 }); note(a, 988, 0.08, 0.08); note(a, 1319, 0.16, 0.25); },
+    coin: (a) => { note(a, 988, 0, 0.07); note(a, 1319, 0.07, 0.2); },
+    right: (a) => tune(a, [523, 659, 784, 1047], 0.06),
+    wrong: (a) => { note(a, 220, 0, 0.18, { type: "sawtooth", volume: 0.05, slide: 110 }); note(a, 165, 0.2, 0.25, { type: "sawtooth", volume: 0.05, slide: 82 }); },
+    whoosh: (a) => note(a, 180, 0, 0.9, { type: "triangle", volume: 0.08, slide: 1400 }),
+    unwhoosh: (a) => note(a, 1400, 0, 0.8, { type: "triangle", volume: 0.07, slide: 180 }),
+    open: (a) => note(a, 330, 0, 0.18, { type: "triangle", volume: 0.08, slide: 880 }),
+    close: (a) => note(a, 880, 0, 0.16, { type: "triangle", volume: 0.07, slide: 330 }),
+    buy: (a) => { note(a, 1319, 0, 0.06); note(a, 1568, 0.06, 0.06); note(a, 2093, 0.12, 0.25); },
+    deny: (a) => { note(a, 150, 0, 0.1, { volume: 0.06 }); note(a, 150, 0.14, 0.12, { volume: 0.06 }); },
+    step: (a) => note(a, 1200, 0, 0.04, { volume: 0.03 }),
+    arrive: (a) => tune(a, [523, 659, 784, 1047, 784, 1047], 0.09, { type: "square", volume: 0.05 }),
+    win: (a) => tune(a, [392, 523, 659, 784, 659, 784, 1047, 1319], 0.11, { type: "square", volume: 0.05 }),
+  };
+
+  return {
+    play(name) {
+      if (muted) return;
+      const a = audio();
+      if (a && EFFECTS[name]) {
+        try { EFFECTS[name](a); } catch { /* a failed sound never breaks the game */ }
+      }
+    },
+    isMuted: () => muted,
+    toggle() {
+      muted = !muted;
+      try { localStorage.setItem(KEY, muted ? "1" : "0"); } catch { /* not saved */ }
+      if (!muted) this.play("blip");
+      return muted;
+    },
+  };
+})();
+
+// Pixel art, drawn with SVG rectangles: the trail scenery for each theme, the wagon,
+// BYTE (the AI helper), the shopkeeper, the store, and the shop's item icons.
+// Every function returns an SVG string. Coordinates are in pixels of each picture's viewBox.
+
+const px = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
+const INK = "#111418";
+
+// ---------- trail scenery, one look per theme ----------
+
+// A stepped triangle (pyramids, roofs, mountains).
+function steps(cx, baseY, width, stepH, layers, fill) {
+  let s = "";
+  for (let i = 0; i < layers; i++) {
+    const w = Math.max(2, Math.round(width - (width / layers) * i));
+    s += px(Math.round(cx - w / 2), baseY - stepH * (i + 1), w, stepH, fill);
+  }
+  return s;
+}
+
+const flag = (x, top, color) => px(x, top, 1, 12, "#6e4a2b") + px(x + 1, top, 7, 5, color);
+
+const BACKDROPS = {
+  hills: (look) => [0, 1, 2, 3, 4, 5].map((i) => px(i * 60 - 10, 44 - (i % 3) * 4, 80, 30, look.far)).join(""),
+  skyline: (look) => {
+    let s = "";
+    [[0, 26, 18], [30, 34, 22], [60, 22, 16], [84, 38, 20], [112, 28, 24], [146, 42, 18], [170, 24, 22], [200, 36, 16], [222, 30, 26], [256, 40, 20], [282, 26, 18], [304, 34, 20]]
+      .forEach(([x, h, w]) => {
+        s += px(x, 62 - h, w, h, look.far);
+        for (let wy = 66 - h; wy < 58; wy += 6) for (let wx = x + 3; wx < x + w - 3; wx += 5) s += px(wx, wy, 2, 2, "#eef1f6");
+      });
+    return s;
+  },
+  pyramids: (look) => steps(70, 62, 70, 4, 7, look.far) + steps(190, 62, 54, 4, 6, look.far) + steps(250, 62, 40, 4, 4, look.far),
+  trees: (look) => {
+    let s = BACKDROPS.hills(look);
+    [52, 104, 156, 208, 248].forEach((x, i) => {
+      const leaf = ["#e39b5a", "#d9634a", "#e8b04c"][i % 3];
+      s += px(x + 6, 46, 3, 16, "#8a5a32") + px(x, 36, 15, 12, leaf) + px(x + 3, 32, 9, 4, leaf);
+    });
+    return s;
+  },
+  towers: (look) => {
+    let s = BACKDROPS.skyline(look);
+    [52, 160, 238].forEach((x) => { s += px(x, 18, 6, 44, "#b9c3d8") + px(x + 2, 12, 2, 6, "#8f98a8") + px(x + 2, 10, 2, 2, "#ff4d2e"); });
+    return s;
+  },
+  domes: (look) => BACKDROPS.hills(look) + steps(110, 50, 30, 3, 5, "#bcd9d2") + px(95, 50, 30, 12, "#bcd9d2") + steps(220, 54, 20, 3, 4, "#bcd9d2") + px(210, 54, 20, 8, "#bcd9d2"),
+};
+
+const LANDMARKS = {
+  fort: (x, f) => px(x - 7, 50, 15, 16, "#b07a4a") + px(x - 8, 48, 17, 3, "#6e4a2b") + px(x - 2, 58, 4, 8, "#4a3020") +
+    px(x - 7, 46, 3, 3, "#b07a4a") + px(x + 5, 46, 3, 3, "#b07a4a") + flag(x, 34, f),
+  courthouse: (x, f) => steps(x, 50, 27, 3, 3, "#e3ddcc") + px(x - 12, 50, 25, 14, "#f6f3ea") +
+    [-10, -5, 0, 5, 9].map((dx) => px(x + dx, 51, 2, 13, "#d3ccb8")).join("") + px(x - 14, 64, 29, 2, "#cfc8b6") + flag(x, 29, f),
+  lab: (x, f) => px(x - 10, 50, 21, 16, "#f6f8f9") + steps(x, 50, 14, 3, 3, "#bfe0ea") + px(x - 7, 54, 4, 4, "#9fd3e6") + px(x + 4, 54, 4, 4, "#9fd3e6") +
+    px(x - 1, 58, 3, 8, "#7c8a94") + flag(x, 30, f),
+  pyramid: (x, f) => steps(x, 66, 28, 4, 5, "#d9bc78") + px(x - 2, 60, 4, 6, "#9c7c3c") + flag(x, 34, f),
+  library: (x, f) => px(x - 11, 50, 23, 16, "#ead9c0") + px(x - 12, 47, 25, 3, "#8a5a32") + px(x - 2, 58, 5, 8, "#5a3a1a") +
+    px(x - 8, 52, 2, 5, "#d9634a") + px(x - 5, 52, 2, 5, "#3b6fe0") + px(x + 4, 52, 2, 5, "#1f9d55") + px(x + 7, 52, 2, 5, "#e0a100") + flag(x, 35, f),
+  tower: (x, f) => px(x - 6, 30, 13, 36, "#5b6577") + [34, 40, 46, 52, 58].map((y) => px(x - 3, y, 2, 2, "#3ce070") + px(x + 2, y, 2, 2, "#3ce070")).join("") +
+    px(x, 20, 1, 10, "#8f98a8") + px(x - 1, 18, 3, 2, f),
+  hospital: (x, f) => px(x - 12, 47, 25, 19, "#cfd6dc") + px(x - 11, 48, 23, 18, "#ffffff") + px(x - 1, 51, 3, 9, "#e5484d") + px(x - 4, 54, 9, 3, "#e5484d") +
+    px(x - 2, 61, 5, 5, "#8fa1ad") + flag(x, 35, f),
+  bank: (x, f) => steps(x, 46, 23, 3, 2, "#c9b48a") + px(x - 10, 46, 21, 20, "#e4d6b8") + [-8, -3, 2, 7].map((dx) => px(x + dx, 49, 2, 15, "#c9b48a")).join("") +
+    px(x - 2, 38, 5, 5, "#e0a100") + flag(x, 26, f),
+};
+
+const THEME_LOOK = {
+  frontier:   { sky: "#e9f3fb", far: "#d3e7c6", ground: "#a9d39a", edge: "#93c585", path: "#e5d3ae", backdrop: "hills", landmark: "fort" },
+  law:        { sky: "#eef1f6", far: "#d6dae3", ground: "#c9cdd4", edge: "#b4b8c2", path: "#ece6d6", backdrop: "skyline", landmark: "courthouse" },
+  science:    { sky: "#e8f6f3", far: "#d1ebe3", ground: "#acd8c5", edge: "#93c9b2", path: "#e3e7ea", backdrop: "domes", landmark: "lab" },
+  math:       { sky: "#f3eefb", far: "#e9dcb6", ground: "#ead9a6", edge: "#dcc78d", path: "#f5ebcc", backdrop: "pyramids", landmark: "pyramid" },
+  literature: { sky: "#fbf3e8", far: "#ecdcc0", ground: "#c9dca8", edge: "#b3cc8c", path: "#e5d3ae", backdrop: "trees", landmark: "library" },
+  tech:       { sky: "#e9efff", far: "#d3dbee", ground: "#c5ccd8", edge: "#aab3c4", path: "#9aa3b2", backdrop: "towers", landmark: "tower" },
+  health:     { sky: "#eef8fb", far: "#d5ebdc", ground: "#bde1c3", edge: "#a2d2ab", path: "#e6ebee", backdrop: "hills", landmark: "hospital" },
+  business:   { sky: "#edf3fb", far: "#d6dce8", ground: "#c9cdd4", edge: "#b4b8c2", path: "#ece6d6", backdrop: "skyline", landmark: "bank" },
+};
+
+const themeLook = (theme) => THEME_LOOK[theme] || THEME_LOOK.frontier;
+
+// The covered wagon with its driver. cover = the canvas color.
+function wagonSprite(cover = "#fbfaf6") {
+  return px(-11, 49, 14, 2, cover) + px(-12, 51, 16, 8, cover) + px(-12, 51, 1, 8, INK) + px(3, 51, 1, 8, INK) + px(-11, 48, 14, 1, INK) +
+    px(-13, 59, 18, 4, "#8a5a32") +
+    px(-12, 62, 5, 5, INK) + px(-1, 62, 5, 5, INK) + px(-11, 63, 3, 3, "#c9a27a") + px(0, 63, 3, 3, "#c9a27a") +
+    // driver on the bench
+    px(4, 52, 4, 5, "#3b6fe0") + px(4, 48, 4, 4, "#f1c27d") + px(3, 47, 6, 2, "#7a4a1e") + px(5, 45, 3, 2, "#7a4a1e") +
+    // ox
+    px(8, 60, 3, 1, "#6e4a2b") + px(10, 56, 9, 6, "#7a4a1e") + px(18, 54, 4, 5, "#7a4a1e") + px(19, 53, 1, 1, "#f4f2ec") + px(21, 53, 1, 1, "#f4f2ec") +
+    px(11, 62, 2, 5, "#5a3a1a") + px(16, 62, 2, 5, "#5a3a1a");
+}
+
+// The whole scene. opts = { theme, startSign, reached, x, cover, label }
+function trailSceneSVG({ theme, startSign, reached, x, cover, label }) {
+  const look = themeLook(theme);
+  const landmark = LANDMARKS[look.landmark];
+  let s = px(0, 0, 320, 90, look.sky);
+  s += px(40, 14, 22, 5, "#fff") + px(46, 10, 12, 4, "#fff") + px(180, 20, 28, 5, "#fff") + px(188, 16, 14, 4, "#fff") + px(270, 10, 12, 12, "#ffc94d");
+  s += BACKDROPS[look.backdrop](look);
+  s += px(0, 62, 320, 28, look.ground) + px(0, 62, 320, 2, look.edge) + px(0, 66, 320, 5, look.path);
+  if (look.path === "#9aa3b2") for (let dx = 4; dx < 320; dx += 16) s += px(dx, 68, 8, 1, "#e9efff"); // road markings
+  for (let gx = 8; gx < 320; gx += 26) s += px(gx, 76 + ((gx * 7) % 8), 3, 2, look.edge);
+  s += startSign ? px(22, 50, 2, 16, "#6e4a2b") + px(16, 48, 14, 6, "#e5d3ae") : landmark(24, "#3b6fe0");
+  s += landmark(292, reached ? "#1f9d55" : "#ff4d2e");
+  s += `<g id="wagon" class="wagon" style="transform:translateX(${x}px)">${wagonSprite(cover)}</g>`;
+  return `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="${label}">${s}</svg>`;
+}
+
+// ---------- BYTE, the AI helper (a little handheld game console) ----------
+
+// mood: "idle" | "happy" | "sad" | "think" | "talk"
+function botSVG(mood = "idle") {
+  const face = "#0f380f";
+  let mouth;
+  if (mood === "happy") mouth = px(7, 10, 1, 1, face) + px(8, 11, 4, 1, face) + px(12, 10, 1, 1, face);
+  else if (mood === "sad") mouth = px(7, 11, 1, 1, face) + px(8, 10, 4, 1, face) + px(12, 11, 1, 1, face);
+  else if (mood === "talk") mouth = px(9, 10, 2, 2, face);
+  else mouth = px(8, 11, 4, 1, face);
+  const eyes = mood === "think" ? px(8, 7, 1, 2, face) + px(12, 7, 1, 2, face) : px(7, 8, 1, 2, face) + px(12, 8, 1, 2, face);
+  return `<svg viewBox="0 0 20 24" shape-rendering="crispEdges" aria-hidden="true">
+    ${px(9, 0, 2, 2, "#ff4d2e") + px(9, 2, 2, 2, INK)}
+    ${px(3, 4, 14, 16, INK) + px(4, 5, 12, 14, "#d9dbd0")}
+    ${px(5, 6, 10, 7, INK) + px(6, 7, 8, 5, "#9bbc0f")}
+    ${eyes + mouth}
+    ${px(6, 15, 3, 1, INK) + px(7, 14, 1, 3, INK)}
+    ${px(11, 15, 2, 2, "#c0392b") + px(13, 14, 2, 2, "#6b5bd6")}
+    ${px(1, 10, 2, 5, INK) + px(17, 10, 2, 5, INK)}
+    ${px(5, 20, 3, 2, INK) + px(12, 20, 3, 2, INK)}
+  </svg>`;
+}
+
+// ---------- the shop ----------
+
+function shopkeeperSVG(mood = "idle") {
+  const skin = "#f1c27d";
+  const mouth = mood === "happy" ? px(9, 12, 2, 1, "#a0453a") : "";
+  return `<svg viewBox="0 0 20 28" shape-rendering="crispEdges" aria-hidden="true">
+    ${px(6, 0, 8, 5, "#7a4a1e") + px(6, 3, 8, 1, "#ff4d2e") + px(3, 4, 14, 2, "#5a3a1a")}
+    ${px(6, 6, 8, 7, skin) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK)}
+    ${px(7, 10, 6, 1, "#5a3a1a") + px(7, 11, 1, 1, "#5a3a1a") + px(12, 11, 1, 1, "#5a3a1a") + mouth}
+    ${px(4, 13, 12, 9, "#3b6fe0") + px(7, 14, 6, 9, "#fbfaf6") + px(9, 16, 2, 1, "#e5d3ae")}
+    ${mood === "happy" ? px(1, 10, 2, 6, "#3b6fe0") + px(1, 8, 2, 2, skin) : px(2, 14, 2, 7, "#3b6fe0") + px(2, 21, 2, 2, skin)}
+    ${px(16, 14, 2, 7, "#3b6fe0") + px(16, 21, 2, 2, skin)}
+    ${px(6, 23, 3, 4, "#3a2a1a") + px(11, 23, 3, 4, "#3a2a1a")}
+  </svg>`;
+}
+
+// The store's inside: plank wall, shelves of goods, a counter, and the shopkeeper.
+function storeSVG(mood) {
+  let s = px(0, 0, 320, 90, "#d8ab73");
+  for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, "#c4955e");
+  [22, 46].forEach((y) => {
+    s += px(0, y, 320, 3, "#8a5a32");
+    for (let x = 8; x < 320; x += 18) {
+      const k = (x + y) % 4;
+      s += k === 0 ? px(x, y - 8, 7, 8, "#e5d3ae") + px(x + 2, y - 10, 3, 2, "#8a5a32")       // sack
+        : k === 1 ? px(x + 1, y - 9, 5, 9, "#9fd3e6") + px(x + 1, y - 10, 5, 1, "#6e4a2b")    // jar
+        : k === 2 ? px(x, y - 6, 8, 6, "#d9634a") + px(x, y - 6, 8, 1, "#a0453a")              // crate
+        : px(x + 2, y - 8, 4, 8, "#3ce070") + px(x + 3, y - 9, 2, 1, "#6e4a2b");               // bottle
+    }
+  });
+  s += px(0, 66, 320, 24, "#8a5a32") + px(0, 66, 320, 3, "#6e4a2b");
+  s += px(196, 56, 22, 10, "#ffc94d") + px(198, 54, 18, 2, "#e0a100"); // coin pile
+  s += `<svg x="148" y="34" width="24" height="34" viewBox="0 0 20 28" shape-rendering="crispEdges">${shopkeeperSVG(mood).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg>`;
+  return `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true">${s}</svg>`;
+}
+
+const ICONS = {
+  earnings: px(4, 5, 8, 9, "#e5d3ae") + px(5, 3, 6, 2, "#e5d3ae") + px(5, 5, 6, 1, "#8a5a32") + px(9, 9, 6, 6, "#ffc94d") + px(11, 10, 2, 4, "#b8860b"),
+  streak: px(7, 1, 2, 2, "#ff4d2e") + px(5, 3, 6, 4, "#ff4d2e") + px(4, 7, 8, 6, "#ff4d2e") + px(6, 7, 4, 6, "#ffb000") + px(7, 10, 2, 3, "#ffd23f") + px(5, 13, 6, 2, "#ff4d2e"),
+  oxen: px(3, 6, 10, 8, "#7a4a1e") + px(1, 4, 3, 2, "#f4f2ec") + px(12, 4, 3, 2, "#f4f2ec") + px(5, 8, 1, 2, INK) + px(10, 8, 1, 2, INK) + px(5, 12, 6, 2, "#c9a27a"),
+};
+
+const itemIcon = (id) => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">${ICONS[id] || ""}</svg>`;
+
+// A small wagon for the paint shelf.
+const paintIcon = (color) => `<svg viewBox="-14 44 36 24" shape-rendering="crispEdges" aria-hidden="true">${wagonSprite(color)}</svg>`;
+
 // The game inside the machine.
-// Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
-// then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
-// the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
-// to win. Coins buy upgrades in the shop; the shop and the How to Play help slide in as their own screens.
+// Each unit of the course is one leg of a wagon journey through a world that fits the subject
+// (a courthouse district for law, a lab campus for science...). A unit starts with a short lesson,
+// then questions written from your syllabus. BYTE, the AI helper under each question, gives hints
+// and explains mistakes. Right answers earn coins and move the wagon; reach the last landmark to win.
+// The general store grows out of the trail window; How to Play slides in as its own screen.
 // The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
 const BATCH = 10;      // questions fetched per unit
 
-// The shop. values[level] is what you get at that level; costs[level] is the price of the next one.
+// Shop upgrades. values[level] is what you get at that level; costs[level] is the price of the next one.
 const UPGRADES = [
   { id: "earnings", name: "Earnings", desc: "Coins for each right answer", values: [10, 20, 40, 80, 150], costs: [60, 200, 600, 1500], unit: "coins" },
   { id: "streak", name: "Streak bonus", desc: "Extra coins for every answer in a row", values: [0, 5, 10, 20, 40], costs: [40, 150, 500, 1200], unit: "per streak" },
   { id: "oxen", name: "Stronger oxen", desc: "Miles the wagon moves per right answer", values: [10, 15, 20, 30, 40], costs: [80, 250, 700, 1800], unit: "miles" },
 ];
 
+// Wagon paint jobs (just for looks).
+const PAINTS = [
+  { id: "canvas", name: "Canvas", color: "#fbfaf6", cost: 0 },
+  { id: "red", name: "Barn red", color: "#e5484d", cost: 80 },
+  { id: "blue", name: "River blue", color: "#6b9cf0", cost: 80 },
+  { id: "gold", name: "Gold rush", color: "#ffc94d", cost: 250 },
+];
+
+const BOT = {
+  start: ["You've got this!", "Think back to the lesson.", "Read every choice before you pick.", "Stuck? Tap HINT. A hint halves the coins for this question."],
+  right: ["Correct!", "Nailed it!", "That's right!", "Great job!"],
+  lesson: "Read this first. Press A when you're ready for questions!",
+};
+
+const KEEPER = {
+  welcome: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!", "Stronger oxen get you to the next landmark sooner."],
+  bought: ["Pleasure doing business!", "Fine choice, partner.", "That'll serve you well on the trail."],
+  paint: "Looking sharp! Your wagon's freshly painted.",
+  poor: (n) => `You'll need ${n} more coins for that. Answer a few more questions!`,
+};
+
 const $ = (id) => document.getElementById(id);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
 let game = null;        // the saved game (see newGame in app.js)
 let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
+let hintUsed = false;   // the player asked BYTE for a hint on this question
 const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
+const paintColor = () => (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
 const shuffle = (list) => list.map((x) => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function escapeHTML(text) {
   const div = document.createElement("div");
@@ -785,14 +1167,52 @@ function renderLesson(review) {
       ${lesson.keyPoints.length ? `<h3>KEY POINTS</h3><ul>${lesson.keyPoints.map((p) => `<li>${escapeHTML(p)}</li>`).join("")}</ul>` : ""}
       ${lesson.keyTerms.length ? `<h3>KEY TERMS</h3><dl class="terms">${lesson.keyTerms.map((t) => `<div><dt>${escapeHTML(t.term)}</dt><dd>${escapeHTML(t.definition)}</dd></div>`).join("")}</dl>` : ""}
       <button class="btn-next" id="lesson-go">${review ? "BACK TO THE QUESTION" : "START THE QUESTIONS"}<span class="hint" aria-hidden="true">A</span></button>
+      ${helperHTML(false)}
     </article>`;
   $("view-play").scrollTop = 0;
+  botSay(review ? "Take another look, then head back to the question." : BOT.lesson, "talk");
   $("lesson-go").addEventListener("click", () => {
-    if (review) return renderQuestion(game.banks[game.unit][current]);
+    if (review) return renderQuestion(game.banks[game.unit][current], true);
     game.lessonSeen[unit] = true;
     persistGame();
     showNext();
   });
+}
+
+// ---------- BYTE, the AI helper ----------
+
+function helperHTML(withHint) {
+  return `<div class="helper">
+    <div class="bot" id="bot"></div>
+    <p class="bubble" id="bot-say"></p>
+    ${withHint ? `<button class="hint-btn" id="hint" title="A hint halves the coins for this question">HINT</button>` : ""}
+  </div>`;
+}
+
+let typing;
+// Show a line from BYTE, typed out like an old game.
+function botSay(text, mood = "idle") {
+  const bot = $("bot");
+  const say = $("bot-say");
+  if (!bot || !say) return;
+  bot.innerHTML = botSVG(mood === "talk" ? "talk" : mood);
+  bot.className = `bot ${mood}`;
+  clearInterval(typing);
+  if (reducedMotion()) {
+    say.textContent = text;
+  } else {
+    let i = 0;
+    say.textContent = "";
+    typing = setInterval(() => {
+      i += 2;
+      say.textContent = text.slice(0, i);
+      if (i >= text.length) {
+        clearInterval(typing);
+        if (mood === "talk" && $("bot")) $("bot").innerHTML = botSVG("idle");
+      }
+    }, 18);
+  }
+  Sound.play("blip");
 }
 
 // ---------- questions ----------
@@ -804,11 +1224,12 @@ function showNext() {
   renderQuestion(bank[current]);
 }
 
-function renderQuestion(q) {
+function renderQuestion(q, returning = false) {
   answering = true;
+  if (!returning) hintUsed = false;
   const units = game.trail.units;
   $("play").innerHTML = `
-    <div class="card">
+    <div class="card qcard">
       <div class="q-top">
         <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
@@ -816,14 +1237,31 @@ function renderQuestion(q) {
       <p class="q-text">${escapeHTML(q.question)}</p>
       <div class="answers">${q.choices.map((c, i) => `<button class="answer" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`).join("")}</div>
       <div class="feedback" id="feedback"></div>
+      ${helperHTML(true)}
     </div>`;
   $("play").querySelectorAll(".answer").forEach((b) => b.addEventListener("click", () => answer(Number(b.dataset.i))));
   $("review")?.addEventListener("click", () => renderLesson(true));
+  $("hint").addEventListener("click", useHint);
+  if (hintUsed) {
+    $("hint").disabled = true;
+    botSay(`Hint: ${q.hint || "Rule out the answers you're sure are wrong."}`, "think");
+  } else if (game.answered === 0) botSay(BOT.start[3], "talk");
+  else if (game.streak >= 3) botSay(`Streak x${game.streak}! Keep it going!`, "happy");
+  else botSay(pick(BOT.start.slice(0, 3)), "talk");
+}
+
+function useHint() {
+  if (!answering || hintUsed) return;
+  hintUsed = true;
+  $("hint").disabled = true;
+  const q = game.banks[game.unit][current];
+  botSay(`Hint: ${q.hint || "Rule out the answers you're sure are wrong."}`, "think");
 }
 
 function answer(picked) {
   if (!answering) return;
   answering = false;
+  clearInterval(typing);
   const q = game.banks[game.unit][current];
   const right = picked === q.answerIndex;
   $("play").querySelectorAll(".answer").forEach((b, i) => {
@@ -831,6 +1269,7 @@ function answer(picked) {
     b.classList.add(i === q.answerIndex ? "right" : i === picked ? "wrong" : "dim");
   });
   $("review")?.remove();
+  $("hint")?.remove();
 
   game.answered++;
   const feedback = $("feedback");
@@ -838,17 +1277,23 @@ function answer(picked) {
     game.correct++;
     game.streak++;
     game.bestStreak = Math.max(game.bestStreak, game.streak);
-    const earned = upgradeValue("earnings") + upgradeValue("streak") * Math.min(game.streak - 1, 10);
+    let earned = upgradeValue("earnings") + upgradeValue("streak") * Math.min(game.streak - 1, 10);
+    if (hintUsed) earned = Math.ceil(earned / 2);
     const miles = upgradeValue("oxen");
     game.coins += earned;
     game.legMiles = Math.min(LEG_MILES, game.legMiles + miles);
     feedback.innerHTML = `<span class="gain">+${earned} COINS</span><span class="gain">+${miles} MI</span>`;
+    Sound.play("right");
+    setTimeout(() => Sound.play("coin"), 260);
+    botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;
     const lost = Math.min(game.coins, Math.round(upgradeValue("earnings") / 2));
     game.coins -= lost;
     game.queue.splice(2, 0, current); // see it again soon
-    feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span><p class="why">${escapeHTML(q.explanation)}</p>`;
+    feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span>`;
+    Sound.play("wrong");
+    botSay(`Not quite. ${q.explanation}`, "sad");
   }
   persistGame();
   renderHUD(right);
@@ -860,14 +1305,14 @@ function answer(picked) {
 
   const next = arrived ? arrive : showNext;
   if (right) {
-    setTimeout(() => { if (!$("game").hidden) next(); }, 1100);
+    setTimeout(() => { if (!$("game").hidden && !answering) next(); }, 1300);
   } else {
     const b = document.createElement("button");
     b.className = "btn-next";
     b.innerHTML = `CONTINUE<span class="hint" aria-hidden="true">A</span>`;
     b.addEventListener("click", next);
     feedback.append(b);
-    b.focus();
+    b.focus({ preventScroll: true });
   }
 }
 
@@ -884,6 +1329,7 @@ function arrive() {
     return renderWin();
   }
   persistGame();
+  Sound.play("arrive");
   const next = units[game.unit];
   renderMessage(`YOU REACHED ${reached.name.toUpperCase()}`,
     `Unit ${game.unit} complete. Next stop: ${next.name}, covering ${next.topic}.`,
@@ -893,6 +1339,7 @@ function arrive() {
 function renderWin() {
   answering = false;
   drawScene();
+  Sound.play("win");
   const accuracy = game.answered ? Math.round((game.correct / game.answered) * 100) : 0;
   $("play").innerHTML = `
     <div class="card message">
@@ -926,7 +1373,7 @@ function renderMessage(title, text, buttons = [], loading = false) {
     b.addEventListener("click", onClick);
     card.append(b);
   });
-  card.querySelector("button")?.focus();
+  card.querySelector("button")?.focus({ preventScroll: true });
 }
 
 // ---------- the loading screen (while the syllabus is read) ----------
@@ -937,6 +1384,8 @@ const LOAD_STEPS = ["Reading your syllabus", "Mapping out the units", "Writing t
 function renderLoading(step, error = "", onBack = null) {
   answering = false;
   $("view-play").classList.add("bare");
+  if (step > 0 && !error) Sound.play("step");
+  if (error) Sound.play("deny");
   const pct = Math.round((step / LOAD_STEPS.length) * 100);
   $("play").innerHTML = `
     <div class="card loading">
@@ -982,20 +1431,6 @@ function renderHUD(gained = false) {
   $("leg-miles").textContent = `${miles} / ${LEG_MILES} mi`;
 }
 
-const px = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
-
-function fort(x, flag) {
-  return px(x - 7, 50, 15, 16, "#b07a4a") + px(x - 8, 48, 17, 3, "#6e4a2b") + px(x - 2, 58, 4, 8, "#4a3020") +
-    px(x - 7, 46, 3, 3, "#b07a4a") + px(x + 5, 46, 3, 3, "#b07a4a") + px(x, 34, 1, 14, "#6e4a2b") + px(x + 1, 34, 7, 5, flag);
-}
-
-function wagon() {
-  return px(-11, 49, 14, 2, "#fff") + px(-12, 51, 16, 8, "#fbfaf6") + px(-12, 51, 1, 8, "#111418") + px(3, 51, 1, 8, "#111418") +
-    px(-11, 48, 14, 1, "#111418") + px(-13, 59, 18, 4, "#8a5a32") +
-    px(-12, 62, 5, 5, "#111418") + px(-1, 62, 5, 5, "#111418") + px(-11, 63, 3, 3, "#c9a27a") + px(0, 63, 3, 3, "#c9a27a") +
-    px(5, 60, 3, 1, "#6e4a2b") + px(8, 56, 9, 6, "#7a4a1e") + px(16, 54, 4, 5, "#7a4a1e") + px(9, 62, 2, 5, "#5a3a1a") + px(14, 62, 2, 5, "#5a3a1a");
-}
-
 let lastWagon = null;
 
 function drawScene() {
@@ -1003,32 +1438,28 @@ function drawScene() {
   const unit = Math.min(game.unit, units.length - 1);
   const miles = game.finished ? LEG_MILES : game.legMiles;
   const x = Math.round(44 + (226 * miles) / LEG_MILES);
-
-  let s = px(0, 0, 320, 90, "#e9f3fb");
-  s += px(40, 14, 22, 5, "#fff") + px(46, 10, 12, 4, "#fff") + px(180, 20, 28, 5, "#fff") + px(188, 16, 14, 4, "#fff");
-  s += px(270, 10, 12, 12, "#ffc94d");
-  for (let i = 0; i < 6; i++) s += px(i * 60 - 10, 44 - (i % 3) * 4, 80, 30, "#d3e7c6"); // far hills
-  s += px(0, 62, 320, 28, "#a9d39a") + px(0, 62, 320, 2, "#93c585");
-  s += px(0, 66, 320, 5, "#e5d3ae");
-  for (let gx = 8; gx < 320; gx += 26) s += px(gx, 76 + ((gx * 7) % 8), 3, 2, "#93c585");
-  s += unit === 0 && !game.finished ? px(22, 50, 2, 16, "#6e4a2b") + px(16, 48, 14, 6, "#e5d3ae") : fort(24, "#3b6fe0");
-  s += fort(292, game.finished ? "#1f9d55" : "#ff4d2e");
-  s += `<g id="wagon" class="wagon">${wagon()}</g>`;
-  $("scene").innerHTML = `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}">${s}</svg>`;
-
+  const from = lastWagon !== null && lastWagon <= x ? lastWagon : x;
+  $("scene").innerHTML = trailSceneSVG({
+    theme: game.trail.theme,
+    startSign: unit === 0 && !game.finished,
+    reached: game.finished,
+    x: from,
+    cover: paintColor(),
+    label: `Your wagon, ${miles} of ${LEG_MILES} miles toward ${units[unit].name}`,
+  });
   // roll the wagon from where it was to where it is now
   const el = $("wagon");
-  el.style.transform = `translateX(${lastWagon !== null && lastWagon <= x ? lastWagon : x}px)`;
   requestAnimationFrame(() => requestAnimationFrame(() => (el.style.transform = `translateX(${x}px)`)));
   lastWagon = x;
 }
 
-// ---------- screens: play, shop and help slide side by side ----------
+// ---------- How to Play: slides in beside the game ----------
 
-const VIEWS = ["play", "shop", "help"];
+const VIEWS = ["play", "help"];
 const HELP_SEEN_KEY = "study-helper-help-seen";
 let view = "play";
-const shopOpen = () => view !== "play"; // any screen other than the game
+let shopIsOpen = false;
+const overlayOpen = () => shopIsOpen || view !== "play"; // anything covering the game
 
 function showView(name, focusId) {
   view = name;
@@ -1038,29 +1469,105 @@ function showView(name, focusId) {
   if (focusId) setTimeout(() => $(focusId).focus({ preventScroll: true }), 50);
 }
 
-function openShop() {
-  renderShop();
-  showView("shop", "shop-back");
-}
-
-function closeShop() {
-  showView("play", view === "help" ? "help-btn" : "shop-btn");
-}
-
 // first = shown automatically the first time someone plays
 function openHelp(first = false) {
   $("help-intro").textContent = (first ? "Welcome! " : "") +
     "Your syllabus is now a wagon journey. Each unit is one leg of the trail, and the final exam is the finish line.";
   $("help-back").innerHTML = first ? "LET'S GO &gt;" : "&lt; BACK";
+  Sound.play("open");
   showView("help", "help-back");
+}
+
+function closeHelp() {
+  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
+  Sound.play("close");
+  showView("play", "help-btn");
 }
 
 function helpSeen() {
   try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
 }
 
-function markHelpSeen() {
-  try { localStorage.setItem(HELP_SEEN_KEY, "1"); } catch { /* storage blocked: help shows again next time */ }
+// ---------- the general store: grows out of the trail window ----------
+
+// The trail window's position inside the screen, as a clip-path.
+function windowClip() {
+  const scene = $("scene").getBoundingClientRect();
+  const screen = document.querySelector(".screen").getBoundingClientRect();
+  const top = Math.max(0, scene.top - screen.top);
+  const left = Math.max(0, scene.left - screen.left);
+  const right = Math.max(0, screen.right - scene.right);
+  const bottom = Math.max(0, screen.bottom - scene.bottom);
+  return `inset(${top}px ${right}px ${bottom}px ${left}px round 10px)`;
+}
+
+function openShop() {
+  if (shopIsOpen) return;
+  shopIsOpen = true;
+  renderShop();
+  keeperSay(pick(KEEPER.welcome), "idle");
+  const shop = $("shop");
+  Sound.play("open");
+  // 1: zoom into the trail window...
+  $("scene").classList.add("zoom-in");
+  shop.classList.add("instant");
+  shop.style.clipPath = windowClip();
+  shop.hidden = false;
+  shop.scrollTop = 0;
+  shop.getBoundingClientRect(); // apply the starting clip before animating
+  // 2: ...then the window grows into the whole store.
+  setTimeout(() => {
+    shop.classList.remove("instant");
+    shop.style.clipPath = "inset(0px 0px 0px 0px round 8px)";
+  }, reducedMotion() ? 0 : 220);
+  setTimeout(() => $("scene").classList.remove("zoom-in"), 800);
+  $("view-play").inert = true;
+  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 700);
+}
+
+function closeShop() {
+  if (!shopIsOpen) return;
+  shopIsOpen = false;
+  Sound.play("close");
+  const shop = $("shop");
+  shop.scrollTop = 0;
+  shop.style.clipPath = windowClip(); // shrink back into the trail window
+  setTimeout(() => {
+    shop.hidden = true;
+    $("view-play").inert = false;
+    $("shop-btn").focus({ preventScroll: true });
+  }, reducedMotion() ? 0 : 560);
+}
+
+// Put the game screens back to normal right away (used when leaving the machine).
+function resetScreens() {
+  shopIsOpen = false;
+  $("shop").hidden = true;
+  $("view-play").inert = false;
+  showView("play");
+}
+
+let keeperTimer;
+function keeperSay(text, mood = "idle") {
+  $("store-scene").querySelector("svg")?.remove();
+  $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
+  $("keeper-say").textContent = text;
+  clearTimeout(keeperTimer);
+  if (mood === "happy") keeperTimer = setTimeout(() => {
+    $("store-scene").querySelector("svg")?.remove();
+    $("store-scene").insertAdjacentHTML("afterbegin", storeSVG("idle"));
+  }, 1200);
+}
+
+// Try to spend coins; the shopkeeper tells you when you're short.
+function spend(cost) {
+  if (game.coins >= cost) {
+    game.coins -= cost;
+    return true;
+  }
+  Sound.play("deny");
+  keeperSay(KEEPER.poor(cost - game.coins));
+  return false;
 }
 
 function renderShop() {
@@ -1071,33 +1578,54 @@ function renderShop() {
     const el = document.createElement("div");
     el.className = "upgrade";
     el.innerHTML = `
-      <h3>${u.name}</h3>
-      <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
-      <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>`;
+      <div class="item-icon">${itemIcon(u.id)}</div>
+      <div class="item-text">
+        <h3>${u.name}</h3>
+        <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
+        <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>
+      </div>`;
     const buy = document.createElement("button");
-    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]} COINS`;
+    buy.className = "price" + (!maxed && game.coins < u.costs[lvl] ? " short" : "");
+    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
     buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
-    buy.disabled = maxed || game.coins < u.costs[lvl];
+    buy.disabled = maxed;
     buy.addEventListener("click", () => {
-      game.coins -= u.costs[lvl];
+      if (!spend(u.costs[lvl])) return;
       game.levels[u.id] = lvl + 1;
       persistGame();
+      Sound.play("buy");
+      keeperSay(pick(KEEPER.bought), "happy");
       renderShop();
       renderHUD();
-      toast(`${u.name.toUpperCase()} UPGRADED: ${u.values[lvl + 1]} ${u.unit.toUpperCase()}`);
     });
     el.append(buy);
     return el;
   }));
-}
 
-let toastTimer;
-function toast(text) {
-  const el = $("toast");
-  el.textContent = text;
-  el.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), 2200);
+  $("paint-list").replaceChildren(...PAINTS.map((p) => {
+    const owned = p.cost === 0 || game.paints.includes(p.id);
+    const using = (game.paint || "canvas") === p.id;
+    const b = document.createElement("button");
+    b.className = "paint" + (using ? " using" : "");
+    b.innerHTML = `<span class="paint-pic">${paintIcon(p.color)}</span><span class="paint-name">${p.name}</span>
+      <span class="paint-tag ${!owned && game.coins < p.cost ? "short" : ""}">${using ? "IN USE" : owned ? "USE" : p.cost}</span>`;
+    b.setAttribute("aria-label", using ? `${p.name} paint, in use` : owned ? `Use ${p.name} paint` : `Buy ${p.name} paint for ${p.cost} coins`);
+    b.addEventListener("click", () => {
+      if (using) return;
+      if (!owned) {
+        if (!spend(p.cost)) return;
+        game.paints.push(p.id);
+      }
+      game.paint = p.id;
+      persistGame();
+      Sound.play("buy");
+      keeperSay(KEEPER.paint, "happy");
+      renderShop();
+      renderHUD();
+      drawScene();
+    });
+    return b;
+  }));
 }
 
 // ---------- the arcade controls ----------
@@ -1117,18 +1645,37 @@ function pressPad(i) {
   pad.classList.add("pressed");
   setTimeout(() => pad.classList.remove("pressed"), 120);
   wiggleStick(i < 2 ? "left" : "right");
-  if (shopOpen()) return;
+  Sound.play("press");
+  if (overlayOpen()) return;
   if (answering) return answer(i);
   $("play").querySelector(".btn-next")?.click();
 }
 
 document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click", () => pressPad(Number(pad.dataset.i))));
 
+// The speaker grille on the deck (and the landing page button) turns sound on and off.
+function syncSound() {
+  const on = !Sound.isMuted();
+  $("sound-btn").setAttribute("aria-pressed", String(on));
+  $("sound-btn").setAttribute("aria-label", on ? "Sound is on. Press to mute." : "Sound is off. Press to turn it on.");
+  $("sound-label").textContent = on ? "SOUND ON" : "SOUND OFF";
+  $("sound-btn").classList.toggle("off", !on);
+  $("landing-sound").textContent = on ? "Sound on" : "Sound off";
+  $("landing-sound").setAttribute("aria-pressed", String(on));
+}
+
+function toggleSound() {
+  Sound.toggle();
+  syncSound();
+}
+
+$("sound-btn").addEventListener("click", toggleSound);
+
 // ---------- start ----------
 
 function startGame() {
   $("view-play").classList.remove("bare");
-  showView("play");
+  resetScreens();
   lastWagon = null;
   shownCoins = null;
   renderHUD();
@@ -1141,20 +1688,18 @@ function startGame() {
 $("shop-btn").addEventListener("click", openShop);
 $("shop-back").addEventListener("click", closeShop);
 $("help-btn").addEventListener("click", () => openHelp());
-$("help-back").addEventListener("click", () => {
-  markHelpSeen();
-  closeShop();
-});
+$("help-back").addEventListener("click", closeHelp);
 
-// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
+// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape closes the store or help.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === "Escape" && shopOpen()) {
-    if (view === "help") markHelpSeen();
-    return closeShop();
+  if (e.key === "Escape") {
+    if (shopIsOpen) return closeShop();
+    if (view === "help") return closeHelp();
+    return;
   }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
-  if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  if (overlayOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
   const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
   if (i < 0) return;
   // Letter keys only answer questions; on other screens Enter/Space already press the focused button.
@@ -1177,7 +1722,7 @@ function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!data?.trail?.units?.length) return null;
-    return { lessons: {}, lessonSeen: {}, ...data };
+    return { lessons: {}, lessonSeen: {}, paint: "canvas", paints: [], ...data };
   } catch {
     return null;
   }
@@ -1194,13 +1739,14 @@ function persistGame() {
 
 function newGame(trail, syllabus) {
   return {
-    trail: { courseTitle: trail.courseTitle, units: trail.units },
+    trail: { courseTitle: trail.courseTitle, theme: trail.theme || "frontier", units: trail.units },
     demo: Boolean(trail.demo),
     syllabus: syllabus.slice(0, 20000), // sent along when asking for questions
     banks: {},      // questions per unit
     lessons: {},    // lesson summary per unit
     lessonSeen: {}, // units whose lesson has been read
     levels: {},
+    paint: "canvas", paints: [], // wagon paint in use, and paints bought
     unit: 0, legMiles: 0, queue: [],
     coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false,
   };
@@ -1250,6 +1796,7 @@ function readPdf(file) {
     $("pdf-name").textContent = file.name;
     setStatus("");
     setScreen("READY<br />PRESS START");
+    Sound.play("insert");
     updateStart();
   };
   reader.readAsDataURL(file);
@@ -1314,7 +1861,6 @@ function updateResume() {
 // ---------- the zoom into (and out of) the arcade screen ----------
 
 const ZOOM_MS = 1100;
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The part of the cabinet drawing to zoom into: the screen plus the control deck below it
 // (in the drawing's own units; the drawing is 300 wide).
@@ -1344,6 +1890,7 @@ function enterMachine(show) {
     const z = zoomTransform();
     landing.style.transformOrigin = z.origin;
     landing.classList.add("zooming");
+    Sound.play("whoosh");
     requestAnimationFrame(() => (landing.style.transform = z.transform));
   }
   return new Promise((done) => setTimeout(() => {
@@ -1360,7 +1907,7 @@ function enterMachine(show) {
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
-  closeShop();
+  resetScreens();
   $("game").hidden = true;
   if (clear) {
     game = null;
@@ -1378,6 +1925,7 @@ function exitGame(clear = false) {
   landing.style.transform = z.transform;
   landing.getBoundingClientRect(); // apply the zoomed-in state before animating out of it
   landing.classList.add("unzooming");
+  Sound.play("unwhoosh");
   landing.style.transform = "";
   setTimeout(() => landing.classList.remove("unzooming"), ZOOM_MS);
 }
@@ -1386,6 +1934,8 @@ $("exit").addEventListener("click", () => exitGame());
 
 // ---------- start ----------
 
+$("landing-sound").addEventListener("click", toggleSound);
+syncSound();
 game = loadGame();
 updateResume();
 updateStart();

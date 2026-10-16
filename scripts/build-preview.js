@@ -10,7 +10,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
+import { THEMES, trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const demo = JSON.parse(read("demo-quests.json"));
@@ -18,6 +18,7 @@ const demo = JSON.parse(read("demo-quests.json"));
 // Stands in for server.js's two API routes.
 const previewServer = `
 const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema })};
+const THEMES = ${JSON.stringify(THEMES)};
 const DEMO_TRAIL = ${JSON.stringify({ ...demo, demo: true })};
 ${quizRequest}
 ${quizCount}
@@ -58,7 +59,7 @@ function cleanTrail(t) {
       keyConcepts: Array.isArray(u.keyConcepts) ? u.keyConcepts.map(String) : [],
     }));
   if (!units.length) throw new Error("The AI's route came back empty. Try again.");
-  return { courseTitle: String(t.courseTitle || "Your course"), units };
+  return { courseTitle: String(t.courseTitle || "Your course"), theme: THEMES.includes(t.theme) ? t.theme : "frontier", units };
 }
 
 async function handle(path, req) {
@@ -113,14 +114,14 @@ for (const [name, code] of [["preview server", previewServer]]) {
 }
 
 const pdfjs = ["pdf.min.js", "pdf.worker.min.js"].map((f) => read(`node_modules/pdfjs-dist/build/${f}`));
-const appScripts = ["game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
+const appScripts = ["sound", "sprites", "game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
 try { new vm.Script(appScripts); } catch (err) { throw new Error(`game scripts have a syntax error: ${err.message}`); }
 const inline = (code) => `<script>\n${code}\n</script>`;
 
 let html = read("public/index.html");
 html = html.replace('<link rel="stylesheet" href="style.css" />', () => `<style>\n${read("public/style.css")}\n</style>`);
 html = html.replace(
-  /<script src="game.js"><\/script>[\s\S]*<script src="app.js"><\/script>/,
+  /<script src="sound.js"><\/script>[\s\S]*<script src="app.js"><\/script>/,
   () => [
     // pdf.worker defines globalThis.pdfjsWorker, so pdf.js reads PDFs on the page without a separate worker.
     inline(pdfjs[0]), inline(pdfjs[1]),
