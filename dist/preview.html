@@ -373,11 +373,18 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   z-index: 4;
   overflow-y: auto;
   background: var(--screen);
-  transition: clip-path 560ms cubic-bezier(0.65, 0, 0.35, 1);
 }
-.shop.instant { transition: none; }
-.scene.zoom-in > svg { transform: scale(1.12); transition: transform 240ms ease-in; }
-.scene > svg { transition: transform 240ms ease-out; }
+
+/* the camera zooming from the trail window into the store */
+.zoomer { position: absolute; z-index: 6; overflow: hidden; border: 2px solid var(--ink); border-radius: 10px; line-height: 0; background: var(--screen); }
+.zoomer.moving { transition: left 560ms cubic-bezier(0.65, 0, 0.35, 1), top 560ms cubic-bezier(0.65, 0, 0.35, 1), width 560ms cubic-bezier(0.65, 0, 0.35, 1), height 560ms cubic-bezier(0.65, 0, 0.35, 1), border-radius 560ms, border-color 560ms; }
+.zoomer.store { border-radius: 0; border-color: transparent; }
+.zoomer > div { position: absolute; inset: 0; }
+.zoomer > div > svg { width: 100%; height: 100%; display: block; }
+.zoom-store { opacity: 0; transition: opacity 420ms ease-in 100ms; }
+.zoomer.store .zoom-store { opacity: 1; }
+.shop-body.enter { animation: shelves-in 320ms ease-out; }
+@keyframes shelves-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 .store-scene { position: relative; line-height: 0; border-bottom: 3px solid var(--ink); }
 .store-scene > svg { width: 100%; height: auto; aspect-ratio: 320 / 90; max-height: clamp(110px, 26vh, 220px); display: block; }
@@ -391,7 +398,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   max-width: min(44%, 280px); margin: 0; padding: 8px 10px;
   background: #fff; border: 2px solid var(--ink); border-radius: 10px;
   font-size: 13px; line-height: 1.35; color: var(--ink);
+  opacity: 0; scale: 0.8; transition: opacity 180ms ease-out, scale 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+.speech.show { opacity: 1; scale: 1; }
 .speech::after { content: ""; position: absolute; right: -9px; bottom: 12px; border: 8px solid transparent; border-left-color: var(--ink); border-right: 0; }
 
 @media (max-width: 560px) {
@@ -603,7 +612,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
               <div class="store-sign" id="shop-title">GENERAL STORE</div>
               <p class="speech" id="keeper-say" aria-live="polite"></p>
             </div>
-            <div class="shop-body">
+            <div class="shop-body" id="shop-body">
               <div class="hud">
                 <button id="shop-back" class="hud-btn" aria-label="Back to the trail">&lt; BACK</button>
                 <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
@@ -1427,7 +1436,8 @@ function renderHUD(gained = false) {
   $("leg-from").textContent = unit === 0 ? "START" : units[unit - 1].name.toUpperCase();
   $("leg-to").textContent = units[unit].name.toUpperCase();
   $("leg-fill").style.width = `${(miles / LEG_MILES) * 100}%`;
-  $("leg-unit").textContent = `Unit ${unit + 1}: ${units[unit].topic}`;
+  const topic = units[unit].topic;
+  $("leg-unit").textContent = /^unit\b/i.test(topic) ? topic : `Unit ${unit + 1}: ${topic}`; // some topics already say "Unit 1"
   $("leg-miles").textContent = `${miles} / ${LEG_MILES} mi`;
 }
 
@@ -1488,75 +1498,178 @@ function helpSeen() {
   try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
 }
 
-// ---------- the general store: grows out of the trail window ----------
+// ---------- the general store: zoom into the trail window, then step inside ----------
+// Opening: a copy of the trail window grows into the store's banner while the store fades in
+// through it; then the shelves rise into place; then the shopkeeper speaks. Closing runs it backwards.
 
-// The trail window's position inside the screen, as a clip-path.
-function windowClip() {
-  const scene = $("scene").getBoundingClientRect();
+const STORE_ZOOM_MS = 560;
+
+// A rectangle inside the screen, relative to the screen's top-left corner.
+function rectIn(el) {
+  const r = el.getBoundingClientRect();
   const screen = document.querySelector(".screen").getBoundingClientRect();
-  const top = Math.max(0, scene.top - screen.top);
-  const left = Math.max(0, scene.left - screen.left);
-  const right = Math.max(0, screen.right - scene.right);
-  const bottom = Math.max(0, screen.bottom - scene.bottom);
-  return `inset(${top}px ${right}px ${bottom}px ${left}px round 10px)`;
+  return { left: r.left - screen.left, top: r.top - screen.top, width: r.width, height: r.height };
 }
+
+function placeZoomer(z, r) {
+  Object.assign(z.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+}
+
+// The store banner's spot, measured with the store laid out but not yet visible.
+function bannerRect() {
+  const shop = $("shop");
+  shop.style.visibility = "hidden";
+  shop.hidden = false;
+  shop.scrollTop = 0;
+  const r = rectIn($("store-scene").querySelector("svg"));
+  shop.hidden = true;
+  shop.style.visibility = "";
+  return r;
+}
+
+function makeZoomer(atStore) {
+  const z = document.createElement("div");
+  z.className = "zoomer" + (atStore ? " store" : "");
+  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeSVG("idle")}</div>`;
+  document.querySelector(".screen").append(z);
+  return z;
+}
+
+let shopTimers = [];
+const later = (fn, ms) => shopTimers.push(setTimeout(fn, ms));
 
 function openShop() {
   if (shopIsOpen) return;
   shopIsOpen = true;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
+  document.querySelectorAll(".zoomer").forEach((z) => z.remove());
   renderShop();
-  keeperSay(pick(KEEPER.welcome), "idle");
-  const shop = $("shop");
-  Sound.play("open");
-  // 1: zoom into the trail window...
-  $("scene").classList.add("zoom-in");
-  shop.classList.add("instant");
-  shop.style.clipPath = windowClip();
-  shop.hidden = false;
-  shop.scrollTop = 0;
-  shop.getBoundingClientRect(); // apply the starting clip before animating
-  // 2: ...then the window grows into the whole store.
-  setTimeout(() => {
-    shop.classList.remove("instant");
-    shop.style.clipPath = "inset(0px 0px 0px 0px round 8px)";
-  }, reducedMotion() ? 0 : 220);
-  setTimeout(() => $("scene").classList.remove("zoom-in"), 800);
+  drawStore("idle");
+  hideKeeperSpeech();
   $("view-play").inert = true;
-  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 700);
+  Sound.play("open");
+
+  const shop = $("shop");
+  const showStore = () => {
+    shop.hidden = false;
+    shop.scrollTop = 0;
+    $("shop-body").classList.remove("enter");
+    void $("shop-body").offsetWidth; // restart the animation
+    $("shop-body").classList.add("enter");
+  };
+
+  if (reducedMotion()) {
+    showStore();
+    keeperSay(pick(KEEPER.welcome));
+    $("shop-back").focus({ preventScroll: true });
+    return;
+  }
+
+  // 1. Zoom: the trail window grows into the store banner, and the store fades in through it.
+  const target = bannerRect();
+  const z = makeZoomer(false);
+  placeZoomer(z, rectIn($("scene")));
+  z.getBoundingClientRect(); // start from the window's spot
+  z.classList.add("moving", "store");
+  placeZoomer(z, target);
+  // 2. Inside: show the real store underneath, then let the shelves rise in.
+  later(() => {
+    showStore();
+    z.remove();
+  }, STORE_ZOOM_MS);
+  // 3. The shopkeeper speaks once everything has settled.
+  later(() => {
+    keeperSay(pick(KEEPER.welcome));
+    $("shop-back").focus({ preventScroll: true });
+  }, STORE_ZOOM_MS + 320);
 }
 
 function closeShop() {
   if (!shopIsOpen) return;
   shopIsOpen = false;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
   Sound.play("close");
+  hideKeeperSpeech();
   const shop = $("shop");
-  shop.scrollTop = 0;
-  shop.style.clipPath = windowClip(); // shrink back into the trail window
-  setTimeout(() => {
-    shop.hidden = true;
+  const done = () => {
     $("view-play").inert = false;
     $("shop-btn").focus({ preventScroll: true });
-  }, reducedMotion() ? 0 : 560);
+  };
+
+  if (reducedMotion()) {
+    shop.hidden = true;
+    return done();
+  }
+
+  // Run it backwards: the store banner shrinks into the trail window as the trail fades back in.
+  // (If the zoom in hasn't finished yet, reverse from wherever it has got to.)
+  const midway = document.querySelector(".zoomer");
+  let from;
+  if (midway) {
+    from = rectIn(midway);
+    midway.remove();
+  } else {
+    shop.scrollTop = 0;
+    from = rectIn($("store-scene").querySelector("svg"));
+  }
+  const z = makeZoomer(true);
+  placeZoomer(z, from);
+  shop.hidden = true;
+  z.getBoundingClientRect();
+  z.classList.add("moving");
+  z.classList.remove("store");
+  placeZoomer(z, rectIn($("scene")));
+  later(() => {
+    z.remove();
+    done();
+  }, STORE_ZOOM_MS);
 }
 
 // Put the game screens back to normal right away (used when leaving the machine).
 function resetScreens() {
   shopIsOpen = false;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
+  document.querySelectorAll(".zoomer").forEach((z) => z.remove());
   $("shop").hidden = true;
   $("view-play").inert = false;
   showView("play");
 }
 
-let keeperTimer;
-function keeperSay(text, mood = "idle") {
+function hideKeeperSpeech() {
+  clearInterval(keeperTyping);
+  $("keeper-say").classList.remove("show");
+  $("keeper-say").textContent = "";
+}
+
+let keeperTimer, keeperTyping;
+function drawStore(mood) {
   $("store-scene").querySelector("svg")?.remove();
   $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
-  $("keeper-say").textContent = text;
+}
+
+// The shopkeeper says something: the bubble pops in and the words type out.
+function keeperSay(text, mood = "idle") {
+  drawStore(mood);
+  const say = $("keeper-say");
+  say.classList.add("show");
+  clearInterval(keeperTyping);
+  if (reducedMotion()) {
+    say.textContent = text;
+  } else {
+    let i = 0;
+    say.textContent = "";
+    keeperTyping = setInterval(() => {
+      i += 2;
+      say.textContent = text.slice(0, i);
+      if (i >= text.length) clearInterval(keeperTyping);
+    }, 18);
+  }
+  Sound.play("blip");
   clearTimeout(keeperTimer);
-  if (mood === "happy") keeperTimer = setTimeout(() => {
-    $("store-scene").querySelector("svg")?.remove();
-    $("store-scene").insertAdjacentHTML("afterbegin", storeSVG("idle"));
-  }, 1200);
+  if (mood === "happy") keeperTimer = setTimeout(() => drawStore("idle"), 1200);
 }
 
 // Try to spend coins; the shopkeeper tells you when you're short.

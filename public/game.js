@@ -371,7 +371,8 @@ function renderHUD(gained = false) {
   $("leg-from").textContent = unit === 0 ? "START" : units[unit - 1].name.toUpperCase();
   $("leg-to").textContent = units[unit].name.toUpperCase();
   $("leg-fill").style.width = `${(miles / LEG_MILES) * 100}%`;
-  $("leg-unit").textContent = `Unit ${unit + 1}: ${units[unit].topic}`;
+  const topic = units[unit].topic;
+  $("leg-unit").textContent = /^unit\b/i.test(topic) ? topic : `Unit ${unit + 1}: ${topic}`; // some topics already say "Unit 1"
   $("leg-miles").textContent = `${miles} / ${LEG_MILES} mi`;
 }
 
@@ -432,75 +433,178 @@ function helpSeen() {
   try { return localStorage.getItem(HELP_SEEN_KEY) === "1"; } catch { return false; }
 }
 
-// ---------- the general store: grows out of the trail window ----------
+// ---------- the general store: zoom into the trail window, then step inside ----------
+// Opening: a copy of the trail window grows into the store's banner while the store fades in
+// through it; then the shelves rise into place; then the shopkeeper speaks. Closing runs it backwards.
 
-// The trail window's position inside the screen, as a clip-path.
-function windowClip() {
-  const scene = $("scene").getBoundingClientRect();
+const STORE_ZOOM_MS = 560;
+
+// A rectangle inside the screen, relative to the screen's top-left corner.
+function rectIn(el) {
+  const r = el.getBoundingClientRect();
   const screen = document.querySelector(".screen").getBoundingClientRect();
-  const top = Math.max(0, scene.top - screen.top);
-  const left = Math.max(0, scene.left - screen.left);
-  const right = Math.max(0, screen.right - scene.right);
-  const bottom = Math.max(0, screen.bottom - scene.bottom);
-  return `inset(${top}px ${right}px ${bottom}px ${left}px round 10px)`;
+  return { left: r.left - screen.left, top: r.top - screen.top, width: r.width, height: r.height };
 }
+
+function placeZoomer(z, r) {
+  Object.assign(z.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+}
+
+// The store banner's spot, measured with the store laid out but not yet visible.
+function bannerRect() {
+  const shop = $("shop");
+  shop.style.visibility = "hidden";
+  shop.hidden = false;
+  shop.scrollTop = 0;
+  const r = rectIn($("store-scene").querySelector("svg"));
+  shop.hidden = true;
+  shop.style.visibility = "";
+  return r;
+}
+
+function makeZoomer(atStore) {
+  const z = document.createElement("div");
+  z.className = "zoomer" + (atStore ? " store" : "");
+  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeSVG("idle")}</div>`;
+  document.querySelector(".screen").append(z);
+  return z;
+}
+
+let shopTimers = [];
+const later = (fn, ms) => shopTimers.push(setTimeout(fn, ms));
 
 function openShop() {
   if (shopIsOpen) return;
   shopIsOpen = true;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
+  document.querySelectorAll(".zoomer").forEach((z) => z.remove());
   renderShop();
-  keeperSay(pick(KEEPER.welcome), "idle");
-  const shop = $("shop");
-  Sound.play("open");
-  // 1: zoom into the trail window...
-  $("scene").classList.add("zoom-in");
-  shop.classList.add("instant");
-  shop.style.clipPath = windowClip();
-  shop.hidden = false;
-  shop.scrollTop = 0;
-  shop.getBoundingClientRect(); // apply the starting clip before animating
-  // 2: ...then the window grows into the whole store.
-  setTimeout(() => {
-    shop.classList.remove("instant");
-    shop.style.clipPath = "inset(0px 0px 0px 0px round 8px)";
-  }, reducedMotion() ? 0 : 220);
-  setTimeout(() => $("scene").classList.remove("zoom-in"), 800);
+  drawStore("idle");
+  hideKeeperSpeech();
   $("view-play").inert = true;
-  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 700);
+  Sound.play("open");
+
+  const shop = $("shop");
+  const showStore = () => {
+    shop.hidden = false;
+    shop.scrollTop = 0;
+    $("shop-body").classList.remove("enter");
+    void $("shop-body").offsetWidth; // restart the animation
+    $("shop-body").classList.add("enter");
+  };
+
+  if (reducedMotion()) {
+    showStore();
+    keeperSay(pick(KEEPER.welcome));
+    $("shop-back").focus({ preventScroll: true });
+    return;
+  }
+
+  // 1. Zoom: the trail window grows into the store banner, and the store fades in through it.
+  const target = bannerRect();
+  const z = makeZoomer(false);
+  placeZoomer(z, rectIn($("scene")));
+  z.getBoundingClientRect(); // start from the window's spot
+  z.classList.add("moving", "store");
+  placeZoomer(z, target);
+  // 2. Inside: show the real store underneath, then let the shelves rise in.
+  later(() => {
+    showStore();
+    z.remove();
+  }, STORE_ZOOM_MS);
+  // 3. The shopkeeper speaks once everything has settled.
+  later(() => {
+    keeperSay(pick(KEEPER.welcome));
+    $("shop-back").focus({ preventScroll: true });
+  }, STORE_ZOOM_MS + 320);
 }
 
 function closeShop() {
   if (!shopIsOpen) return;
   shopIsOpen = false;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
   Sound.play("close");
+  hideKeeperSpeech();
   const shop = $("shop");
-  shop.scrollTop = 0;
-  shop.style.clipPath = windowClip(); // shrink back into the trail window
-  setTimeout(() => {
-    shop.hidden = true;
+  const done = () => {
     $("view-play").inert = false;
     $("shop-btn").focus({ preventScroll: true });
-  }, reducedMotion() ? 0 : 560);
+  };
+
+  if (reducedMotion()) {
+    shop.hidden = true;
+    return done();
+  }
+
+  // Run it backwards: the store banner shrinks into the trail window as the trail fades back in.
+  // (If the zoom in hasn't finished yet, reverse from wherever it has got to.)
+  const midway = document.querySelector(".zoomer");
+  let from;
+  if (midway) {
+    from = rectIn(midway);
+    midway.remove();
+  } else {
+    shop.scrollTop = 0;
+    from = rectIn($("store-scene").querySelector("svg"));
+  }
+  const z = makeZoomer(true);
+  placeZoomer(z, from);
+  shop.hidden = true;
+  z.getBoundingClientRect();
+  z.classList.add("moving");
+  z.classList.remove("store");
+  placeZoomer(z, rectIn($("scene")));
+  later(() => {
+    z.remove();
+    done();
+  }, STORE_ZOOM_MS);
 }
 
 // Put the game screens back to normal right away (used when leaving the machine).
 function resetScreens() {
   shopIsOpen = false;
+  shopTimers.forEach(clearTimeout);
+  shopTimers = [];
+  document.querySelectorAll(".zoomer").forEach((z) => z.remove());
   $("shop").hidden = true;
   $("view-play").inert = false;
   showView("play");
 }
 
-let keeperTimer;
-function keeperSay(text, mood = "idle") {
+function hideKeeperSpeech() {
+  clearInterval(keeperTyping);
+  $("keeper-say").classList.remove("show");
+  $("keeper-say").textContent = "";
+}
+
+let keeperTimer, keeperTyping;
+function drawStore(mood) {
   $("store-scene").querySelector("svg")?.remove();
   $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
-  $("keeper-say").textContent = text;
+}
+
+// The shopkeeper says something: the bubble pops in and the words type out.
+function keeperSay(text, mood = "idle") {
+  drawStore(mood);
+  const say = $("keeper-say");
+  say.classList.add("show");
+  clearInterval(keeperTyping);
+  if (reducedMotion()) {
+    say.textContent = text;
+  } else {
+    let i = 0;
+    say.textContent = "";
+    keeperTyping = setInterval(() => {
+      i += 2;
+      say.textContent = text.slice(0, i);
+      if (i >= text.length) clearInterval(keeperTyping);
+    }, 18);
+  }
+  Sound.play("blip");
   clearTimeout(keeperTimer);
-  if (mood === "happy") keeperTimer = setTimeout(() => {
-    $("store-scene").querySelector("svg")?.remove();
-    $("store-scene").insertAdjacentHTML("afterbegin", storeSVG("idle"));
-  }, 1200);
+  if (mood === "happy") keeperTimer = setTimeout(() => drawStore("idle"), 1200);
 }
 
 // Try to spend coins; the shopkeeper tells you when you're short.
