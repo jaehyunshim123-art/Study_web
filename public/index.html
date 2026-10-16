@@ -23,32 +23,39 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="play" role="tab">PLAY</button>
+    <button class="tab active" data-tab="play" role="tab">TRAIL</button>
     <button class="tab" data-tab="avatar" role="tab">AVATAR</button>
     <button class="tab" data-tab="badges" role="tab">BADGES</button>
-    <button class="tab" data-tab="coach" role="tab">COACH</button>
+    <button class="tab" data-tab="coach" role="tab">GUIDE</button>
   </nav>
 
   <main>
     <!-- PLAY: syllabus setup, then the obby map -->
     <section id="tab-play" class="panel">
       <div id="setup" class="box">
-        <h2>LOAD SYLLABUS</h2>
-        <p class="muted">Upload the PDF your teacher gave you, or paste the text. Each unit becomes a world to climb, and the test is the boss at the top.</p>
+        <h2>THE SYLLABUS TRAIL</h2>
+        <p class="muted">Step 1: give the trail master your syllabus. It turns each unit into a leg of the journey, with stops to clear and a river to cross before every landmark. Your final exam is the end of the trail.</p>
         <label class="upload">
           <input type="file" id="pdf" accept="application/pdf" />
-          <span>[ UPLOAD PDF ]</span>
+          <span>[ UPLOAD SYLLABUS PDF ]</span>
         </label>
         <p id="pdf-name" class="muted"></p>
-        <textarea id="syllabus" rows="7" placeholder="...or paste it here&#10;Course: AP Biology&#10;Unit 1: Cells ..."></textarea>
-        <button id="generate" class="big">PRESS START</button>
+        <textarea id="syllabus" rows="7" placeholder="...or paste the syllabus text here"></textarea>
+        <button id="generate" class="big" disabled>START THE JOURNEY</button>
+        <p id="start-hint" class="muted">Upload or paste your syllabus to begin.</p>
         <p id="status" role="status" class="muted"></p>
       </div>
 
-      <div id="map" hidden>
+      <div id="journey" hidden>
         <h2 id="course-title"></h2>
-        <div id="worlds"></div>
-        <button id="reset" class="ghost">LOAD A DIFFERENT SYLLABUS</button>
+        <div id="trail-scene" class="trail-scene"></div>
+        <div id="trail-status" class="box status"></div>
+        <div id="trail-next" class="box"></div>
+        <div class="box">
+          <h2>TRAIL LOG</h2>
+          <div id="trail-log" class="trail-log"></div>
+        </div>
+        <button id="reset" class="ghost">START A NEW JOURNEY</button>
       </div>
     </section>
 
@@ -82,8 +89,8 @@
     <!-- COACH: AI tutor chat -->
     <section id="tab-coach" class="panel" hidden>
       <div class="box coach">
-        <h2>STUDY COACH</h2>
-        <p class="muted" id="coach-context">Ask about any topic in your class, or press ASK COACH on a quest.</p>
+        <h2>TRAIL GUIDE</h2>
+        <p class="muted" id="coach-context">Ask about any topic in your class, or pick ASK THE TRAIL GUIDE on the trail.</p>
         <div id="chat" class="chat" aria-live="polite"></div>
         <form id="coach-form" class="coach-form">
           <input id="coach-input" autocomplete="off" placeholder="e.g. explain osmosis like I'm 10" />
@@ -112,5 +119,7 @@
   <script src="avatar.js"></script>
   <script src="app.js"></script>
   <script src="quiz.js"></script>
+  <script src="trail.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

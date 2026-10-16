@@ -1,8 +1,8 @@
 {
-  "courseTitle": "AP Biology (demo)",
+  "courseTitle": "AP Biology",
   "worlds": [
     {
-      "name": "The Cell Citadel",
+      "name": "Fort Organelle",
       "topic": "Unit 1: Cell structure and function",
       "quests": [
         {
@@ -22,7 +22,7 @@
         }
       ],
       "boss": {
-        "name": "The Mitochondrial Golem",
+        "name": "Osmosis River",
         "challenge": "Unit 1 test: score 80% or better on a practice test first.",
         "xp": 100
       },
@@ -101,11 +101,33 @@
           ],
           "answerIndex": 0,
           "explanation": "The Golgi apparatus modifies, sorts and packages proteins into vesicles."
+        },
+        {
+          "question": "What does a selectively permeable membrane do?",
+          "choices": [
+            "Lets every substance through",
+            "Blocks every substance",
+            "Lets some substances through but not others",
+            "Makes proteins"
+          ],
+          "answerIndex": 2,
+          "explanation": "The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps."
+        },
+        {
+          "question": "Which organelle holds most of a eukaryotic cell's DNA?",
+          "choices": [
+            "Nucleus",
+            "Ribosome",
+            "Vacuole",
+            "Cell wall"
+          ],
+          "answerIndex": 0,
+          "explanation": "In eukaryotic cells, DNA is stored inside the nucleus."
         }
       ]
     },
     {
-      "name": "Energy Forge",
+      "name": "Energy Ridge",
       "topic": "Unit 2: Cellular respiration and photosynthesis",
       "quests": [
         {
@@ -125,7 +147,7 @@
         }
       ],
       "boss": {
-        "name": "The Chloroplast Dragon",
+        "name": "Krebs River",
         "challenge": "Lab report on photosynthesis rate, due end of unit.",
         "xp": 120
       },
@@ -203,6 +225,28 @@
           ],
           "answerIndex": 1,
           "explanation": "The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."
+        },
+        {
+          "question": "Glycolysis splits one glucose molecule into two molecules of:",
+          "choices": [
+            "Pyruvate",
+            "Oxygen",
+            "Chlorophyll",
+            "Water"
+          ],
+          "answerIndex": 0,
+          "explanation": "Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle."
+        },
+        {
+          "question": "Which pigment captures light energy in plants?",
+          "choices": [
+            "Hemoglobin",
+            "Chlorophyll",
+            "Melanin",
+            "Keratin"
+          ],
+          "answerIndex": 1,
+          "explanation": "Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."
         }
       ]
     }

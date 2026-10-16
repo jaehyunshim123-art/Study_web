@@ -2,8 +2,9 @@
 // Everything is saved in localStorage so it survives a page refresh.
 //
 // save = {
-//   map:  quest map from the AI (or null before a syllabus is loaded)
-//   done: { "w0-q1": true, "w0-boss": true, ... }   which quests are finished
+//   map:  the trail from the AI (or null before a syllabus is loaded)
+//   done: { "w0-q1": true, "w0-boss": true, ... }   which stops and river crossings are cleared
+//   health, startedOn: this journey's health (0-100) and the day it started
 //   profile: { xp, coins, days: ["2026-10-16", ...], badges: {id: date}, owned: [...], look: {...}, asked }
 // }
 // The profile stays when you load a new syllabus, so your avatar, coins and badges carry over.
@@ -29,6 +30,8 @@ function load() {
     map: data.map || null,
     syllabus: data.syllabus || "", // pasted syllabus text, sent along when making quizzes
     done: data.done || {},
+    health: data.health ?? 100,
+    startedOn: data.startedOn || dayKey(),
     profile: { xp: 0, coins: 0, days: [], badges: {}, owned: [], look: { ...DEFAULT_LOOK }, asked: false, ...data.profile },
   };
 }
@@ -67,17 +70,17 @@ const bossesBeaten = () => Object.keys(save.done).filter((id) => id.endsWith("-b
 const questsDone = () => Object.keys(save.done).length;
 
 const BADGES = [
-  { id: "first-quest", icon: pixelIcon("star", 32), name: "First Steps", desc: "Finish your first quest", test: () => questsDone() >= 1 },
-  { id: "ten-quests", icon: pixelIcon("book", 32), name: "Bookworm", desc: "Finish 10 quests", test: () => questsDone() >= 10 },
-  { id: "first-boss", icon: pixelIcon("sword", 32), name: "Boss Slayer", desc: "Defeat a boss", test: () => bossesBeaten() >= 1 },
-  { id: "three-bosses", icon: pixelIcon("crown", 32), name: "Dragon Tamer", desc: "Defeat 3 bosses", test: () => bossesBeaten() >= 3 },
+  { id: "first-quest", icon: pixelIcon("star", 32), name: "First Steps", desc: "Clear your first stop", test: () => questsDone() >= 1 },
+  { id: "ten-quests", icon: pixelIcon("book", 32), name: "Bookworm", desc: "Clear 10 stops", test: () => questsDone() >= 10 },
+  { id: "first-boss", icon: pixelIcon("sword", 32), name: "River Crosser", desc: "Cross your first river", test: () => bossesBeaten() >= 1 },
+  { id: "three-bosses", icon: pixelIcon("crown", 32), name: "Trailblazer", desc: "Cross 3 rivers", test: () => bossesBeaten() >= 3 },
   { id: "streak-3", icon: pixelIcon("flame", 32), name: "On Fire", desc: "3-day study streak", test: () => streak() >= 3 },
   { id: "streak-7", icon: pixelIcon("flame", 32, { r: "#3f7fff", o: "#38e0e0", y: "#f4f4f4" }), name: "Unstoppable", desc: "7-day study streak", test: () => streak() >= 7 },
   { id: "level-5", icon: pixelIcon("arrow", 32), name: "Rising Star", desc: "Reach level 5", test: () => level() >= 5 },
   { id: "xp-1000", icon: pixelIcon("gem", 32), name: "XP Hoarder", desc: "Earn 1,000 XP", test: () => save.profile.xp >= 1000 },
   { id: "shopper", icon: pixelIcon("bag", 32), name: "Drip Check", desc: "Buy something in the shop", test: () => save.profile.owned.length >= 1 },
   { id: "perfect", icon: pixelIcon("star", 32, { y: "#38e0e0" }), name: "Perfect Score", desc: "Get every question right on a quiz", test: () => save.profile.perfect },
-  { id: "curious", icon: pixelIcon("question", 32), name: "Curious Mind", desc: "Ask the study coach a question", test: () => save.profile.asked },
+  { id: "curious", icon: pixelIcon("question", 32), name: "Curious Mind", desc: "Ask the trail guide a question", test: () => save.profile.asked },
 ];
 
 // Small icon per badge for the unlock toast (the BADGES list holds the big version).
@@ -109,7 +112,6 @@ function complete(id, xp, title) {
   checkBadges();
   persist();
   render();
-  document.querySelector(".avatar-on-platform")?.classList.add("hop");
 }
 
 // ---------- small UI helpers ----------
@@ -150,93 +152,6 @@ function renderStats() {
   $("coins").textContent = String(save.profile.coins).padStart(3, "0");
   $("streak").textContent = streak();
   $("header-avatar").innerHTML = avatarSVG(save.profile.look);
-}
-
-// Where the player stands: the first unfinished quest (or boss) on the map.
-function currentSpot() {
-  for (const [w, world] of save.map.worlds.entries()) {
-    const q = world.quests.findIndex((_, i) => !save.done[`w${w}-q${i}`]);
-    if (q !== -1) return `w${w}-q${q}`;
-    if (!save.done[`w${w}-boss`]) return `w${w}-boss`;
-  }
-  return null;
-}
-
-function platform({ id, title, detail, xp, boss, locked, offset, here }) {
-  const done = Boolean(save.done[id]);
-  const el = document.createElement("div");
-  el.className = `platform pos-${offset}` + (boss ? " boss" : "") + (done ? " done" : "") + (locked ? " locked" : "");
-
-  if (here) {
-    const me = document.createElement("div");
-    me.className = "avatar-on-platform";
-    me.innerHTML = avatarSVG(save.profile.look);
-    el.append(me);
-  }
-
-  const block = document.createElement("div");
-  block.className = "block";
-  block.innerHTML = `
-    <div class="block-top">
-      <strong>${boss ? "BOSS: " : ""}${escapeHTML(title)}</strong>
-      <span class="reward">+${xp} XP</span>
-    </div>
-    <p>${locked ? "LOCKED. Finish every quest in this world to unlock the boss." : escapeHTML(detail)}</p>`;
-
-  const actions = document.createElement("div");
-  actions.className = "block-actions";
-  if (done) {
-    actions.innerHTML = `<span class="cleared">[X] CLEARED</span>`;
-  } else if (!locked) {
-    const go = document.createElement("button");
-    go.textContent = boss ? "FIGHT BOSS" : "START QUIZ";
-    go.addEventListener("click", () => startQuiz({ id, xp, title, detail, boss: Boolean(boss) }));
-    actions.append(go);
-  }
-  if (!locked) {
-    const ask = document.createElement("button");
-    ask.className = "ghost small";
-    ask.textContent = "ASK COACH";
-    ask.addEventListener("click", () => openCoach(`${title}: ${detail}`));
-    actions.append(ask);
-  }
-  block.append(actions);
-  el.append(block);
-  return el;
-}
-
-function renderMap() {
-  $("setup").hidden = Boolean(save.map);
-  $("map").hidden = !save.map;
-  if (!save.map) return;
-
-  $("course-title").textContent = save.map.courseTitle + (save.map.demo ? " (demo mode)" : "");
-  const here = currentSpot();
-  const offsets = [0, 1, 2, 1]; // zigzag like an obby
-  const worlds = $("worlds");
-  worlds.replaceChildren();
-
-  save.map.worlds.forEach((world, w) => {
-    const section = document.createElement("div");
-    section.className = "world";
-    const cleared = world.quests.every((_, q) => save.done[`w${w}-q${q}`]);
-    section.innerHTML = `<div class="world-head"><h3>WORLD ${w + 1}</h3><p class="world-name">${escapeHTML(world.name)}</p><p class="muted">${escapeHTML(world.topic)}</p></div>`;
-
-    world.quests.forEach((quest, q) => {
-      const id = `w${w}-q${q}`;
-      section.append(platform({ id, title: quest.title, detail: quest.task, xp: quest.xp, offset: offsets[q % 4], here: id === here }));
-    });
-    const bossId = `w${w}-boss`;
-    section.append(platform({ id: bossId, title: world.boss.name, detail: world.boss.challenge, xp: world.boss.xp, boss: true, locked: !cleared, offset: 1, here: bossId === here }));
-    worlds.append(section);
-  });
-
-  if (!here) {
-    const win = document.createElement("div");
-    win.className = "card win";
-    win.innerHTML = `${pixelIcon("crown", 32)}<div>ALL WORLDS CLEARED</div>`;
-    worlds.append(win);
-  }
 }
 
 function renderAvatar() {
@@ -314,7 +229,7 @@ function renderBadges() {
 
 function render() {
   renderStats();
-  renderMap();
+  renderTrail();
   renderAvatar();
   renderBadges();
 }
@@ -322,11 +237,21 @@ function render() {
 // ---------- syllabus loading ----------
 
 let pdfData = null;
+let building = false;
+
+// The journey can only start once there's a syllabus to build it from.
+function updateStartButton() {
+  const ready = Boolean(pdfData || $("syllabus").value.trim());
+  $("generate").disabled = building || !ready;
+  $("start-hint").hidden = ready;
+}
+$("syllabus").addEventListener("input", updateStartButton);
 
 $("pdf").addEventListener("change", () => {
   const file = $("pdf").files[0];
   pdfData = null;
   $("pdf-name").textContent = "";
+  updateStartButton();
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) {
     $("pdf-name").textContent = "That PDF is over 10 MB. Try a smaller file.";
@@ -336,14 +261,15 @@ $("pdf").addEventListener("change", () => {
   reader.onload = () => {
     pdfData = String(reader.result).split(",")[1]; // strip the "data:application/pdf;base64," part
     $("pdf-name").textContent = `Loaded: ${file.name}`;
+    updateStartButton();
   };
   reader.readAsDataURL(file);
 });
 
 $("generate").addEventListener("click", async () => {
-  const button = $("generate");
-  button.disabled = true;
-  $("status").textContent = "The game master is building your world…";
+  building = true;
+  updateStartButton();
+  $("status").textContent = "Reading your syllabus and packing the wagon...";
   try {
     const res = await fetch("/api/quests", {
       method: "POST",
@@ -352,27 +278,33 @@ $("generate").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    save.map = data;
-    save.syllabus = $("syllabus").value.slice(0, 20000);
+    // syllabusText: text pulled out of a PDF, when whoever built the trail sends it back
+    const { syllabusText, ...trail } = data;
+    save.map = trail;
+    save.syllabus = (syllabusText || $("syllabus").value).slice(0, 20000);
     save.done = {};
+    save.health = 100;
+    save.startedOn = dayKey();
     persist();
     $("status").textContent = "";
     render();
   } catch (err) {
     $("status").textContent = err.message || "Something went wrong.";
   } finally {
-    button.disabled = false;
+    building = false;
+    updateStartButton();
   }
 });
 
 $("reset").addEventListener("click", () => {
-  if (!confirm("Load a new syllabus? Your map resets, but you keep your XP, coins, avatar and badges.")) return;
+  if (!confirm("Start a new journey? This trail resets, but you keep your XP, coins, avatar and badges.")) return;
   save.map = null;
   save.syllabus = "";
   save.done = {};
   pdfData = null;
   $("pdf").value = "";
   $("pdf-name").textContent = "";
+  $("syllabus").value = "";
   persist();
   render();
 });
@@ -429,10 +361,3 @@ $("coach-form").addEventListener("submit", async (event) => {
     chat.pop(); // drop the unanswered question so the conversation stays valid
   }
 });
-
-// ---------- start ----------
-
-$("coin-icon").innerHTML = pixelIcon("coin", 14);
-$("streak-icon").innerHTML = pixelIcon("flame", 14);
-document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => switchTab(tab.dataset.tab)));
-render();

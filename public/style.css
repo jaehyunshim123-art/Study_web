@@ -45,7 +45,7 @@ p { margin: 6px 0; }
 .px-icon { vertical-align: -2px; }
 
 /* the shared chunky box look */
-.box, .block, .shop-item, .badge, .world-head, .toast, textarea, .coach-form input {
+.box, .shop-item, .badge, .toast, textarea, .coach-form input {
   border: var(--px) solid var(--edge);
   box-shadow: inset calc(-1 * var(--px)) calc(-1 * var(--px)) 0 rgba(0, 0, 0, 0.35),
               inset var(--px) var(--px) 0 rgba(255, 255, 255, 0.08);
@@ -132,52 +132,44 @@ textarea::placeholder, input::placeholder { color: #6b6694; }
 }
 .upload input:focus-visible + span { outline: 3px solid var(--gold); }
 
-/* ---------- obby map ---------- */
+/* ---------- trail ---------- */
 
 #course-title { font-size: 12px; color: var(--text); }
-.world { margin: 18px 0 34px; }
-.world-head { background: var(--panel-2); padding: 10px 14px; margin-bottom: 8px; }
-.world-head h3 { color: var(--gold); margin: 0; }
-.world-name { margin: 4px 0 0; font-size: 24px; }
-.world-head .muted { margin: 2px 0 0; }
+.trail-scene { border: var(--px) solid var(--edge); margin-bottom: 14px; background: #1d1a45; line-height: 0; }
+.trail-scene > svg { width: 100%; height: auto; display: block; }
+.wagon { transition: transform 1.5s steps(12); }
+.wagon.rolling .wheel { animation: bump 0.25s steps(2) infinite; }
+@keyframes bump { 50% { transform: translateY(-1px); } }
 
-.platform { position: relative; width: 80%; margin-top: 52px; }
-.platform.pos-0 { margin-left: 0; }
-.platform.pos-1 { margin-left: 10%; }
-.platform.pos-2 { margin-left: 20%; }
+.status { font-size: 22px; display: grid; gap: 2px; }
+.status .label { font-family: var(--head); font-size: 9px; color: var(--gold); margin-right: 6px; }
 
-.block { background: var(--panel); padding: 22px 12px 12px; position: relative; }
-/* the brick strip on top of each platform */
-.block::before {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 12px;
-  background: repeating-linear-gradient(90deg, var(--green) 0 14px, var(--green-dark) 14px 16px);
-  border-bottom: var(--px) solid var(--green-dark);
-}
-.platform.boss .block::before { background: repeating-linear-gradient(90deg, var(--red) 0 14px, var(--red-dark) 14px 16px); border-bottom-color: var(--red-dark); }
-.platform.done .block::before { background: repeating-linear-gradient(90deg, var(--gold) 0 14px, var(--gold-dark) 14px 16px); border-bottom-color: var(--gold-dark); }
-.platform.done .block { opacity: 0.75; }
-.platform.locked .block { opacity: 0.5; filter: grayscale(1); }
-.platform.boss strong { color: var(--red); }
+.next-kind { color: var(--green); margin: 0; }
+.next-title { font-size: 26px; margin: 6px 0 2px; }
+.you-may { font-family: var(--head); font-size: 10px; color: var(--gold); margin: 14px 0 8px; }
+.menu { display: grid; gap: 8px; }
+.menu-item { text-align: left; background: var(--panel-2); box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.35); }
+.menu-item.primary { background: var(--green); color: #000; box-shadow: inset -4px -4px 0 var(--green-dark); }
+.menu-item .num { color: var(--gold); margin-right: 4px; }
+.menu-item.primary .num { color: #000; }
+.trail-end { text-align: center; display: grid; justify-items: center; gap: 10px; }
+.trail-end h2 { margin: 0; }
 
-.block-top { display: flex; justify-content: space-between; gap: 10px; }
-.block-top strong { font-family: var(--head); font-weight: 400; font-size: 10px; line-height: 1.6; }
-.block p { margin: 6px 0 10px; color: var(--muted); }
-.block-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.reward { font-family: var(--head); font-size: 9px; color: var(--gold); white-space: nowrap; }
-.cleared { font-family: var(--head); font-size: 9px; color: var(--gold); }
+.trail-log .leg { margin-bottom: 16px; }
+.trail-log h3 { color: var(--gold); margin: 0; }
+.trail-log p { margin: 2px 0 6px; }
+.trail-log ul { list-style: none; margin: 0; padding: 0; }
+.trail-log li { display: flex; gap: 10px; padding: 2px 0; color: var(--muted); }
+.trail-log li .mark { font-family: var(--head); font-size: 9px; padding-top: 5px; min-width: 32px; }
+.trail-log li .name { flex: 1; }
+.trail-log li .mi { white-space: nowrap; }
+.trail-log li.done { color: var(--gold); }
+.trail-log li.current { color: var(--text); }
+.trail-log li.current .mark { color: var(--green); }
+.trail-log li.river .name { color: #8fb4ff; }
+.trail-log li.river.done .name { color: var(--gold); }
 
-.avatar-on-platform { position: absolute; top: -54px; right: 16px; width: 32px; height: 50px; }
-.avatar-on-platform.hop { animation: hop 0.5s steps(5); }
-@keyframes hop {
-  0% { transform: translateY(40px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0); }
-}
-
-.win { text-align: center; font-family: var(--head); font-size: 12px; color: var(--gold); display: grid; gap: 12px; justify-items: center; }
+#generate:disabled { animation: none; }
 
 /* ---------- avatar & shop ---------- */
 
@@ -212,7 +204,7 @@ textarea::placeholder, input::placeholder { color: #6b6694; }
 
 /* ---------- toasts & level up ---------- */
 
-.toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 20; width: min(92vw, 440px); }
+.toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 27; width: min(92vw, 440px); }
 .toast { background: #000; border-color: var(--green); color: var(--green); padding: 8px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; animation: slide 0.2s steps(3); }
 .toast b { font-weight: 400; color: var(--text); }
 .toast.badge { border-color: var(--gold); color: var(--gold); }
