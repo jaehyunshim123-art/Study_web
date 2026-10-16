@@ -1,14 +1,13 @@
 // Syllabus Quest — a tiny web server.
-// It serves the website in /public and three API routes that talk to Claude:
-//   POST /api/quests  syllabus (text or PDF) -> the trail: legs, stops and river crossings
-//   POST /api/quiz    one stop or river crossing -> multiple-choice questions
-//   POST /api/coach   a chat with the trail guide
+// It serves the website in /public and two API routes that talk to Claude:
+//   POST /api/trail  syllabus (text or PDF) -> the route: one landmark per unit, with key concepts
+//   POST /api/quiz   one unit -> a batch of multiple-choice questions
 // What the AI is told lives in shared/prompts.js.
 
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync, existsSync } from "node:fs";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, coachPrompt } from "./shared/prompts.js";
+import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz } from "./shared/prompts.js";
 
 // Load .env by hand so there's one less dependency to learn about.
 if (existsSync(".env")) {
@@ -42,14 +41,14 @@ function askClaude(params) {
 
 const textOf = (response) => response.content.filter((b) => b.type === "text").map((b) => b.text).join("");
 
-app.post("/api/quests", async (req, res) => {
+app.post("/api/trail", async (req, res) => {
   const syllabus = String(req.body?.syllabus || "").trim();
   const pdf = typeof req.body?.pdf === "string" ? req.body.pdf : "";
   if (!syllabus && !pdf) return res.status(400).json({ error: "Upload or paste your syllabus first." });
   if (pdf.length * 0.75 > MAX_PDF_BYTES) return res.status(413).json({ error: "That PDF is over 10 MB." });
 
   if (!client) {
-    // Demo mode: no API key yet, so send back the sample trail.
+    // Demo mode: no API key yet, so send back the sample route.
     return res.json({ ...demoData(), demo: true });
   }
 
@@ -68,7 +67,7 @@ app.post("/api/quests", async (req, res) => {
       messages: [{ role: "user", content }],
     });
     if (response.stop_reason === "refusal") {
-      return res.status(422).json({ error: "The AI couldn't turn that into a trail. Try a different syllabus." });
+      return res.status(422).json({ error: "The AI couldn't turn that into a route. Try a different syllabus." });
     }
     res.json(JSON.parse(textOf(response)));
   } catch (err) {
@@ -83,8 +82,8 @@ app.post("/api/quiz", async (req, res) => {
 
   if (!client) {
     // Demo mode: hand-written questions from demo-quests.json.
-    const worlds = demoData().worlds;
-    const pool = (worlds[Number(body.world)] || worlds[0]).demoQuiz;
+    const units = demoData().units;
+    const pool = (units[Number(body.unit)] || units[0]).demoQuiz;
     return res.json({ questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) });
   }
 
@@ -95,7 +94,7 @@ app.post("/api/quiz", async (req, res) => {
       messages: [{ role: "user", content: quizRequest({ ...body, count }) }],
     });
     if (response.stop_reason === "refusal") {
-      return res.status(422).json({ error: "The AI couldn't write a quiz for this one. Try again." });
+      return res.status(422).json({ error: "The AI couldn't write questions for this unit. Try again." });
     }
     const questions = cleanQuiz(JSON.parse(textOf(response)).questions).slice(0, count);
     if (questions.length === 0) return res.status(502).json({ error: "The quiz came back empty. Try again." });
@@ -103,35 +102,6 @@ app.post("/api/quiz", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Couldn't make the quiz. Check the server log." });
-  }
-});
-
-app.post("/api/coach", async (req, res) => {
-  const { course = "", quest = "", messages = [] } = req.body || {};
-  // Only keep well-formed turns, and only the last 20 so requests stay small.
-  const history = (Array.isArray(messages) ? messages : [])
-    .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
-    .slice(-20);
-  if (history.at(-1)?.role !== "user") return res.status(400).json({ error: "Ask the guide something first." });
-  while (history[0]?.role !== "user") history.shift();
-
-  if (!client) {
-    return res.json({ reply: "I'm the trail guide! I'm in demo mode right now, so I can't really answer yet. Add an API key to the .env file and ask me again." });
-  }
-
-  try {
-    const response = await askClaude({
-      system: `${coachPrompt}\n\nCourse: ${String(course).slice(0, 200)}\nCurrent stop: ${String(quest).slice(0, 500)}`,
-      output_config: { effort: "low" },
-      messages: history,
-    });
-    if (response.stop_reason === "refusal") {
-      return res.json({ reply: "I can't help with that one. Try asking about the topic in a different way." });
-    }
-    res.json({ reply: textOf(response) });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "The guide couldn't answer. Check the server log." });
   }
 });
 

@@ -1,31 +1,9 @@
 {
   "courseTitle": "AP Biology",
-  "worlds": [
+  "units": [
     {
       "name": "Fort Organelle",
       "topic": "Unit 1: Cell structure and function",
-      "quests": [
-        {
-          "title": "Map the Citadel",
-          "task": "Draw and label a plant cell and an animal cell from memory, then check against the textbook.",
-          "xp": 20
-        },
-        {
-          "title": "Membrane Gatekeeper",
-          "task": "Explain diffusion, osmosis and active transport in your own words, one paragraph each.",
-          "xp": 25
-        },
-        {
-          "title": "Organelle Flashcards",
-          "task": "Make 12 flashcards: organelle on the front, job on the back.",
-          "xp": 15
-        }
-      ],
-      "boss": {
-        "name": "Osmosis River",
-        "challenge": "Unit 1 test: score 80% or better on a practice test first.",
-        "xp": 100
-      },
       "keyConcepts": [
         "organelles",
         "plant vs animal cells",
@@ -129,28 +107,6 @@
     {
       "name": "Energy Ridge",
       "topic": "Unit 2: Cellular respiration and photosynthesis",
-      "quests": [
-        {
-          "title": "Follow the Glucose",
-          "task": "Write the inputs and outputs of glycolysis, the Krebs cycle and the electron transport chain.",
-          "xp": 30
-        },
-        {
-          "title": "Sunlight Smith",
-          "task": "Compare light and dark reactions in a two-column table.",
-          "xp": 20
-        },
-        {
-          "title": "Teach It Back",
-          "task": "Explain photosynthesis to a friend or family member in under 2 minutes.",
-          "xp": 15
-        }
-      ],
-      "boss": {
-        "name": "Krebs River",
-        "challenge": "Lab report on photosynthesis rate, due end of unit.",
-        "xp": 120
-      },
       "keyConcepts": [
         "glycolysis",
         "Krebs cycle",

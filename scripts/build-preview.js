@@ -4,19 +4,20 @@
 // Inside claude.ai the preview asks Claude through the artifact "sample" capability (on the viewer's
 // own Claude account), using the same prompts as server.js. PDFs are read in the page with pdf.js.
 // Anywhere Claude isn't available (opened as a plain file, or the viewer says no) it falls back
-// to the demo trail from demo-quests.json.
+// to the demo course from demo-quests.json.
 //
 // Run with: npm run preview
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, coachPrompt } from "../shared/prompts.js";
+import vm from "node:vm";
+import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz } from "../shared/prompts.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const demo = JSON.parse(read("demo-quests.json"));
 
-// Stands in for server.js's three API routes.
+// Stands in for server.js's two API routes.
 const previewServer = `
-const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema, coachPrompt })};
+const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema })};
 const DEMO_TRAIL = ${JSON.stringify({ ...demo, demo: true })};
 ${quizRequest}
 ${quizCount}
@@ -46,25 +47,23 @@ async function pdfToText(base64) {
   return text.trim();
 }
 
-// Make sure the AI's trail has every field the game needs.
+// Make sure the AI's route has every field the game needs.
 function cleanTrail(t) {
-  const worlds = (Array.isArray(t?.worlds) ? t.worlds : [])
-    .filter((w) => w && Array.isArray(w.quests) && w.quests.length && w.boss)
-    .map((w) => ({
-      name: String(w.name || "The Next Fort"),
-      topic: String(w.topic || ""),
-      keyConcepts: Array.isArray(w.keyConcepts) ? w.keyConcepts.map(String) : [],
-      quests: w.quests.map((q) => ({ title: String(q.title || "Stop"), task: String(q.task || ""), xp: Math.max(5, Math.round(Number(q.xp) || 20)) })),
-      boss: { name: String(w.boss.name || "The River"), challenge: String(w.boss.challenge || ""), xp: Math.max(20, Math.round(Number(w.boss.xp) || 100)) },
+  const units = (Array.isArray(t?.units) ? t.units : [])
+    .filter((u) => u && (u.topic || u.name))
+    .map((u) => ({
+      name: String(u.name || u.topic),
+      topic: String(u.topic || u.name),
+      keyConcepts: Array.isArray(u.keyConcepts) ? u.keyConcepts.map(String) : [],
     }));
-  if (!worlds.length) throw new Error("The AI's trail came back incomplete. Try again.");
-  return { courseTitle: String(t.courseTitle || "Your course"), worlds };
+  if (!units.length) throw new Error("The AI's route came back empty. Try again.");
+  return { courseTitle: String(t.courseTitle || "Your course"), units };
 }
 
 async function handle(path, req) {
   const sample = await samplePromise;
 
-  if (path.endsWith("/api/quests")) {
+  if (path.endsWith("/api/trail")) {
     if (!sample) return DEMO_TRAIL;
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
@@ -84,22 +83,13 @@ async function handle(path, req) {
   if (path.endsWith("/api/quiz")) {
     const count = quizCount(req.count);
     if (!sample || req.demo) {
-      const pool = (DEMO_TRAIL.worlds[req.world] || DEMO_TRAIL.worlds[0]).demoQuiz;
+      const pool = (DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0]).demoQuiz;
       return { questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
     const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }), { cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
-    if (!questions.length) throw new Error("The quiz came back empty. Try again.");
+    if (!questions.length) throw new Error("No questions came back. Try again.");
     return { questions };
-  }
-
-  if (path.endsWith("/api/coach")) {
-    if (!sample) return { reply: "This copy of the game can't reach Claude, so the trail guide can't answer here. Open it in claude.ai to chat with the guide." };
-    const turns = (req.messages || []).filter((m) => (m.role === "user" || m.role === "assistant") && String(m.content || "").trim()).slice(-20);
-    while (turns.length && turns[0].role !== "user") turns.shift();
-    const rules = PROMPTS.coachPrompt + "\\n\\nCourse: " + String(req.course || "").slice(0, 200) + "\\nCurrent stop: " + String(req.quest || "").slice(0, 500);
-    const { text } = await sample([{ role: "user", content: rules }, ...turns], { cache: false, modelTier: "quick" });
-    return { reply: text };
   }
   throw new Error("Unknown route");
 }
@@ -116,14 +106,19 @@ window.fetch = async (url, options = {}) => {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 };`;
 
+// Fail the build if the generated scripts don't parse.
+for (const [name, code] of [["preview server", previewServer]]) {
+  try { new vm.Script(code); } catch (err) { throw new Error(`${name} has a syntax error: ${err.message}`); }
+}
+
 const pdfjs = ["pdf.min.js", "pdf.worker.min.js"].map((f) => read(`node_modules/pdfjs-dist/build/${f}`));
-const appScripts = ["pixel", "avatar", "app", "quiz", "trail", "main"].map((f) => read(`public/${f}.js`)).join("\n");
+const appScripts = ["game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
 const inline = (code) => `<script>\n${code}\n</script>`;
 
 let html = read("public/index.html");
 html = html.replace('<link rel="stylesheet" href="style.css" />', () => `<style>\n${read("public/style.css")}\n</style>`);
 html = html.replace(
-  /<script src="pixel.js"><\/script>[\s\S]*<script src="main.js"><\/script>/,
+  /<script src="game.js"><\/script>[\s\S]*<script src="app.js"><\/script>/,
   () => [
     // pdf.worker defines globalThis.pdfjsWorker, so pdf.js reads PDFs on the page without a separate worker.
     inline(pdfjs[0]), inline(pdfjs[1]),

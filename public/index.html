@@ -5,121 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Syllabus Quest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <div id="header-avatar" class="mini-avatar" aria-hidden="true"></div>
-      <h1>SYLLABUS<br />QUEST</h1>
-    </div>
-    <div class="hud">
-      <span class="hud-item" id="level">LV 01</span>
-      <div class="xp-bar" title="XP to next level"><div id="xp-fill"></div></div>
-      <span class="hud-item" title="Coins"><span id="coin-icon"></span><b id="coins">000</b></span>
-      <span class="hud-item" title="Study streak"><span id="streak-icon"></span><b id="streak">0</b></span>
-    </div>
-  </header>
+  <!-- LANDING: the arcade -->
+  <div id="landing" class="landing">
+    <header class="top">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Syllabus Quest</div>
+      <span class="top-note">A study arcade</span>
+    </header>
 
-  <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="play" role="tab">TRAIL</button>
-    <button class="tab" data-tab="avatar" role="tab">AVATAR</button>
-    <button class="tab" data-tab="badges" role="tab">BADGES</button>
-    <button class="tab" data-tab="coach" role="tab">GUIDE</button>
-  </nav>
+    <main class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Insert syllabus · Press start</p>
+        <h1>Turn your syllabus into a game.</h1>
+        <p class="lede">Upload your course syllabus. The AI maps out a journey from your first unit to the final exam and writes the questions. Answer them to earn coins, upgrade your wagon and reach the finish.</p>
 
-  <main>
-    <!-- PLAY: syllabus setup, then the obby map -->
-    <section id="tab-play" class="panel">
-      <div id="setup" class="box">
-        <h2>THE SYLLABUS TRAIL</h2>
-        <p class="muted">Step 1: give the trail master your syllabus. It turns each unit into a leg of the journey, with stops to clear and a river to cross before every landmark. Your final exam is the end of the trail.</p>
-        <label class="upload">
-          <input type="file" id="pdf" accept="application/pdf" />
-          <span>[ UPLOAD SYLLABUS PDF ]</span>
-        </label>
-        <p id="pdf-name" class="muted"></p>
-        <textarea id="syllabus" rows="7" placeholder="...or paste the syllabus text here"></textarea>
-        <button id="generate" class="big" disabled>START THE JOURNEY</button>
-        <p id="start-hint" class="muted">Upload or paste your syllabus to begin.</p>
-        <p id="status" role="status" class="muted"></p>
-      </div>
-
-      <div id="journey" hidden>
-        <h2 id="course-title"></h2>
-        <div id="trail-scene" class="trail-scene"></div>
-        <div id="trail-status" class="box status"></div>
-        <div id="trail-next" class="box"></div>
-        <div class="box">
-          <h2>TRAIL LOG</h2>
-          <div id="trail-log" class="trail-log"></div>
-        </div>
-        <button id="reset" class="ghost">START A NEW JOURNEY</button>
-      </div>
-    </section>
-
-    <!-- AVATAR: customize and shop -->
-    <section id="tab-avatar" class="panel" hidden>
-      <div class="box avatar-box">
-        <div id="avatar-preview" class="avatar-preview"></div>
-        <div class="customize">
-          <h2>YOUR AVATAR</h2>
-          <div class="color-row"><span>SKIN</span><div class="swatches" data-part="skin"></div></div>
-          <div class="color-row"><span>SHIRT</span><div class="swatches" data-part="shirt"></div></div>
-          <div class="color-row"><span>PANTS</span><div class="swatches" data-part="pants"></div></div>
+        <div class="upload-card">
+          <label class="drop" id="drop">
+            <input type="file" id="pdf" accept="application/pdf" />
+            <span class="drop-icon" aria-hidden="true"></span>
+            <span class="drop-text">
+              <span class="drop-title">Upload your syllabus</span>
+              <span class="drop-sub" id="pdf-name">PDF, up to 10 MB</span>
+            </span>
+          </label>
+          <details class="paste" id="paste">
+            <summary>Or paste the text</summary>
+            <textarea id="syllabus" rows="6" placeholder="Paste your syllabus here"></textarea>
+          </details>
+          <button id="start" class="btn-primary" disabled>Insert syllabus and play</button>
+          <p id="status" class="status" role="status"></p>
+          <button id="resume" class="btn-link" hidden></button>
         </div>
       </div>
-      <div class="box">
-        <h2>SHOP</h2>
-        <p class="muted">Earn coins by finishing quests.</p>
-        <div id="shop" class="grid"></div>
-      </div>
-    </section>
 
-    <!-- BADGES -->
-    <section id="tab-badges" class="panel" hidden>
-      <div class="box">
-        <h2>BADGES</h2>
-        <p class="muted" id="streak-text"></p>
-        <div id="badges" class="grid"></div>
+      <div class="cabinet" id="cabinet" aria-hidden="true">
+        <svg viewBox="0 0 300 470" class="cabinet-art">
+          <!-- marquee -->
+          <path d="M44 18 H256 L262 70 H38 Z" fill="#111418" />
+          <text x="150" y="51" text-anchor="middle" class="marquee-text">SYLLABUS QUEST</text>
+          <!-- body -->
+          <path d="M38 70 H262 V440 H38 Z" fill="#fff" stroke="#111418" stroke-width="3" />
+          <path d="M38 70 L22 86 V452 H38" fill="#f1f2f4" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
+          <!-- screen bezel -->
+          <rect x="58" y="88" width="184" height="148" rx="10" fill="#111418" />
+          <rect x="68" y="98" width="164" height="128" rx="4" fill="#f7f4ec" />
+          <!-- control panel -->
+          <path d="M38 256 H262 L276 296 H24 Z" fill="#f6f7f9" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
+          <rect x="84" y="262" width="5" height="18" fill="#111418" />
+          <circle cx="86.5" cy="262" r="8" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
+          <circle cx="170" cy="278" r="7" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
+          <circle cx="194" cy="274" r="7" fill="#3b6fe0" stroke="#111418" stroke-width="2.5" />
+          <circle cx="218" cy="278" r="7" fill="#f2b200" stroke="#111418" stroke-width="2.5" />
+          <!-- coin door -->
+          <rect x="118" y="330" width="64" height="72" rx="4" fill="#fff" stroke="#111418" stroke-width="2.5" />
+          <rect x="138" y="346" width="24" height="5" rx="2" fill="#111418" />
+          <rect x="138" y="372" width="24" height="5" rx="2" fill="#ff4d2e" />
+          <text x="150" y="420" text-anchor="middle" class="coin-text">INSERT SYLLABUS</text>
+          <!-- base -->
+          <path d="M30 440 H270 V456 H30 Z" fill="#111418" />
+        </svg>
+        <div class="cabinet-screen" id="cabinet-screen">
+          <span id="screen-text" class="screen-text">INSERT<br />SYLLABUS</span>
+        </div>
       </div>
-    </section>
+    </main>
 
-    <!-- COACH: AI tutor chat -->
-    <section id="tab-coach" class="panel" hidden>
-      <div class="box coach">
-        <h2>TRAIL GUIDE</h2>
-        <p class="muted" id="coach-context">Ask about any topic in your class, or pick ASK THE TRAIL GUIDE on the trail.</p>
-        <div id="chat" class="chat" aria-live="polite"></div>
-        <form id="coach-form" class="coach-form">
-          <input id="coach-input" autocomplete="off" placeholder="e.g. explain osmosis like I'm 10" />
-          <button type="submit">SEND</button>
-        </form>
+    <footer class="foot">Questions are written by AI from your syllabus. Double-check anything that matters for a grade.</footer>
+  </div>
+
+  <!-- GAME: what's on the arcade screen -->
+  <div id="game" class="game" hidden>
+    <div class="screen">
+      <div class="hud">
+        <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
+        <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
+        <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
+        <button id="shop-btn" class="hud-btn hud-shop">SHOP</button>
       </div>
-    </section>
-  </main>
 
-  <div id="toasts" class="toasts" aria-live="polite"></div>
-  <div id="levelup" class="levelup" hidden></div>
-
-  <!-- QUIZ: opens over everything when you start a quest -->
-  <div id="quiz" class="quiz" role="dialog" aria-modal="true" aria-labelledby="quiz-title" hidden>
-    <div class="box quiz-box">
-      <div class="quiz-head">
-        <h2 id="quiz-title"></h2>
-        <button id="quiz-close" class="ghost small" aria-label="Close quiz">X</button>
+      <div class="scene" id="scene"></div>
+      <div class="leg">
+        <div class="leg-names"><span id="leg-from"></span><span id="leg-to"></span></div>
+        <div class="leg-bar"><div id="leg-fill"></div></div>
+        <div class="leg-meta"><span id="leg-unit"></span><span id="leg-miles"></span></div>
       </div>
-      <div id="quiz-progress" class="quiz-progress"></div>
-      <div id="quiz-body"></div>
+
+      <div class="play" id="play" aria-live="polite"></div>
     </div>
   </div>
 
-  <script src="pixel.js"></script>
-  <script src="avatar.js"></script>
+  <!-- SHOP: upgrades bought with coins -->
+  <div id="shop" class="shop" hidden>
+    <div class="shop-panel" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+      <div class="shop-head">
+        <h2 id="shop-title">SHOP</h2>
+        <span class="shop-coins" id="shop-coins"></span>
+        <button id="shop-close" class="hud-btn" aria-label="Close shop">X</button>
+      </div>
+      <div id="shop-list" class="shop-list"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="game.js"></script>
   <script src="app.js"></script>
-  <script src="quiz.js"></script>
-  <script src="trail.js"></script>
-  <script src="main.js"></script>
 </body>
 </html>
