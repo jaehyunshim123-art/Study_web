@@ -1,5 +1,5 @@
 {
-  "name": "syllabus-quest",
+  "name": "study-helper-syllabus",
   "version": "0.1.0",
   "private": true,
   "description": "Paste a class syllabus and an AI turns it into a quest map with XP, levels and boss battles.",

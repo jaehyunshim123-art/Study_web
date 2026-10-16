@@ -10,7 +10,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import vm from "node:vm";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz } from "../shared/prompts.js";
+import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const demo = JSON.parse(read("demo-quests.json"));
@@ -22,6 +22,7 @@ const DEMO_TRAIL = ${JSON.stringify({ ...demo, demo: true })};
 ${quizRequest}
 ${quizCount}
 ${cleanQuiz}
+${cleanLesson}
 
 const samplePromise = window.claude?.use ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
 const NO_AI = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
@@ -80,16 +81,16 @@ async function handle(path, req) {
     }
   }
 
-  if (path.endsWith("/api/quiz")) {
+  if (path.endsWith("/api/unit")) {
     const count = quizCount(req.count);
     if (!sample || req.demo) {
-      const pool = (DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0]).demoQuiz;
-      return { questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) };
+      const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
+      return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
     const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }), { cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
-    return { questions };
+    return { lesson: cleanLesson(data?.lesson), questions };
   }
   throw new Error("Unknown route");
 }
@@ -113,6 +114,7 @@ for (const [name, code] of [["preview server", previewServer]]) {
 
 const pdfjs = ["pdf.min.js", "pdf.worker.min.js"].map((f) => read(`node_modules/pdfjs-dist/build/${f}`));
 const appScripts = ["game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
+try { new vm.Script(appScripts); } catch (err) { throw new Error(`game scripts have a syntax error: ${err.message}`); }
 const inline = (code) => `<script>\n${code}\n</script>`;
 
 let html = read("public/index.html");

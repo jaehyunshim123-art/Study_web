@@ -1,13 +1,14 @@
-# Syllabus Quest
+# Study Helper + Syllabus
 
-A study arcade. Upload your course syllabus and step up to the machine: the AI (Claude) reads it, maps a journey from your first unit to the final exam, and writes the questions. The screen zooms into the cabinet and the game begins.
+A study arcade. Upload your course syllabus and step up to the machine: the page zooms into the cabinet, and the AI (Claude) reads your syllabus on its screen, maps a journey from your first unit to the final exam, and writes a lesson and questions for each unit.
 
 ## How it plays
 
-- **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one.
-- **Answer to move:** every right answer earns coins and moves your wagon toward the next landmark. Each unit is one 100-mile leg; reach the last landmark to win.
-- **Streaks:** answers in a row earn bonus coins once you buy the streak upgrade. A wrong answer breaks the streak, costs a few coins, shows why, and the question comes back soon.
-- **Shop:** three upgrades bought with coins: Earnings (coins per answer), Streak bonus, and Stronger oxen (miles per answer).
+- **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
+- **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. You can reopen the lesson from any question.
+- **Answer to move:** right answers earn coins and move your wagon toward the unit's landmark; each unit is a 100-mile leg. Reach the last landmark to win.
+- **Arcade controls:** the four buttons under the screen answer A-D (keys 1-4 work too) and press the screen's main button on other screens.
+- **Streaks and the shop:** the shop slides in as its own screen with three upgrades: Earnings, Streak bonus and Stronger oxen.
 - **Saved:** progress stays in your browser, so you can exit to the arcade and continue later.
 
 ## Run it
@@ -34,11 +35,11 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 
 | File | What it does |
 |---|---|
-| `server.js` | Small Express server. `POST /api/trail` sends the syllabus (text or PDF) to Claude and returns the route (one landmark per unit). `POST /api/quiz` writes a batch of questions for one unit. The API key stays on the server. |
-| `shared/prompts.js` | Everything the AI is told: the prompts and JSON shapes for the route and questions. Used by the server and the preview. |
+| `server.js` | Small Express server. `POST /api/trail` sends the syllabus (text or PDF) to Claude and returns the route (one landmark per unit). `POST /api/unit` writes a lesson summary and a batch of questions for one unit. The API key stays on the server. |
+| `shared/prompts.js` | Everything the AI is told: the prompts and JSON shapes for the route, lessons and questions. Used by the server and the preview. |
 | `public/index.html` | The arcade landing page and the game screen. |
-| `public/app.js` | Landing page: syllabus upload, saving, and the zoom into the cabinet's screen. |
-| `public/game.js` | The game: questions, coins, streaks, the wagon scene and the shop. |
+| `public/app.js` | Landing page: syllabus upload, saving, the loading steps, and the zoom into the machine. |
+| `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |
 

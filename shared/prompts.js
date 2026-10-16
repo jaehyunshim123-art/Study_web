@@ -3,7 +3,7 @@
 
 // ---------- the route, built from a syllabus ----------
 
-export const trailPrompt = `You design the route for Syllabus Quest, a study game where a wagon travels from the first day of class to the final exam.
+export const trailPrompt = `You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.
 Turn the syllabus into the route: one stop per unit, in syllabus order.
 Each stop is a landmark (a town, fort or pass) named playfully after the unit's topic, like "Fort Mitochondria".
 For each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.
@@ -32,16 +32,37 @@ export const trailSchema = {
   additionalProperties: false,
 };
 
-// ---------- questions ----------
+// ---------- one unit: a lesson summary, then questions ----------
 
-export const quizPrompt = `You write multiple-choice questions for Syllabus Quest, a study game.
-Questions must test real understanding of the course material at the level of the course.
+export const quizPrompt = `You write study material for Study Helper + Syllabus, a study game.
+For the unit you are given, first write a short lesson summary a student reads before playing:
+a 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.
+Then write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.
 Each question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.
 Mix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.`;
 
 export const quizSchema = {
   type: "object",
   properties: {
+    lesson: {
+      type: "object",
+      properties: {
+        overview: { type: "string", description: "2-3 sentences on what this unit is about." },
+        keyPoints: { type: "array", items: { type: "string" }, description: "4-6 key points, one sentence each." },
+        keyTerms: {
+          type: "array",
+          description: "3-6 key terms.",
+          items: {
+            type: "object",
+            properties: { term: { type: "string" }, definition: { type: "string" } },
+            required: ["term", "definition"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["overview", "keyPoints", "keyTerms"],
+      additionalProperties: false,
+    },
     questions: {
       type: "array",
       items: {
@@ -57,7 +78,7 @@ export const quizSchema = {
       },
     },
   },
-  required: ["questions"],
+  required: ["lesson", "questions"],
   additionalProperties: false,
 };
 
@@ -69,13 +90,23 @@ export function quizRequest(r) {
     `Unit: ${String(r.topic || "").slice(0, 300)}`,
     concepts && `Key concepts from the syllabus: ${concepts}`,
     r.syllabus && `Syllabus text:\n${String(r.syllabus).slice(0, 20000)}`,
-    `Write ${r.count} questions about this unit.`,
+    `Write the lesson summary and ${r.count} questions about this unit.`,
   ].filter(Boolean).join("\n\n");
 }
 
 // How many questions one batch may have.
 export function quizCount(n) {
   return Math.min(12, Math.max(3, Math.round(Number(n) || 10)));
+}
+
+// Make sure a lesson has every field the game shows.
+export function cleanLesson(l) {
+  const list = (x) => (Array.isArray(x) ? x : []);
+  return {
+    overview: String(l?.overview || ""),
+    keyPoints: list(l?.keyPoints).map(String).slice(0, 8),
+    keyTerms: list(l?.keyTerms).filter((t) => t && t.term).map((t) => ({ term: String(t.term), definition: String(t.definition || "") })).slice(0, 8),
+  };
 }
 
 // Drop malformed questions and shuffle the choices so the right answer isn't always in the same spot.

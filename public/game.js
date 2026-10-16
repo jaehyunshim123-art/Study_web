@@ -1,7 +1,9 @@
-// The game on the arcade screen.
-// Answer questions written from your syllabus. A right answer earns coins (more on a streak) and moves
-// the wagon forward; a wrong one costs a few coins and the question comes back soon. Each unit is one
-// leg of the journey, ending at a landmark; reach the last one to win. Spend coins in the shop.
+// The game inside the machine.
+// Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
+// then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
+// the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
+// to win. Coins buy upgrades in the shop, which slides in as its own screen.
+// The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
 const BATCH = 10;      // questions fetched per unit
@@ -17,7 +19,7 @@ const $ = (id) => document.getElementById(id);
 let game = null;        // the saved game (see newGame in app.js)
 let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
-const pending = {};     // question batches being fetched, by unit
+const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
@@ -29,17 +31,17 @@ function escapeHTML(text) {
   return div.innerHTML;
 }
 
-// ---------- questions ----------
+// ---------- a unit's lesson and questions ----------
 
 function questionsFor(unit) {
   if (game.banks[unit]?.length) return Promise.resolve(game.banks[unit]);
-  pending[unit] ||= fetchQuestions(unit).finally(() => delete pending[unit]);
+  pending[unit] ||= fetchUnit(unit).finally(() => delete pending[unit]);
   return pending[unit];
 }
 
-async function fetchQuestions(unit) {
+async function fetchUnit(unit) {
   const u = game.trail.units[unit];
-  const res = await fetch("/api/quiz", {
+  const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: BATCH, demo: game.demo }),
@@ -47,24 +49,56 @@ async function fetchQuestions(unit) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
   if (!data.questions?.length) throw new Error("No questions came back. Try again.");
+  game.lessons[unit] = data.lesson || null;
   game.banks[unit] = data.questions;
   persistGame();
   return data.questions;
 }
 
-async function showNext() {
+// Start (or resume) the current unit: lesson first, then questions.
+async function startUnit() {
   const unit = game.unit;
   if (!game.banks[unit]?.length) {
-    renderMessage("", "LOADING QUESTIONS", "Writing questions about " + game.trail.units[unit].topic + ".", [], true);
+    renderMessage("LOADING THE LESSON", `Writing a lesson and questions about ${game.trail.units[unit].topic}.`, [], true);
     try {
       await questionsFor(unit);
     } catch (err) {
-      renderMessage("", "SOMETHING WENT WRONG", err.message || "Couldn't load questions.", [["TRY AGAIN", showNext], ["EXIT", () => exitGame(), "ghost"]]);
+      renderMessage("SOMETHING WENT WRONG", err.message || "Couldn't load this unit.", [["TRY AGAIN", startUnit], ["EXIT", () => exitGame(), "ghost"]]);
       return;
     }
     if (game.unit !== unit) return;
   }
-  const bank = game.banks[unit];
+  if (!game.lessonSeen[unit] && game.lessons[unit]) renderLesson(false);
+  else showNext();
+}
+
+function renderLesson(review) {
+  answering = false;
+  const unit = game.unit;
+  const u = game.trail.units[unit];
+  const lesson = game.lessons[unit];
+  $("play").innerHTML = `
+    <article class="card lesson">
+      <p class="eyebrow-px">UNIT ${unit + 1} OF ${game.trail.units.length} &middot; LESSON</p>
+      <h2>${escapeHTML(u.topic)}</h2>
+      <p class="overview">${escapeHTML(lesson.overview)}</p>
+      ${lesson.keyPoints.length ? `<h3>KEY POINTS</h3><ul>${lesson.keyPoints.map((p) => `<li>${escapeHTML(p)}</li>`).join("")}</ul>` : ""}
+      ${lesson.keyTerms.length ? `<h3>KEY TERMS</h3><dl class="terms">${lesson.keyTerms.map((t) => `<div><dt>${escapeHTML(t.term)}</dt><dd>${escapeHTML(t.definition)}</dd></div>`).join("")}</dl>` : ""}
+      <button class="btn-next" id="lesson-go">${review ? "BACK TO THE QUESTION" : "START THE QUESTIONS"}<span class="hint" aria-hidden="true">A</span></button>
+    </article>`;
+  $("view-play").scrollTop = 0;
+  $("lesson-go").addEventListener("click", () => {
+    if (review) return renderQuestion(game.banks[game.unit][current]);
+    game.lessonSeen[unit] = true;
+    persistGame();
+    showNext();
+  });
+}
+
+// ---------- questions ----------
+
+function showNext() {
+  const bank = game.banks[game.unit];
   if (!game.queue.length) game.queue = shuffle(bank.map((_, i) => i).filter((i) => i !== current));
   current = game.queue.shift();
   renderQuestion(bank[current]);
@@ -75,12 +109,16 @@ function renderQuestion(q) {
   const units = game.trail.units;
   $("play").innerHTML = `
     <div class="card">
-      <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+      <div class="q-top">
+        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
+      </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
       <div class="answers">${q.choices.map((c, i) => `<button class="answer" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`).join("")}</div>
       <div class="feedback" id="feedback"></div>
     </div>`;
   $("play").querySelectorAll(".answer").forEach((b) => b.addEventListener("click", () => answer(Number(b.dataset.i))));
+  $("review")?.addEventListener("click", () => renderLesson(true));
 }
 
 function answer(picked) {
@@ -92,6 +130,7 @@ function answer(picked) {
     b.disabled = true;
     b.classList.add(i === q.answerIndex ? "right" : i === picked ? "wrong" : "dim");
   });
+  $("review")?.remove();
 
   game.answered++;
   const feedback = $("feedback");
@@ -116,16 +155,16 @@ function answer(picked) {
   drawScene();
 
   const arrived = game.legMiles >= LEG_MILES;
-  // Start fetching the next unit's questions before the wagon gets there.
+  // Start fetching the next unit before the wagon gets there.
   if (game.legMiles >= 60 && game.unit + 1 < game.trail.units.length) questionsFor(game.unit + 1).catch(() => {});
 
   const next = arrived ? arrive : showNext;
   if (right) {
-    setTimeout(next, 1100);
+    setTimeout(() => { if (!$("game").hidden) next(); }, 1100);
   } else {
     const b = document.createElement("button");
     b.className = "btn-next";
-    b.textContent = "CONTINUE";
+    b.innerHTML = `CONTINUE<span class="hint" aria-hidden="true">A</span>`;
     b.addEventListener("click", next);
     feedback.append(b);
     b.focus();
@@ -138,6 +177,7 @@ function arrive() {
   game.unit++;
   game.legMiles = 0;
   game.queue = [];
+  current = null;
   if (game.unit >= units.length) {
     game.finished = true;
     persistGame();
@@ -145,12 +185,13 @@ function arrive() {
   }
   persistGame();
   const next = units[game.unit];
-  renderMessage("", `YOU REACHED ${reached.name.toUpperCase()}`,
+  renderMessage(`YOU REACHED ${reached.name.toUpperCase()}`,
     `Unit ${game.unit} complete. Next stop: ${next.name}, covering ${next.topic}.`,
-    [["CONTINUE", () => { drawScene(); renderHUD(); showNext(); }]]);
+    [["NEXT LESSON", () => { drawScene(); renderHUD(); startUnit(); }]]);
 }
 
 function renderWin() {
+  answering = false;
   drawScene();
   const accuracy = game.answered ? Math.round((game.correct / game.answered) * 100) : 0;
   $("play").innerHTML = `
@@ -163,31 +204,58 @@ function renderWin() {
         <div><b>${game.bestStreak}</b><span>best streak</span></div>
         <div><b>${game.coins}</b><span>coins</span></div>
       </div>
-      <button class="btn-next" id="again">PLAY AGAIN</button>
+      <button class="btn-next" id="again">PLAY AGAIN<span class="hint" aria-hidden="true">A</span></button>
       <button class="btn-ghost" id="new-course">NEW SYLLABUS</button>
     </div>`;
   $("again").addEventListener("click", () => {
     restartGame();
-    renderHUD();
-    drawScene();
-    showNext();
+    startGame();
   });
   $("new-course").addEventListener("click", () => exitGame(true));
 }
 
 // A centered message card. buttons = [[label, onClick, "ghost"?], ...]
-function renderMessage(_, title, text, buttons = [], loading = false) {
+function renderMessage(title, text, buttons = [], loading = false) {
   answering = false;
   $("play").innerHTML = `<div class="card message"><h2 class="${loading ? "loading-dots" : ""}">${escapeHTML(title)}</h2><p>${escapeHTML(text)}</p></div>`;
   const card = $("play").firstElementChild;
-  for (const [label, onClick, kind] of buttons) {
+  buttons.forEach(([label, onClick, kind], i) => {
     const b = document.createElement("button");
     b.className = kind === "ghost" ? "btn-ghost" : "btn-next";
-    b.textContent = label;
+    b.innerHTML = escapeHTML(label) + (i === 0 && kind !== "ghost" ? `<span class="hint" aria-hidden="true">A</span>` : "");
     b.addEventListener("click", onClick);
     card.append(b);
-  }
+  });
   card.querySelector("button")?.focus();
+}
+
+// ---------- the loading screen (while the syllabus is read) ----------
+
+const LOAD_STEPS = ["Reading your syllabus", "Mapping out the units", "Writing the first lesson and questions", "Starting the game"];
+
+// step = index of the step in progress; error = message to show instead of continuing
+function renderLoading(step, error = "", onBack = null) {
+  answering = false;
+  $("view-play").classList.add("bare");
+  const pct = Math.round((step / LOAD_STEPS.length) * 100);
+  $("play").innerHTML = `
+    <div class="card loading">
+      <h2>${error ? "LOADING STOPPED" : `LOADING SYLLABUS<span class="loading-dots"></span>`}</h2>
+      <div class="load-bar"><div style="width:${error ? pct : Math.max(pct, 6)}%"></div></div>
+      <ol class="steps">${LOAD_STEPS.map((label, i) => {
+        const state = i < step ? "done" : i === step && !error ? "active" : "";
+        return `<li class="${state}"><span class="box">${i < step ? "&#10003;" : ""}</span>${label}</li>`;
+      }).join("")}</ol>
+      ${error ? `<p class="error">${escapeHTML(error)}</p>` : ""}
+    </div>`;
+  if (error && onBack) {
+    const b = document.createElement("button");
+    b.className = "btn-next";
+    b.innerHTML = `BACK TO THE ARCADE<span class="hint" aria-hidden="true">A</span>`;
+    b.addEventListener("click", onBack);
+    $("play").firstElementChild.append(b);
+    b.focus();
+  }
 }
 
 // ---------- HUD, scene and leg progress ----------
@@ -255,21 +323,28 @@ function drawScene() {
   lastWagon = x;
 }
 
-// ---------- shop ----------
+// ---------- shop: its own screen that slides in ----------
+
+const shopOpen = () => $("views").classList.contains("at-shop");
 
 function openShop() {
   renderShop();
-  $("shop").hidden = false;
-  $("shop-close").focus();
+  $("views").classList.add("at-shop");
+  $("view-play").inert = true;
+  $("view-shop").inert = false;
+  $("view-shop").scrollTop = 0;
+  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 50);
 }
 
 function closeShop() {
-  $("shop").hidden = true;
-  $("shop-btn").focus();
+  $("views").classList.remove("at-shop");
+  $("view-shop").inert = true;
+  $("view-play").inert = false;
+  setTimeout(() => $("shop-btn").focus({ preventScroll: true }), 50);
 }
 
 function renderShop() {
-  $("shop-coins").textContent = `${game.coins} COINS`;
+  $("shop-coins").textContent = game.coins;
   $("shop-list").replaceChildren(...UPGRADES.map((u) => {
     const lvl = upgradeLevel(u.id);
     const maxed = lvl >= u.costs.length;
@@ -280,7 +355,7 @@ function renderShop() {
       <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
       <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>`;
     const buy = document.createElement("button");
-    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
+    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]} COINS`;
     buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
     buy.disabled = maxed || game.coins < u.costs[lvl];
     buy.addEventListener("click", () => {
@@ -305,26 +380,56 @@ function toast(text) {
   toastTimer = setTimeout(() => (el.hidden = true), 2200);
 }
 
+// ---------- the arcade controls ----------
+
+let stickTimer;
+function wiggleStick(dir) {
+  const stick = $("stick");
+  stick.classList.remove("left", "right");
+  stick.classList.add(dir);
+  clearTimeout(stickTimer);
+  stickTimer = setTimeout(() => stick.classList.remove("left", "right"), 180);
+}
+
+// Pressing button i: answer A-D during a question; otherwise any button presses the screen's main button.
+function pressPad(i) {
+  const pad = document.querySelector(`.pad[data-i="${i}"]`);
+  pad.classList.add("pressed");
+  setTimeout(() => pad.classList.remove("pressed"), 120);
+  wiggleStick(i < 2 ? "left" : "right");
+  if (shopOpen()) return;
+  if (answering) return answer(i);
+  $("play").querySelector(".btn-next")?.click();
+}
+
+document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click", () => pressPad(Number(pad.dataset.i))));
+
 // ---------- start ----------
 
 function startGame() {
+  $("view-play").classList.remove("bare");
+  closeShop();
   lastWagon = null;
   shownCoins = null;
   renderHUD();
   drawScene();
   if (game.finished) renderWin();
-  else showNext();
+  else startUnit();
 }
 
 $("shop-btn").addEventListener("click", openShop);
-$("shop-close").addEventListener("click", closeShop);
-$("shop").addEventListener("click", (e) => { if (e.target === $("shop")) closeShop(); });
+$("shop-back").addEventListener("click", closeShop);
 
-// Keyboard: 1-4 or A-D to answer, Escape closes the shop.
+// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
 document.addEventListener("keydown", (e) => {
-  if ($("game").hidden) return;
-  if (e.key === "Escape" && !$("shop").hidden) return closeShop();
-  if (!answering || !$("shop").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  const i = "1234".indexOf(e.key) >= 0 ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
-  if (i >= 0 && e.key.length === 1) answer(i);
+  if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Escape" && shopOpen()) return closeShop();
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
+  if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
+  if (i < 0) return;
+  // Letter keys only answer questions; on other screens Enter/Space already press the focused button.
+  if (!answering && "abcd".includes(e.key.toLowerCase()) && i !== 0) return;
+  e.preventDefault();
+  pressPad(i);
 });

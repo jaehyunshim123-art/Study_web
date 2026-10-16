@@ -102,7 +102,35 @@
           "answerIndex": 0,
           "explanation": "In eukaryotic cells, DNA is stored inside the nucleus."
         }
-      ]
+      ],
+      "demoLesson": {
+        "overview": "Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.",
+        "keyPoints": [
+          "Organelles are specialized structures inside a cell, each with its own job.",
+          "Mitochondria release energy from food as ATP; ribosomes build proteins.",
+          "Plant cells have a cell wall and chloroplasts; animal cells do not.",
+          "The cell membrane is selectively permeable: it controls what enters and leaves.",
+          "Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."
+        ],
+        "keyTerms": [
+          {
+            "term": "Organelle",
+            "definition": "A structure inside a cell that does a specific job."
+          },
+          {
+            "term": "Osmosis",
+            "definition": "Diffusion of water across a membrane toward higher solute concentration."
+          },
+          {
+            "term": "Active transport",
+            "definition": "Moving substances against their gradient using energy (ATP)."
+          },
+          {
+            "term": "Golgi apparatus",
+            "definition": "Modifies, sorts and packages proteins for transport."
+          }
+        ]
+      }
     },
     {
       "name": "Energy Ridge",
@@ -204,7 +232,35 @@
           "answerIndex": 1,
           "explanation": "Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."
         }
-      ]
+      ],
+      "demoLesson": {
+        "overview": "Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.",
+        "keyPoints": [
+          "Glycolysis splits glucose into two pyruvate in the cytoplasm.",
+          "The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.",
+          "Oxygen is the final electron acceptor in aerobic respiration.",
+          "Light-dependent reactions in the thylakoids split water and release oxygen.",
+          "The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."
+        ],
+        "keyTerms": [
+          {
+            "term": "ATP",
+            "definition": "The molecule cells use to carry and spend energy."
+          },
+          {
+            "term": "Glycolysis",
+            "definition": "The first step of respiration, splitting glucose into pyruvate."
+          },
+          {
+            "term": "Chlorophyll",
+            "definition": "The green pigment that absorbs light for photosynthesis."
+          },
+          {
+            "term": "Calvin cycle",
+            "definition": "Light-independent reactions that fix carbon dioxide into sugar."
+          }
+        ]
+      }
     }
   ]
 }

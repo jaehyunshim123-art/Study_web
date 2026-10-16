@@ -1,8 +1,8 @@
-// The arcade landing page: upload a syllabus, build the route with the AI,
-// then zoom into the cabinet's screen where the game (game.js) runs.
+// The arcade landing page: upload a syllabus, zoom into the machine, and load the course
+// there (the AI builds the route and the first lesson) before the game (game.js) starts.
 // The game is saved in the browser (localStorage) so you can come back to it.
 
-const SAVE_KEY = "syllabus-quest-game";
+const SAVE_KEY = "study-helper-game";
 let pdfData = null;
 let busy = false;
 
@@ -11,7 +11,8 @@ let busy = false;
 function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
-    return data?.trail?.units?.length ? data : null;
+    if (!data?.trail?.units?.length) return null;
+    return { lessons: {}, lessonSeen: {}, ...data };
   } catch {
     return null;
   }
@@ -31,7 +32,9 @@ function newGame(trail, syllabus) {
     trail: { courseTitle: trail.courseTitle, units: trail.units },
     demo: Boolean(trail.demo),
     syllabus: syllabus.slice(0, 20000), // sent along when asking for questions
-    banks: {}, // questions per unit
+    banks: {},      // questions per unit
+    lessons: {},    // lesson summary per unit
+    lessonSeen: {}, // units whose lesson has been read
     levels: {},
     unit: 0, legMiles: 0, queue: [],
     coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false,
@@ -40,7 +43,7 @@ function newGame(trail, syllabus) {
 
 // Same course, same questions, fresh run.
 function restartGame() {
-  Object.assign(game, { levels: {}, unit: 0, legMiles: 0, queue: [], coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false });
+  Object.assign(game, { lessonSeen: {}, levels: {}, unit: 0, legMiles: 0, queue: [], coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false });
   persistGame();
 }
 
@@ -100,11 +103,17 @@ $("drop").addEventListener("drop", (e) => {
   readPdf(e.dataTransfer.files[0]);
 });
 
+const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// Insert the syllabus: zoom into the machine, then load the course on its screen.
 $("start").addEventListener("click", async () => {
   busy = true;
   updateStart();
-  setStatus("Reading your syllabus and mapping the route. This can take a minute.");
+  setStatus("");
   setScreen("LOADING", true);
+  await enterMachine(() => renderLoading(0));
+  let step = 0;
+  const mapping = setTimeout(() => renderLoading((step = 1)), 2500); // the AI reads and maps in one go
   try {
     const res = await fetch("/api/trail", {
       method: "POST",
@@ -113,22 +122,24 @@ $("start").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
+    clearTimeout(mapping);
     game = newGame(data, data.syllabusText || $("syllabus").value);
     persistGame();
-    setStatus("Writing the first questions...");
-    await questionsFor(0).catch(() => {}); // the game screen shows any error with a retry
-    setStatus("");
-    enterMachine();
+    renderLoading((step = 2));
+    await questionsFor(0).catch(() => {}); // if this fails, the game screen shows a retry
+    renderLoading((step = 3));
+    await wait(600);
+    startGame();
   } catch (err) {
-    setStatus(err.message || "Something went wrong. Try again.", true);
-    setScreen("INSERT<br />SYLLABUS");
+    clearTimeout(mapping);
+    renderLoading(step, err.message || "Something went wrong. Try again.", () => exitGame());
   } finally {
     busy = false;
     updateStart();
   }
 });
 
-$("resume").addEventListener("click", enterMachine);
+$("resume").addEventListener("click", () => enterMachine(startGame));
 
 function updateResume() {
   $("resume").hidden = !game;
@@ -140,23 +151,29 @@ function updateResume() {
 const ZOOM_MS = 1100;
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The transform that makes the cabinet's screen fill the window.
+// The part of the cabinet drawing to zoom into: the screen plus the control deck below it
+// (in the drawing's own units; the drawing is 300 wide).
+const ZOOM_REGION = { x: 18, y: 80, width: 264, height: 222 };
+
+// The transform that makes that part of the cabinet fill the window.
 function zoomTransform() {
   const landing = $("landing").getBoundingClientRect();
-  const screen = $("cabinet-screen").getBoundingClientRect();
-  const scale = Math.max(innerWidth / screen.width, innerHeight / screen.height) * 1.02;
-  const sx = screen.left + screen.width / 2;
-  const sy = screen.top + screen.height / 2;
+  const art = document.querySelector(".cabinet-art").getBoundingClientRect();
+  const k = art.width / 300;
+  const width = ZOOM_REGION.width * k;
+  const height = ZOOM_REGION.height * k;
+  const cx = art.left + (ZOOM_REGION.x + ZOOM_REGION.width / 2) * k;
+  const cy = art.top + (ZOOM_REGION.y + ZOOM_REGION.height / 2) * k;
+  const scale = Math.min(innerWidth / width, innerHeight / height);
   return {
-    origin: `${sx - landing.left}px ${sy - landing.top}px`,
-    transform: `translate(${innerWidth / 2 - sx}px, ${innerHeight / 2 - sy}px) scale(${scale})`,
+    origin: `${cx - landing.left}px ${cy - landing.top}px`,
+    transform: `translate(${innerWidth / 2 - cx}px, ${innerHeight / 2 - cy}px) scale(${scale})`,
   };
 }
 
-function enterMachine() {
-  if (!game) return;
+// Zoom into the machine, switch to the game view, then run show() to fill its screen.
+function enterMachine(show) {
   const landing = $("landing");
-  setScreen("PRESS<br />START");
   const wait = reducedMotion() ? 0 : ZOOM_MS;
   if (wait) {
     const z = zoomTransform();
@@ -164,20 +181,21 @@ function enterMachine() {
     landing.classList.add("zooming");
     requestAnimationFrame(() => (landing.style.transform = z.transform));
   }
-  setTimeout(() => {
+  return new Promise((done) => setTimeout(() => {
     landing.hidden = true;
     landing.classList.remove("zooming");
     landing.style.transform = "";
     $("game").hidden = false;
     $("game").classList.add("entering");
     setTimeout(() => $("game").classList.remove("entering"), 600);
-    startGame();
-  }, wait);
+    show();
+    done();
+  }, wait));
 }
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
-  $("shop").hidden = true;
+  closeShop();
   $("game").hidden = true;
   if (clear) {
     game = null;

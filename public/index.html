@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Syllabus Quest</title>
+  <title>Study Helper + Syllabus</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -12,7 +12,7 @@
   <!-- LANDING: the arcade -->
   <div id="landing" class="landing">
     <header class="top">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Syllabus Quest</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
       <span class="top-note">A study arcade</span>
     </header>
 
@@ -20,7 +20,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI maps out a journey from your first unit to the final exam and writes the questions. Answer them to earn coins, upgrade your wagon and reach the finish.</p>
+        <p class="lede">Upload your course syllabus. The AI maps a journey from your first unit to the final exam, writes a short lesson for each unit, then quizzes you on it. Answer to earn coins, upgrade your wagon and reach the finish.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -45,7 +45,8 @@
         <svg viewBox="0 0 300 470" class="cabinet-art">
           <!-- marquee -->
           <path d="M44 18 H256 L262 70 H38 Z" fill="#111418" />
-          <text x="150" y="51" text-anchor="middle" class="marquee-text">SYLLABUS QUEST</text>
+          <text x="150" y="42" text-anchor="middle" class="marquee-text">STUDY HELPER</text>
+          <text x="150" y="59" text-anchor="middle" class="marquee-sub">+ SYLLABUS</text>
           <!-- body -->
           <path d="M38 70 H262 V440 H38 Z" fill="#fff" stroke="#111418" stroke-width="3" />
           <path d="M38 70 L22 86 V452 H38" fill="#f1f2f4" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
@@ -56,9 +57,10 @@
           <path d="M38 256 H262 L276 296 H24 Z" fill="#f6f7f9" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
           <rect x="84" y="262" width="5" height="18" fill="#111418" />
           <circle cx="86.5" cy="262" r="8" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
-          <circle cx="170" cy="278" r="7" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
-          <circle cx="194" cy="274" r="7" fill="#3b6fe0" stroke="#111418" stroke-width="2.5" />
-          <circle cx="218" cy="278" r="7" fill="#f2b200" stroke="#111418" stroke-width="2.5" />
+          <circle cx="152" cy="278" r="7" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
+          <circle cx="174" cy="274" r="7" fill="#3b6fe0" stroke="#111418" stroke-width="2.5" />
+          <circle cx="196" cy="278" r="7" fill="#e0a100" stroke="#111418" stroke-width="2.5" />
+          <circle cx="218" cy="274" r="7" fill="#1f9d55" stroke="#111418" stroke-width="2.5" />
           <!-- coin door -->
           <rect x="118" y="330" width="64" height="72" rx="4" fill="#fff" stroke="#111418" stroke-width="2.5" />
           <rect x="138" y="346" width="24" height="5" rx="2" fill="#111418" />
@@ -76,36 +78,52 @@
     <footer class="foot">Questions are written by AI from your syllabus. Double-check anything that matters for a grade.</footer>
   </div>
 
-  <!-- GAME: what's on the arcade screen -->
+  <!-- GAME: inside the machine. The screen has two views that slide: play and shop. -->
   <div id="game" class="game" hidden>
-    <div class="screen">
-      <div class="hud">
-        <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
-        <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
-        <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
-        <button id="shop-btn" class="hud-btn hud-shop">SHOP</button>
+    <div class="machine">
+      <div class="bezel">
+        <div class="screen">
+          <div class="views" id="views">
+            <section class="view" id="view-play">
+              <div class="hud" id="hud">
+                <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
+                <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
+                <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
+                <button id="shop-btn" class="hud-btn hud-shop">SHOP &gt;</button>
+              </div>
+              <div class="trailbox" id="trailbox">
+                <div class="scene" id="scene"></div>
+                <div class="leg">
+                  <div class="leg-names"><span id="leg-from"></span><span id="leg-to"></span></div>
+                  <div class="leg-bar"><div id="leg-fill"></div></div>
+                  <div class="leg-meta"><span id="leg-unit"></span><span id="leg-miles"></span></div>
+                </div>
+              </div>
+              <div class="play" id="play" aria-live="polite"></div>
+            </section>
+
+            <section class="view" id="view-shop" inert>
+              <div class="hud">
+                <button id="shop-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
+                <h2 class="shop-title">SHOP</h2>
+                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
+              </div>
+              <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
+              <div id="shop-list" class="shop-list"></div>
+            </section>
+          </div>
+        </div>
       </div>
 
-      <div class="scene" id="scene"></div>
-      <div class="leg">
-        <div class="leg-names"><span id="leg-from"></span><span id="leg-to"></span></div>
-        <div class="leg-bar"><div id="leg-fill"></div></div>
-        <div class="leg-meta"><span id="leg-unit"></span><span id="leg-miles"></span></div>
+      <div class="deck">
+        <div class="stick" id="stick" aria-hidden="true"><span class="ball"></span></div>
+        <div class="pads" aria-label="Answer buttons">
+          <button class="pad" data-i="0" aria-label="Answer A">A</button>
+          <button class="pad" data-i="1" aria-label="Answer B">B</button>
+          <button class="pad" data-i="2" aria-label="Answer C">C</button>
+          <button class="pad" data-i="3" aria-label="Answer D">D</button>
+        </div>
       </div>
-
-      <div class="play" id="play" aria-live="polite"></div>
-    </div>
-  </div>
-
-  <!-- SHOP: upgrades bought with coins -->
-  <div id="shop" class="shop" hidden>
-    <div class="shop-panel" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-      <div class="shop-head">
-        <h2 id="shop-title">SHOP</h2>
-        <span class="shop-coins" id="shop-coins"></span>
-        <button id="shop-close" class="hud-btn" aria-label="Close shop">X</button>
-      </div>
-      <div id="shop-list" class="shop-list"></div>
     </div>
   </div>
 

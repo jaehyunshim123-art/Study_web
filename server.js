@@ -1,13 +1,13 @@
-// Syllabus Quest — a tiny web server.
+// Study Helper + Syllabus — a tiny web server.
 // It serves the website in /public and two API routes that talk to Claude:
 //   POST /api/trail  syllabus (text or PDF) -> the route: one landmark per unit, with key concepts
-//   POST /api/quiz   one unit -> a batch of multiple-choice questions
+//   POST /api/unit   one unit -> a lesson summary and a batch of multiple-choice questions
 // What the AI is told lives in shared/prompts.js.
 
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync, existsSync } from "node:fs";
-import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz } from "./shared/prompts.js";
+import { trailPrompt, trailSchema, quizPrompt, quizSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "./shared/prompts.js";
 
 // Load .env by hand so there's one less dependency to learn about.
 if (existsSync(".env")) {
@@ -76,15 +76,15 @@ app.post("/api/trail", async (req, res) => {
   }
 });
 
-app.post("/api/quiz", async (req, res) => {
+app.post("/api/unit", async (req, res) => {
   const body = req.body || {};
   const count = quizCount(body.count);
 
   if (!client) {
     // Demo mode: hand-written questions from demo-quests.json.
     const units = demoData().units;
-    const pool = (units[Number(body.unit)] || units[0]).demoQuiz;
-    return res.json({ questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) });
+    const unit = units[Number(body.unit)] || units[0];
+    return res.json({ lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) });
   }
 
   try {
@@ -96,9 +96,10 @@ app.post("/api/quiz", async (req, res) => {
     if (response.stop_reason === "refusal") {
       return res.status(422).json({ error: "The AI couldn't write questions for this unit. Try again." });
     }
-    const questions = cleanQuiz(JSON.parse(textOf(response)).questions).slice(0, count);
-    if (questions.length === 0) return res.status(502).json({ error: "The quiz came back empty. Try again." });
-    res.json({ questions });
+    const data = JSON.parse(textOf(response));
+    const questions = cleanQuiz(data.questions).slice(0, count);
+    if (questions.length === 0) return res.status(502).json({ error: "The questions came back empty. Try again." });
+    res.json({ lesson: cleanLesson(data.lesson), questions });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Couldn't make the quiz. Check the server log." });
@@ -106,6 +107,6 @@ app.post("/api/quiz", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Syllabus Quest running at http://localhost:${PORT}`);
+  console.log(`Study Helper + Syllabus running at http://localhost:${PORT}`);
   if (!hasKey) console.log("No ANTHROPIC_API_KEY found, running in demo mode.");
 });

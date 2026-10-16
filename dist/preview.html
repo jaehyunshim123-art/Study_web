@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Syllabus Quest</title>
+  <title>Study Helper + Syllabus</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
@@ -49,8 +49,10 @@ button:focus-visible, .drop:focus-within, summary:focus-visible { outline: 3px s
 
 .top { display: flex; justify-content: space-between; align-items: center; padding: 20px clamp(16px, 5vw, 56px); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.brand .plus { color: var(--accent); }
 .brand-mark { width: 14px; height: 14px; background: var(--accent); box-shadow: 6px 6px 0 var(--ink); }
 .top-note { color: var(--muted); font-size: 14px; }
+@media (max-width: 480px) { .top-note { display: none; } }
 
 .hero {
   flex: 1;
@@ -107,6 +109,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .cabinet { position: relative; width: min(100%, 360px); margin: 0 auto; }
 .cabinet-art { width: 100%; height: auto; display: block; filter: drop-shadow(0 24px 30px rgba(16, 24, 40, 0.12)); }
 .marquee-text { font-family: var(--pixel); font-size: 11px; fill: #fff; }
+.marquee-sub { font-family: var(--pixel); font-size: 7px; fill: var(--accent); }
 .coin-text { font-family: var(--pixel); font-size: 6px; fill: var(--muted); }
 /* sits exactly over the screen drawn in the SVG (x 68, y 98, 164 x 128 of 300 x 470) */
 .cabinet-screen {
@@ -134,20 +137,80 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   .upload-card { max-width: none; }
 }
 
-/* ---------- the game screen ---------- */
+/* ---------- inside the machine ---------- */
 
-.game { position: fixed; inset: 0; background: var(--ink); padding: clamp(6px, 1.5vw, 14px); z-index: 10; }
+.game { position: fixed; inset: 0; z-index: 10; background: #fff; display: flex; justify-content: center; }
 .game.entering { animation: screen-on 500ms ease-out; }
-@keyframes screen-on { from { filter: brightness(1.6) saturate(0); opacity: 0.6; } to { filter: none; opacity: 1; } }
+@keyframes screen-on { from { filter: brightness(1.5) saturate(0.4); } to { filter: none; } }
+
+/* the cabinet front, cropped to the screen and the control deck */
+.machine {
+  width: min(100%, calc(100vh * 1.2));
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(8px, 2vh, 18px) clamp(8px, 2vw, 22px) 0;
+  background: #fff;
+  border-left: 3px solid var(--ink);
+  border-right: 3px solid var(--ink);
+}
+.bezel { flex: 1; min-height: 0; background: var(--ink); border-radius: 16px; padding: clamp(8px, 1.6vh, 14px); }
 .screen {
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
+  border-radius: 8px;
   background: var(--screen);
   background-image: repeating-linear-gradient(0deg, rgba(17, 20, 24, 0.025) 0 1px, transparent 1px 3px);
-  border-radius: 14px;
-  padding: 14px clamp(14px, 4vw, 32px) 32px;
 }
-.screen > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+
+/* two screens side by side; the shop slides in over the game */
+.views { display: flex; height: 100%; transition: transform 480ms cubic-bezier(0.65, 0, 0.35, 1); }
+.views.at-shop { transform: translateX(-100%); }
+.view { flex: 0 0 100%; height: 100%; overflow-y: auto; padding: 14px clamp(14px, 3.5vw, 30px) 24px; }
+.view > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+.view.bare .hud, .view.bare .trailbox { display: none; }
+
+/* control deck: joystick + four answer buttons */
+.deck {
+  flex: none;
+  height: clamp(84px, 15vh, 120px);
+  margin: 12px calc(-1 * clamp(8px, 2vw, 22px)) 0;
+  background: var(--soft);
+  border-top: 3px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 7vw, 80px);
+}
+.stick { position: relative; width: 56px; height: 56px; }
+.stick::before { content: ""; position: absolute; left: 8px; right: 8px; bottom: 4px; height: 14px; border-radius: 50%; background: var(--ink); }
+.stick::after { content: ""; position: absolute; left: 25px; bottom: 10px; width: 6px; height: 30px; background: var(--ink); border-radius: 3px; transform-origin: bottom center; transition: transform 160ms; }
+.stick .ball { position: absolute; left: 12px; top: -6px; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); border: 3px solid var(--ink); z-index: 1; transition: transform 160ms; }
+.stick.left::after { transform: rotate(-18deg); }
+.stick.left .ball { transform: translateX(-9px); }
+.stick.right::after { transform: rotate(18deg); }
+.stick.right .ball { transform: translateX(9px); }
+.pads { display: flex; gap: clamp(10px, 2.4vw, 22px); align-items: center; }
+.pad {
+  width: clamp(38px, min(7vh, 11vw), 56px);
+  height: clamp(38px, min(7vh, 11vw), 56px);
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 11px;
+  box-shadow: 0 4px 0 var(--ink);
+  transition: transform 80ms, box-shadow 80ms;
+}
+.pad:nth-child(even) { margin-bottom: 14px; }
+.pad:nth-child(1) { background: var(--a); }
+.pad:nth-child(2) { background: var(--b); }
+.pad:nth-child(3) { background: var(--c); }
+.pad:nth-child(4) { background: var(--d); }
+.pad:active, .pad.pressed { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+@media (max-width: 420px) { .stick { transform: scale(0.8); } .deck { padding: 0 18px; } }
+
+/* ---------- HUD, trail, cards ---------- */
 
 .hud { display: flex; align-items: center; gap: 10px; }
 .hud-btn {
@@ -159,6 +222,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   background: #fff;
   color: var(--ink);
   box-shadow: 0 3px 0 var(--ink);
+  white-space: nowrap;
 }
 .hud-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 .hud-shop { margin-left: auto; background: var(--accent); color: #fff; }
@@ -180,10 +244,12 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 #leg-fill { height: 100%; width: 0; background: var(--good); transition: width 500ms ease-out; }
 .leg-meta { font-size: 13px; color: var(--muted); }
 
-/* question card */
 .play { margin-top: 18px; }
+.view.bare .play { margin-top: 0; min-height: 100%; display: grid; align-content: center; }
 .card { background: #fff; border: 2px solid var(--ink); border-radius: 14px; padding: clamp(16px, 3vw, 24px); box-shadow: 0 4px 0 var(--ink); }
-.q-count { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 0 0 12px; }
+.q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 12px; }
+.q-count { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 0; }
+.link-btn { border: 0; background: none; padding: 4px 0; font-family: var(--pixel); font-size: 8px; color: var(--b); text-decoration: underline; text-underline-offset: 3px; }
 .q-text { font-size: clamp(19px, 2.6vw, 23px); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; margin: 0 0 18px; }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 560px) { .answers { grid-template-columns: 1fr; } }
@@ -203,7 +269,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   transition: border-color 120ms, transform 120ms, background 120ms;
 }
 .answer:hover:not(:disabled) { border-color: var(--ink); transform: translateY(-2px); }
-.answer .key { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #fff; font-family: var(--pixel); font-size: 10px; }
+.answer .key { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-family: var(--pixel); font-size: 10px; border: 2px solid var(--ink); }
 .answer:nth-child(1) .key { background: var(--a); }
 .answer:nth-child(2) .key { background: var(--b); }
 .answer:nth-child(3) .key { background: var(--c); }
@@ -218,33 +284,61 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .feedback .loss { font-family: var(--pixel); font-size: 11px; color: var(--bad); }
 .feedback .why { flex-basis: 100%; margin: 0; color: var(--muted); line-height: 1.5; }
 .btn-next { font-family: var(--pixel); font-size: 10px; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 10px; background: var(--ink); color: #fff; box-shadow: 0 3px 0 #000; }
+.btn-next .hint { display: inline-block; margin-left: 8px; width: 18px; height: 18px; line-height: 15px; border-radius: 50%; background: var(--a); border: 2px solid #fff; font-size: 7px; text-align: center; vertical-align: 1px; }
+.btn-ghost { font-family: var(--pixel); font-size: 10px; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
 
 .message { text-align: center; }
 .message h2 { font-family: var(--pixel); font-size: clamp(13px, 2.4vw, 16px); line-height: 1.7; margin: 6px 0 12px; }
 .message p { color: var(--muted); line-height: 1.55; margin: 0 auto 18px; max-width: 32em; }
-.message .btn-next { margin: 0 4px 8px; }
-.message .btn-ghost { font-family: var(--pixel); font-size: 10px; padding: 12px 16px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
+.message .btn-next, .message .btn-ghost { margin: 0 4px 8px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0 0 20px; }
 .stats div { border: 2px solid var(--line); border-radius: 10px; padding: 12px; }
 .stats b { display: block; font-family: var(--pixel); font-size: 15px; margin-bottom: 6px; }
 .stats span { font-size: 13px; color: var(--muted); }
 .loading-dots::after { content: "..."; animation: blink 1s steps(2) infinite; }
 
-/* ---------- shop ---------- */
+/* lesson summary before each unit */
+.lesson .eyebrow-px { font-family: var(--pixel); font-size: 9px; color: var(--accent); margin: 0 0 10px; }
+.lesson h2 { font-size: clamp(22px, 3.2vw, 28px); letter-spacing: -0.02em; line-height: 1.2; margin: 0 0 10px; }
+.lesson .overview { font-size: 17px; line-height: 1.6; color: var(--ink); margin: 0 0 18px; }
+.lesson h3 { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 18px 0 10px; }
+.lesson ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.lesson li { position: relative; padding-left: 20px; line-height: 1.5; }
+.lesson li::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 8px; height: 8px; background: var(--accent); }
+.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 0; }
+.terms div { border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.terms dt { font-weight: 700; margin-bottom: 2px; }
+.terms dd { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.lesson .btn-next { margin-top: 22px; }
 
-.shop { position: fixed; inset: 0; z-index: 20; background: rgba(17, 20, 24, 0.45); display: grid; place-items: center; padding: 16px; }
-.shop-panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; background: var(--screen); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 0 6px 0 var(--ink); padding: 18px; }
-.shop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.shop-head h2 { font-family: var(--pixel); font-size: 14px; margin: 0; }
-.shop-coins { font-family: var(--pixel); font-size: 10px; color: var(--muted); margin-left: auto; }
-.shop-list { display: grid; gap: 10px; }
-.upgrade { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
-.upgrade h3 { margin: 0; font-size: 16px; }
+/* loading screen */
+.loading { text-align: left; max-width: 460px; margin: 0 auto; width: 100%; }
+.loading h2 { font-family: var(--pixel); font-size: clamp(12px, 2.2vw, 15px); line-height: 1.7; margin: 0 0 16px; text-align: center; }
+.load-bar { height: 18px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; margin-bottom: 18px; }
+.load-bar div { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--accent) 0 10px, var(--accent-dark) 10px 12px); transition: width 600ms ease-out; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.steps li { display: flex; gap: 12px; align-items: center; color: var(--muted); }
+.steps li .box { flex: none; width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.steps li.active { color: var(--ink); font-weight: 600; }
+.steps li.active .box { border-color: var(--ink); animation: blink 0.9s steps(2) infinite; }
+.steps li.done { color: var(--ink); }
+.steps li.done .box { background: var(--good); border-color: var(--good); color: #fff; }
+.loading .error { color: var(--bad); margin: 18px 0 0; line-height: 1.5; }
+.loading .btn-next { margin-top: 14px; }
+
+/* ---------- shop (its own screen) ---------- */
+
+.shop-title { font-family: var(--pixel); font-size: 14px; margin: 0 0 0 4px; }
+.shop-wallet { margin-left: auto; text-align: right; }
+.shop-intro { color: var(--muted); margin: 16px auto 14px; }
+.shop-list { display: grid; gap: 12px; }
+.upgrade { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; box-shadow: 0 4px 0 var(--ink); }
+.upgrade h3 { margin: 0; font-size: 17px; }
 .upgrade p { margin: 0; color: var(--muted); font-size: 14px; grid-column: 1; }
 .pips { display: flex; gap: 4px; grid-column: 1; margin-top: 4px; }
-.pips i { width: 16px; height: 8px; border-radius: 2px; background: var(--line); }
+.pips i { width: 18px; height: 8px; border-radius: 2px; background: var(--line); }
 .pips i.on { background: var(--accent); }
-.upgrade button { grid-column: 2; grid-row: 1 / span 3; font-family: var(--pixel); font-size: 10px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--ink); min-width: 96px; }
+.upgrade button { grid-column: 2; grid-row: 1 / span 3; font-family: var(--pixel); font-size: 10px; padding: 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--ink); min-width: 100px; }
 .upgrade button:disabled { background: var(--line); color: var(--muted); box-shadow: none; cursor: not-allowed; border-color: var(--line); }
 
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: #fff; font-family: var(--pixel); font-size: 10px; line-height: 1.6; padding: 12px 16px; border-radius: 10px; max-width: calc(100vw - 32px); text-align: center; }
@@ -259,7 +353,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   <!-- LANDING: the arcade -->
   <div id="landing" class="landing">
     <header class="top">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Syllabus Quest</div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
       <span class="top-note">A study arcade</span>
     </header>
 
@@ -267,7 +361,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI maps out a journey from your first unit to the final exam and writes the questions. Answer them to earn coins, upgrade your wagon and reach the finish.</p>
+        <p class="lede">Upload your course syllabus. The AI maps a journey from your first unit to the final exam, writes a short lesson for each unit, then quizzes you on it. Answer to earn coins, upgrade your wagon and reach the finish.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -292,7 +386,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
         <svg viewBox="0 0 300 470" class="cabinet-art">
           <!-- marquee -->
           <path d="M44 18 H256 L262 70 H38 Z" fill="#111418" />
-          <text x="150" y="51" text-anchor="middle" class="marquee-text">SYLLABUS QUEST</text>
+          <text x="150" y="42" text-anchor="middle" class="marquee-text">STUDY HELPER</text>
+          <text x="150" y="59" text-anchor="middle" class="marquee-sub">+ SYLLABUS</text>
           <!-- body -->
           <path d="M38 70 H262 V440 H38 Z" fill="#fff" stroke="#111418" stroke-width="3" />
           <path d="M38 70 L22 86 V452 H38" fill="#f1f2f4" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
@@ -303,9 +398,10 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
           <path d="M38 256 H262 L276 296 H24 Z" fill="#f6f7f9" stroke="#111418" stroke-width="3" stroke-linejoin="round" />
           <rect x="84" y="262" width="5" height="18" fill="#111418" />
           <circle cx="86.5" cy="262" r="8" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
-          <circle cx="170" cy="278" r="7" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
-          <circle cx="194" cy="274" r="7" fill="#3b6fe0" stroke="#111418" stroke-width="2.5" />
-          <circle cx="218" cy="278" r="7" fill="#f2b200" stroke="#111418" stroke-width="2.5" />
+          <circle cx="152" cy="278" r="7" fill="#ff4d2e" stroke="#111418" stroke-width="2.5" />
+          <circle cx="174" cy="274" r="7" fill="#3b6fe0" stroke="#111418" stroke-width="2.5" />
+          <circle cx="196" cy="278" r="7" fill="#e0a100" stroke="#111418" stroke-width="2.5" />
+          <circle cx="218" cy="274" r="7" fill="#1f9d55" stroke="#111418" stroke-width="2.5" />
           <!-- coin door -->
           <rect x="118" y="330" width="64" height="72" rx="4" fill="#fff" stroke="#111418" stroke-width="2.5" />
           <rect x="138" y="346" width="24" height="5" rx="2" fill="#111418" />
@@ -323,36 +419,52 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
     <footer class="foot">Questions are written by AI from your syllabus. Double-check anything that matters for a grade.</footer>
   </div>
 
-  <!-- GAME: what's on the arcade screen -->
+  <!-- GAME: inside the machine. The screen has two views that slide: play and shop. -->
   <div id="game" class="game" hidden>
-    <div class="screen">
-      <div class="hud">
-        <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
-        <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
-        <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
-        <button id="shop-btn" class="hud-btn hud-shop">SHOP</button>
+    <div class="machine">
+      <div class="bezel">
+        <div class="screen">
+          <div class="views" id="views">
+            <section class="view" id="view-play">
+              <div class="hud" id="hud">
+                <button id="exit" class="hud-btn" aria-label="Back to the arcade">&lt; EXIT</button>
+                <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
+                <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
+                <button id="shop-btn" class="hud-btn hud-shop">SHOP &gt;</button>
+              </div>
+              <div class="trailbox" id="trailbox">
+                <div class="scene" id="scene"></div>
+                <div class="leg">
+                  <div class="leg-names"><span id="leg-from"></span><span id="leg-to"></span></div>
+                  <div class="leg-bar"><div id="leg-fill"></div></div>
+                  <div class="leg-meta"><span id="leg-unit"></span><span id="leg-miles"></span></div>
+                </div>
+              </div>
+              <div class="play" id="play" aria-live="polite"></div>
+            </section>
+
+            <section class="view" id="view-shop" inert>
+              <div class="hud">
+                <button id="shop-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
+                <h2 class="shop-title">SHOP</h2>
+                <div class="hud-stat shop-wallet"><span class="k">COINS</span><span class="v" id="shop-coins">0</span></div>
+              </div>
+              <p class="shop-intro">Spend coins on upgrades. They last for the rest of this course.</p>
+              <div id="shop-list" class="shop-list"></div>
+            </section>
+          </div>
+        </div>
       </div>
 
-      <div class="scene" id="scene"></div>
-      <div class="leg">
-        <div class="leg-names"><span id="leg-from"></span><span id="leg-to"></span></div>
-        <div class="leg-bar"><div id="leg-fill"></div></div>
-        <div class="leg-meta"><span id="leg-unit"></span><span id="leg-miles"></span></div>
+      <div class="deck">
+        <div class="stick" id="stick" aria-hidden="true"><span class="ball"></span></div>
+        <div class="pads" aria-label="Answer buttons">
+          <button class="pad" data-i="0" aria-label="Answer A">A</button>
+          <button class="pad" data-i="1" aria-label="Answer B">B</button>
+          <button class="pad" data-i="2" aria-label="Answer C">C</button>
+          <button class="pad" data-i="3" aria-label="Answer D">D</button>
+        </div>
       </div>
-
-      <div class="play" id="play" aria-live="polite"></div>
-    </div>
-  </div>
-
-  <!-- SHOP: upgrades bought with coins -->
-  <div id="shop" class="shop" hidden>
-    <div class="shop-panel" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-      <div class="shop-head">
-        <h2 id="shop-title">SHOP</h2>
-        <span class="shop-coins" id="shop-coins"></span>
-        <button id="shop-close" class="hud-btn" aria-label="Close shop">X</button>
-      </div>
-      <div id="shop-list" class="shop-list"></div>
     </div>
   </div>
 
@@ -408,8 +520,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 </script>
 <script>
 
-const PROMPTS = {"trailPrompt":"You design the route for Syllabus Quest, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nEach stop is a landmark (a town, fort or pass) named playfully after the unit's topic, like \"Fort Mitochondria\".\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","units"],"additionalProperties":false},"quizPrompt":"You write multiple-choice questions for Syllabus Quest, a study game.\nQuestions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."}},"required":["question","choices","answerIndex","explanation"],"additionalProperties":false}}},"required":["questions"],"additionalProperties":false}};
-const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus."}]},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."}]}],"demo":true};
+const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nEach stop is a landmark (a town, fort or pass) named playfully after the unit's topic, like \"Fort Mitochondria\".\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."}},"required":["question","choices","answerIndex","explanation"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false}};
+const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP."},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus."}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis."}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"demo":true};
 function quizRequest(r) {
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
   return [
@@ -417,7 +529,7 @@ function quizRequest(r) {
     `Unit: ${String(r.topic || "").slice(0, 300)}`,
     concepts && `Key concepts from the syllabus: ${concepts}`,
     r.syllabus && `Syllabus text:\n${String(r.syllabus).slice(0, 20000)}`,
-    `Write ${r.count} questions about this unit.`,
+    `Write the lesson summary and ${r.count} questions about this unit.`,
   ].filter(Boolean).join("\n\n");
 }
 function quizCount(n) {
@@ -431,6 +543,14 @@ function cleanQuiz(questions) {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
       return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || "") };
     });
+}
+function cleanLesson(l) {
+  const list = (x) => (Array.isArray(x) ? x : []);
+  return {
+    overview: String(l?.overview || ""),
+    keyPoints: list(l?.keyPoints).map(String).slice(0, 8),
+    keyTerms: list(l?.keyTerms).filter((t) => t && t.term).map((t) => ({ term: String(t.term), definition: String(t.definition || "") })).slice(0, 8),
+  };
 }
 
 const samplePromise = window.claude?.use ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
@@ -490,16 +610,16 @@ async function handle(path, req) {
     }
   }
 
-  if (path.endsWith("/api/quiz")) {
+  if (path.endsWith("/api/unit")) {
     const count = quizCount(req.count);
     if (!sample || req.demo) {
-      const pool = (DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0]).demoQuiz;
-      return { questions: cleanQuiz([...pool].sort(() => Math.random() - 0.5).slice(0, count)) };
+      const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
+      return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
     const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }), { cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
-    return { questions };
+    return { lesson: cleanLesson(data?.lesson), questions };
   }
   throw new Error("Unknown route");
 }
@@ -517,10 +637,12 @@ window.fetch = async (url, options = {}) => {
 };
 </script>
 <script>
-// The game on the arcade screen.
-// Answer questions written from your syllabus. A right answer earns coins (more on a streak) and moves
-// the wagon forward; a wrong one costs a few coins and the question comes back soon. Each unit is one
-// leg of the journey, ending at a landmark; reach the last one to win. Spend coins in the shop.
+// The game inside the machine.
+// Each unit of the course is one leg of a wagon journey. A unit starts with a short lesson summary,
+// then questions written from your syllabus. A right answer earns coins (more on a streak) and moves
+// the wagon; a wrong one costs a few coins and the question comes back soon. Reach the last landmark
+// to win. Coins buy upgrades in the shop, which slides in as its own screen.
+// The four arcade buttons under the screen answer A-D (keys 1-4 or A-D work too).
 
 const LEG_MILES = 100; // length of each unit's leg
 const BATCH = 10;      // questions fetched per unit
@@ -536,7 +658,7 @@ const $ = (id) => document.getElementById(id);
 let game = null;        // the saved game (see newGame in app.js)
 let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
-const pending = {};     // question batches being fetched, by unit
+const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
@@ -548,17 +670,17 @@ function escapeHTML(text) {
   return div.innerHTML;
 }
 
-// ---------- questions ----------
+// ---------- a unit's lesson and questions ----------
 
 function questionsFor(unit) {
   if (game.banks[unit]?.length) return Promise.resolve(game.banks[unit]);
-  pending[unit] ||= fetchQuestions(unit).finally(() => delete pending[unit]);
+  pending[unit] ||= fetchUnit(unit).finally(() => delete pending[unit]);
   return pending[unit];
 }
 
-async function fetchQuestions(unit) {
+async function fetchUnit(unit) {
   const u = game.trail.units[unit];
-  const res = await fetch("/api/quiz", {
+  const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: BATCH, demo: game.demo }),
@@ -566,24 +688,56 @@ async function fetchQuestions(unit) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
   if (!data.questions?.length) throw new Error("No questions came back. Try again.");
+  game.lessons[unit] = data.lesson || null;
   game.banks[unit] = data.questions;
   persistGame();
   return data.questions;
 }
 
-async function showNext() {
+// Start (or resume) the current unit: lesson first, then questions.
+async function startUnit() {
   const unit = game.unit;
   if (!game.banks[unit]?.length) {
-    renderMessage("", "LOADING QUESTIONS", "Writing questions about " + game.trail.units[unit].topic + ".", [], true);
+    renderMessage("LOADING THE LESSON", `Writing a lesson and questions about ${game.trail.units[unit].topic}.`, [], true);
     try {
       await questionsFor(unit);
     } catch (err) {
-      renderMessage("", "SOMETHING WENT WRONG", err.message || "Couldn't load questions.", [["TRY AGAIN", showNext], ["EXIT", () => exitGame(), "ghost"]]);
+      renderMessage("SOMETHING WENT WRONG", err.message || "Couldn't load this unit.", [["TRY AGAIN", startUnit], ["EXIT", () => exitGame(), "ghost"]]);
       return;
     }
     if (game.unit !== unit) return;
   }
-  const bank = game.banks[unit];
+  if (!game.lessonSeen[unit] && game.lessons[unit]) renderLesson(false);
+  else showNext();
+}
+
+function renderLesson(review) {
+  answering = false;
+  const unit = game.unit;
+  const u = game.trail.units[unit];
+  const lesson = game.lessons[unit];
+  $("play").innerHTML = `
+    <article class="card lesson">
+      <p class="eyebrow-px">UNIT ${unit + 1} OF ${game.trail.units.length} &middot; LESSON</p>
+      <h2>${escapeHTML(u.topic)}</h2>
+      <p class="overview">${escapeHTML(lesson.overview)}</p>
+      ${lesson.keyPoints.length ? `<h3>KEY POINTS</h3><ul>${lesson.keyPoints.map((p) => `<li>${escapeHTML(p)}</li>`).join("")}</ul>` : ""}
+      ${lesson.keyTerms.length ? `<h3>KEY TERMS</h3><dl class="terms">${lesson.keyTerms.map((t) => `<div><dt>${escapeHTML(t.term)}</dt><dd>${escapeHTML(t.definition)}</dd></div>`).join("")}</dl>` : ""}
+      <button class="btn-next" id="lesson-go">${review ? "BACK TO THE QUESTION" : "START THE QUESTIONS"}<span class="hint" aria-hidden="true">A</span></button>
+    </article>`;
+  $("view-play").scrollTop = 0;
+  $("lesson-go").addEventListener("click", () => {
+    if (review) return renderQuestion(game.banks[game.unit][current]);
+    game.lessonSeen[unit] = true;
+    persistGame();
+    showNext();
+  });
+}
+
+// ---------- questions ----------
+
+function showNext() {
+  const bank = game.banks[game.unit];
   if (!game.queue.length) game.queue = shuffle(bank.map((_, i) => i).filter((i) => i !== current));
   current = game.queue.shift();
   renderQuestion(bank[current]);
@@ -594,12 +748,16 @@ function renderQuestion(q) {
   const units = game.trail.units;
   $("play").innerHTML = `
     <div class="card">
-      <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+      <div class="q-top">
+        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length}${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
+      </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
       <div class="answers">${q.choices.map((c, i) => `<button class="answer" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`).join("")}</div>
       <div class="feedback" id="feedback"></div>
     </div>`;
   $("play").querySelectorAll(".answer").forEach((b) => b.addEventListener("click", () => answer(Number(b.dataset.i))));
+  $("review")?.addEventListener("click", () => renderLesson(true));
 }
 
 function answer(picked) {
@@ -611,6 +769,7 @@ function answer(picked) {
     b.disabled = true;
     b.classList.add(i === q.answerIndex ? "right" : i === picked ? "wrong" : "dim");
   });
+  $("review")?.remove();
 
   game.answered++;
   const feedback = $("feedback");
@@ -635,16 +794,16 @@ function answer(picked) {
   drawScene();
 
   const arrived = game.legMiles >= LEG_MILES;
-  // Start fetching the next unit's questions before the wagon gets there.
+  // Start fetching the next unit before the wagon gets there.
   if (game.legMiles >= 60 && game.unit + 1 < game.trail.units.length) questionsFor(game.unit + 1).catch(() => {});
 
   const next = arrived ? arrive : showNext;
   if (right) {
-    setTimeout(next, 1100);
+    setTimeout(() => { if (!$("game").hidden) next(); }, 1100);
   } else {
     const b = document.createElement("button");
     b.className = "btn-next";
-    b.textContent = "CONTINUE";
+    b.innerHTML = `CONTINUE<span class="hint" aria-hidden="true">A</span>`;
     b.addEventListener("click", next);
     feedback.append(b);
     b.focus();
@@ -657,6 +816,7 @@ function arrive() {
   game.unit++;
   game.legMiles = 0;
   game.queue = [];
+  current = null;
   if (game.unit >= units.length) {
     game.finished = true;
     persistGame();
@@ -664,12 +824,13 @@ function arrive() {
   }
   persistGame();
   const next = units[game.unit];
-  renderMessage("", `YOU REACHED ${reached.name.toUpperCase()}`,
+  renderMessage(`YOU REACHED ${reached.name.toUpperCase()}`,
     `Unit ${game.unit} complete. Next stop: ${next.name}, covering ${next.topic}.`,
-    [["CONTINUE", () => { drawScene(); renderHUD(); showNext(); }]]);
+    [["NEXT LESSON", () => { drawScene(); renderHUD(); startUnit(); }]]);
 }
 
 function renderWin() {
+  answering = false;
   drawScene();
   const accuracy = game.answered ? Math.round((game.correct / game.answered) * 100) : 0;
   $("play").innerHTML = `
@@ -682,31 +843,58 @@ function renderWin() {
         <div><b>${game.bestStreak}</b><span>best streak</span></div>
         <div><b>${game.coins}</b><span>coins</span></div>
       </div>
-      <button class="btn-next" id="again">PLAY AGAIN</button>
+      <button class="btn-next" id="again">PLAY AGAIN<span class="hint" aria-hidden="true">A</span></button>
       <button class="btn-ghost" id="new-course">NEW SYLLABUS</button>
     </div>`;
   $("again").addEventListener("click", () => {
     restartGame();
-    renderHUD();
-    drawScene();
-    showNext();
+    startGame();
   });
   $("new-course").addEventListener("click", () => exitGame(true));
 }
 
 // A centered message card. buttons = [[label, onClick, "ghost"?], ...]
-function renderMessage(_, title, text, buttons = [], loading = false) {
+function renderMessage(title, text, buttons = [], loading = false) {
   answering = false;
   $("play").innerHTML = `<div class="card message"><h2 class="${loading ? "loading-dots" : ""}">${escapeHTML(title)}</h2><p>${escapeHTML(text)}</p></div>`;
   const card = $("play").firstElementChild;
-  for (const [label, onClick, kind] of buttons) {
+  buttons.forEach(([label, onClick, kind], i) => {
     const b = document.createElement("button");
     b.className = kind === "ghost" ? "btn-ghost" : "btn-next";
-    b.textContent = label;
+    b.innerHTML = escapeHTML(label) + (i === 0 && kind !== "ghost" ? `<span class="hint" aria-hidden="true">A</span>` : "");
     b.addEventListener("click", onClick);
     card.append(b);
-  }
+  });
   card.querySelector("button")?.focus();
+}
+
+// ---------- the loading screen (while the syllabus is read) ----------
+
+const LOAD_STEPS = ["Reading your syllabus", "Mapping out the units", "Writing the first lesson and questions", "Starting the game"];
+
+// step = index of the step in progress; error = message to show instead of continuing
+function renderLoading(step, error = "", onBack = null) {
+  answering = false;
+  $("view-play").classList.add("bare");
+  const pct = Math.round((step / LOAD_STEPS.length) * 100);
+  $("play").innerHTML = `
+    <div class="card loading">
+      <h2>${error ? "LOADING STOPPED" : `LOADING SYLLABUS<span class="loading-dots"></span>`}</h2>
+      <div class="load-bar"><div style="width:${error ? pct : Math.max(pct, 6)}%"></div></div>
+      <ol class="steps">${LOAD_STEPS.map((label, i) => {
+        const state = i < step ? "done" : i === step && !error ? "active" : "";
+        return `<li class="${state}"><span class="box">${i < step ? "&#10003;" : ""}</span>${label}</li>`;
+      }).join("")}</ol>
+      ${error ? `<p class="error">${escapeHTML(error)}</p>` : ""}
+    </div>`;
+  if (error && onBack) {
+    const b = document.createElement("button");
+    b.className = "btn-next";
+    b.innerHTML = `BACK TO THE ARCADE<span class="hint" aria-hidden="true">A</span>`;
+    b.addEventListener("click", onBack);
+    $("play").firstElementChild.append(b);
+    b.focus();
+  }
 }
 
 // ---------- HUD, scene and leg progress ----------
@@ -774,21 +962,28 @@ function drawScene() {
   lastWagon = x;
 }
 
-// ---------- shop ----------
+// ---------- shop: its own screen that slides in ----------
+
+const shopOpen = () => $("views").classList.contains("at-shop");
 
 function openShop() {
   renderShop();
-  $("shop").hidden = false;
-  $("shop-close").focus();
+  $("views").classList.add("at-shop");
+  $("view-play").inert = true;
+  $("view-shop").inert = false;
+  $("view-shop").scrollTop = 0;
+  setTimeout(() => $("shop-back").focus({ preventScroll: true }), 50);
 }
 
 function closeShop() {
-  $("shop").hidden = true;
-  $("shop-btn").focus();
+  $("views").classList.remove("at-shop");
+  $("view-shop").inert = true;
+  $("view-play").inert = false;
+  setTimeout(() => $("shop-btn").focus({ preventScroll: true }), 50);
 }
 
 function renderShop() {
-  $("shop-coins").textContent = `${game.coins} COINS`;
+  $("shop-coins").textContent = game.coins;
   $("shop-list").replaceChildren(...UPGRADES.map((u) => {
     const lvl = upgradeLevel(u.id);
     const maxed = lvl >= u.costs.length;
@@ -799,7 +994,7 @@ function renderShop() {
       <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
       <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>`;
     const buy = document.createElement("button");
-    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
+    buy.textContent = maxed ? "MAX" : `${u.costs[lvl]} COINS`;
     buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
     buy.disabled = maxed || game.coins < u.costs[lvl];
     buy.addEventListener("click", () => {
@@ -824,35 +1019,65 @@ function toast(text) {
   toastTimer = setTimeout(() => (el.hidden = true), 2200);
 }
 
+// ---------- the arcade controls ----------
+
+let stickTimer;
+function wiggleStick(dir) {
+  const stick = $("stick");
+  stick.classList.remove("left", "right");
+  stick.classList.add(dir);
+  clearTimeout(stickTimer);
+  stickTimer = setTimeout(() => stick.classList.remove("left", "right"), 180);
+}
+
+// Pressing button i: answer A-D during a question; otherwise any button presses the screen's main button.
+function pressPad(i) {
+  const pad = document.querySelector(`.pad[data-i="${i}"]`);
+  pad.classList.add("pressed");
+  setTimeout(() => pad.classList.remove("pressed"), 120);
+  wiggleStick(i < 2 ? "left" : "right");
+  if (shopOpen()) return;
+  if (answering) return answer(i);
+  $("play").querySelector(".btn-next")?.click();
+}
+
+document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click", () => pressPad(Number(pad.dataset.i))));
+
 // ---------- start ----------
 
 function startGame() {
+  $("view-play").classList.remove("bare");
+  closeShop();
   lastWagon = null;
   shownCoins = null;
   renderHUD();
   drawScene();
   if (game.finished) renderWin();
-  else showNext();
+  else startUnit();
 }
 
 $("shop-btn").addEventListener("click", openShop);
-$("shop-close").addEventListener("click", closeShop);
-$("shop").addEventListener("click", (e) => { if (e.target === $("shop")) closeShop(); });
+$("shop-back").addEventListener("click", closeShop);
 
-// Keyboard: 1-4 or A-D to answer, Escape closes the shop.
+// Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape leaves the shop.
 document.addEventListener("keydown", (e) => {
-  if ($("game").hidden) return;
-  if (e.key === "Escape" && !$("shop").hidden) return closeShop();
-  if (!answering || !$("shop").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-  const i = "1234".indexOf(e.key) >= 0 ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
-  if (i >= 0 && e.key.length === 1) answer(i);
+  if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Escape" && shopOpen()) return closeShop();
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");
+  if (shopOpen() || e.key.length !== 1 || ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  const i = "1234".includes(e.key) ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
+  if (i < 0) return;
+  // Letter keys only answer questions; on other screens Enter/Space already press the focused button.
+  if (!answering && "abcd".includes(e.key.toLowerCase()) && i !== 0) return;
+  e.preventDefault();
+  pressPad(i);
 });
 
-// The arcade landing page: upload a syllabus, build the route with the AI,
-// then zoom into the cabinet's screen where the game (game.js) runs.
+// The arcade landing page: upload a syllabus, zoom into the machine, and load the course
+// there (the AI builds the route and the first lesson) before the game (game.js) starts.
 // The game is saved in the browser (localStorage) so you can come back to it.
 
-const SAVE_KEY = "syllabus-quest-game";
+const SAVE_KEY = "study-helper-game";
 let pdfData = null;
 let busy = false;
 
@@ -861,7 +1086,8 @@ let busy = false;
 function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
-    return data?.trail?.units?.length ? data : null;
+    if (!data?.trail?.units?.length) return null;
+    return { lessons: {}, lessonSeen: {}, ...data };
   } catch {
     return null;
   }
@@ -881,7 +1107,9 @@ function newGame(trail, syllabus) {
     trail: { courseTitle: trail.courseTitle, units: trail.units },
     demo: Boolean(trail.demo),
     syllabus: syllabus.slice(0, 20000), // sent along when asking for questions
-    banks: {}, // questions per unit
+    banks: {},      // questions per unit
+    lessons: {},    // lesson summary per unit
+    lessonSeen: {}, // units whose lesson has been read
     levels: {},
     unit: 0, legMiles: 0, queue: [],
     coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false,
@@ -890,7 +1118,7 @@ function newGame(trail, syllabus) {
 
 // Same course, same questions, fresh run.
 function restartGame() {
-  Object.assign(game, { levels: {}, unit: 0, legMiles: 0, queue: [], coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false });
+  Object.assign(game, { lessonSeen: {}, levels: {}, unit: 0, legMiles: 0, queue: [], coins: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, finished: false });
   persistGame();
 }
 
@@ -950,11 +1178,17 @@ $("drop").addEventListener("drop", (e) => {
   readPdf(e.dataTransfer.files[0]);
 });
 
+const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// Insert the syllabus: zoom into the machine, then load the course on its screen.
 $("start").addEventListener("click", async () => {
   busy = true;
   updateStart();
-  setStatus("Reading your syllabus and mapping the route. This can take a minute.");
+  setStatus("");
   setScreen("LOADING", true);
+  await enterMachine(() => renderLoading(0));
+  let step = 0;
+  const mapping = setTimeout(() => renderLoading((step = 1)), 2500); // the AI reads and maps in one go
   try {
     const res = await fetch("/api/trail", {
       method: "POST",
@@ -963,22 +1197,24 @@ $("start").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
+    clearTimeout(mapping);
     game = newGame(data, data.syllabusText || $("syllabus").value);
     persistGame();
-    setStatus("Writing the first questions...");
-    await questionsFor(0).catch(() => {}); // the game screen shows any error with a retry
-    setStatus("");
-    enterMachine();
+    renderLoading((step = 2));
+    await questionsFor(0).catch(() => {}); // if this fails, the game screen shows a retry
+    renderLoading((step = 3));
+    await wait(600);
+    startGame();
   } catch (err) {
-    setStatus(err.message || "Something went wrong. Try again.", true);
-    setScreen("INSERT<br />SYLLABUS");
+    clearTimeout(mapping);
+    renderLoading(step, err.message || "Something went wrong. Try again.", () => exitGame());
   } finally {
     busy = false;
     updateStart();
   }
 });
 
-$("resume").addEventListener("click", enterMachine);
+$("resume").addEventListener("click", () => enterMachine(startGame));
 
 function updateResume() {
   $("resume").hidden = !game;
@@ -990,23 +1226,29 @@ function updateResume() {
 const ZOOM_MS = 1100;
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The transform that makes the cabinet's screen fill the window.
+// The part of the cabinet drawing to zoom into: the screen plus the control deck below it
+// (in the drawing's own units; the drawing is 300 wide).
+const ZOOM_REGION = { x: 18, y: 80, width: 264, height: 222 };
+
+// The transform that makes that part of the cabinet fill the window.
 function zoomTransform() {
   const landing = $("landing").getBoundingClientRect();
-  const screen = $("cabinet-screen").getBoundingClientRect();
-  const scale = Math.max(innerWidth / screen.width, innerHeight / screen.height) * 1.02;
-  const sx = screen.left + screen.width / 2;
-  const sy = screen.top + screen.height / 2;
+  const art = document.querySelector(".cabinet-art").getBoundingClientRect();
+  const k = art.width / 300;
+  const width = ZOOM_REGION.width * k;
+  const height = ZOOM_REGION.height * k;
+  const cx = art.left + (ZOOM_REGION.x + ZOOM_REGION.width / 2) * k;
+  const cy = art.top + (ZOOM_REGION.y + ZOOM_REGION.height / 2) * k;
+  const scale = Math.min(innerWidth / width, innerHeight / height);
   return {
-    origin: `${sx - landing.left}px ${sy - landing.top}px`,
-    transform: `translate(${innerWidth / 2 - sx}px, ${innerHeight / 2 - sy}px) scale(${scale})`,
+    origin: `${cx - landing.left}px ${cy - landing.top}px`,
+    transform: `translate(${innerWidth / 2 - cx}px, ${innerHeight / 2 - cy}px) scale(${scale})`,
   };
 }
 
-function enterMachine() {
-  if (!game) return;
+// Zoom into the machine, switch to the game view, then run show() to fill its screen.
+function enterMachine(show) {
   const landing = $("landing");
-  setScreen("PRESS<br />START");
   const wait = reducedMotion() ? 0 : ZOOM_MS;
   if (wait) {
     const z = zoomTransform();
@@ -1014,20 +1256,21 @@ function enterMachine() {
     landing.classList.add("zooming");
     requestAnimationFrame(() => (landing.style.transform = z.transform));
   }
-  setTimeout(() => {
+  return new Promise((done) => setTimeout(() => {
     landing.hidden = true;
     landing.classList.remove("zooming");
     landing.style.transform = "";
     $("game").hidden = false;
     $("game").classList.add("entering");
     setTimeout(() => $("game").classList.remove("entering"), 600);
-    startGame();
-  }, wait);
+    show();
+    done();
+  }, wait));
 }
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
-  $("shop").hidden = true;
+  closeShop();
   $("game").hidden = true;
   if (clear) {
     game = null;
