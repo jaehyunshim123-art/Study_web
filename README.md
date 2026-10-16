@@ -30,6 +30,10 @@ Without an API key it runs in **demo mode** and always returns the same sample q
 
 To turn the AI on, copy `.env.example` to `.env` and paste a key from https://console.anthropic.com. Never commit `.env`; it's already in `.gitignore`.
 
+## One-file preview
+
+`npm run preview` builds `dist/preview.html`: the whole site in a single file that opens without the server. It runs in demo mode, so it's handy for showing someone the game.
+
 ## How it fits together
 
 | File | What it does |
