@@ -13,7 +13,7 @@
   <div id="landing" class="landing">
     <header class="top">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Study Helper <span class="plus">+</span> Syllabus</div>
-      <div class="top-links"><a class="top-note" href="#how">How it works</a><button class="top-sound" id="landing-sound" aria-pressed="true">Sound on</button></div>
+      <div class="top-links"><a class="top-note" href="#how">How it works</a><button class="top-sound" id="landing-timer">Study timer <span class="top-clock" data-timer="clock">25:00</span></button><button class="top-sound" id="landing-sound" aria-pressed="true">Sound on</button></div>
     </header>
 
     <main class="hero">
@@ -124,8 +124,16 @@
                 <li><span class="num">3</span><div><h3>Earn coins and miles</h3><p>Right answers earn coins and move your wagon. 100 miles reaches the unit's landmark and opens the next lesson.</p></div></li>
                 <li><span class="num">4</span><div><h3>Keep a streak</h3><p>Answers in a row build a streak. A wrong answer resets it and costs a few coins, and that question comes back later so you can learn it.</p></div></li>
                 <li><span class="num">5</span><div><h3>Upgrade in the shop</h3><p>Spend coins on Earnings (more coins), Streak bonus (extra coins per streak) and Stronger oxen (more miles per answer).</p></div></li>
-                <li><span class="num">6</span><div><h3>Reach the final exam</h3><p>Clear every unit to finish the trail and see your accuracy and best streak. EXIT saves your game anytime.</p></div></li>
+                <li><span class="num">6</span><div><h3>Reach the final exam</h3><p>Clear every unit to finish the trail. EXIT saves your game anytime. Tap the clock on the control panel for a focus/break study timer.</p></div></li>
               </ol>
+            </section>
+
+            <section class="view" id="view-timer" inert>
+              <div class="hud">
+                <button id="timer-back" class="hud-btn" aria-label="Back to the game">&lt; BACK</button>
+                <h2 class="shop-title">STUDY TIMER</h2>
+              </div>
+              <div class="timer-panel" id="game-timer"></div>
             </section>
           </div>
 
@@ -151,9 +159,14 @@
 
       <div class="deck">
         <div class="stick" id="stick" aria-hidden="true"><span class="ball"></span></div>
+        <div class="deck-mid">
+        <button class="lcd" id="deck-timer" aria-label="Open the study timer">
+          <span class="lcd-mode" data-timer="mode">FOCUS</span><span class="lcd-clock" data-timer="clock">25:00</span>
+        </button>
         <button class="speaker" id="sound-btn" aria-pressed="true" aria-label="Sound is on. Press to mute.">
           <span class="grille" aria-hidden="true"></span><span class="spk-label" id="sound-label">SOUND ON</span>
         </button>
+        </div>
         <div class="pads" aria-label="Answer buttons">
           <button class="pad" data-i="0" aria-label="Answer A">A</button>
           <button class="pad" data-i="1" aria-label="Answer B">B</button>
@@ -164,10 +177,22 @@
     </div>
   </div>
 
+  <!-- STUDY TIMER on the landing page -->
+  <div class="timer-modal" id="timer-modal" hidden>
+    <div class="timer-card" role="dialog" aria-modal="true" aria-labelledby="timer-modal-title">
+      <div class="timer-card-head">
+        <h2 id="timer-modal-title">Study timer</h2>
+        <button class="timer-close" id="timer-close" aria-label="Close the study timer">&times;</button>
+      </div>
+      <div class="timer-panel" id="landing-timer-panel"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="sound.js"></script>
   <script src="sprites.js"></script>
+  <script src="timer.js"></script>
   <script src="game.js"></script>
   <script src="app.js"></script>
 </body>

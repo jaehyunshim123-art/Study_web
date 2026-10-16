@@ -13,6 +13,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 - **Arcade controls:** the four buttons under the screen answer A-D (keys 1-4 work too) and press the screen's main button on other screens.
 - **Help:** the ? button opens How to Play, which slides in as its own screen. It also opens automatically the first time you play.
 - **The general store:** the trail window zooms in and grows into a store with a pixel shopkeeper who talks to you. Buy three upgrades (Earnings, Streak bonus, Stronger oxen) and paint jobs for your wagon.
+- **Study timer:** a focus/break timer (25/5, 50/10 or 15/3 minutes) that works on its own, separate from the game. Open it from the clock on the control panel or the Study timer button on the landing page. It chimes when time is up, counts today's focus sessions, and keeps running if you exit or reload.
 - **Saved:** progress stays in your browser, so you can exit to the arcade and continue later.
 
 ## Run it
@@ -45,6 +46,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 | `public/app.js` | Landing page: syllabus upload, saving, the loading steps, and the zoom into the machine. |
 | `public/sprites.js` | All the pixel art: themed scenery and landmarks, the wagon, BYTE, the shopkeeper, the store and item icons. |
 | `public/sound.js` | Arcade sound effects, synthesized with the Web Audio API. |
+| `public/timer.js` | The study timer: focus and break sessions, saved in the browser. |
 | `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |

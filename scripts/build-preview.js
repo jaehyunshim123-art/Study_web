@@ -114,7 +114,7 @@ for (const [name, code] of [["preview server", previewServer]]) {
 }
 
 const pdfjs = ["pdf.min.js", "pdf.worker.min.js"].map((f) => read(`node_modules/pdfjs-dist/build/${f}`));
-const appScripts = ["sound", "sprites", "game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
+const appScripts = ["sound", "sprites", "timer", "game", "app"].map((f) => read(`public/${f}.js`)).join("\n");
 try { new vm.Script(appScripts); } catch (err) { throw new Error(`game scripts have a syntax error: ${err.message}`); }
 const inline = (code) => `<script>\n${code}\n</script>`;
 

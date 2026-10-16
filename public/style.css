@@ -209,7 +209,14 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .pad:nth-child(3) { background: var(--c); }
 .pad:nth-child(4) { background: var(--d); }
 .pad:active, .pad.pressed { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
-@media (max-width: 420px) { .stick { transform: scale(0.8); } .deck { padding: 0 18px; } }
+@media (max-width: 420px) {
+  .stick { zoom: 0.78; }
+  .deck { padding: 0 12px; }
+  .pads { gap: 8px; }
+  .pad { width: 38px; height: 38px; font-size: 10px; }
+  .pad:nth-child(even) { margin-bottom: 10px; }
+}
+@media (max-width: 340px) { .speaker { display: none; } .stick { zoom: 0.62; } .deck { padding: 0 8px; } .pads { gap: 6px; } .pad { width: 34px; height: 34px; } .lcd { padding: 4px 5px; } }
 
 /* ---------- HUD, trail, cards ---------- */
 
@@ -385,8 +392,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   background: #6e4a2b; color: #ffd23f; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 4px; white-space: nowrap;
 }
 .speech {
-  position: absolute; left: 50%; bottom: 12px; transform: translateX(-118%);
-  max-width: min(44%, 280px); margin: 0; padding: 8px 10px;
+  position: absolute; right: calc(50% + 26px); bottom: 12px;
+  width: max-content; max-width: min(calc(50% - 40px), 300px); margin: 0; padding: 8px 10px;
+  transform-origin: right center;
   background: #fff; border: 2px solid var(--ink); border-radius: 10px;
   font-size: 13px; line-height: 1.35; color: var(--ink);
   opacity: 0; scale: 0.8; transition: opacity 180ms ease-out, scale 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -395,7 +403,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .speech::after { content: ""; position: absolute; right: -9px; bottom: 12px; border: 8px solid transparent; border-left-color: var(--ink); border-right: 0; }
 
 @media (max-width: 560px) {
-  .speech { position: static; transform: none; max-width: none; margin: 10px 14px 12px; }
+  .speech { position: static; width: auto; max-width: none; margin: 10px 14px 12px; transform-origin: center top; }
   .speech::after { right: auto; left: 50%; top: -9px; bottom: auto; border: 8px solid transparent; border-bottom-color: var(--ink); border-top: 0; }
 }
 
@@ -464,7 +472,42 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .spk-label { font-family: var(--pixel); font-size: 7px; }
 @media (max-width: 420px) { .grille { width: 40px; background-size: 30px 14px; } .spk-label { display: none; } }
 
-.top-links { display: flex; align-items: center; gap: 16px; }
+.top-links { display: flex; align-items: center; gap: 12px; }
+.top-clock { font-family: var(--pixel); font-size: 9px; margin-left: 4px; color: var(--accent); }
+@media (max-width: 480px) { .top-clock { display: none; } }
+
+/* ---------- study timer ---------- */
+
+.timer-panel { max-width: 460px; margin: 18px auto 0; text-align: center; }
+.tp-mode { display: inline-block; margin: 0 0 10px; padding: 6px 10px; border-radius: 6px; background: var(--accent); color: #fff; font-family: var(--pixel); font-size: 10px; }
+.on-break .tp-mode { background: var(--good); }
+.tp-clock { font-family: var(--pixel); font-size: clamp(44px, 10vw, 72px); line-height: 1.1; letter-spacing: 0.02em; margin: 6px 0 14px; }
+.tp-bar { height: 14px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; margin: 0 0 18px; }
+.tp-bar div { height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--accent) 0 10px, var(--accent-dark) 10px 12px); transition: width 250ms linear; }
+.on-break .tp-bar div { background: repeating-linear-gradient(90deg, var(--good) 0 10px, #17804a 10px 12px); }
+.tp-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.tp-actions .btn-next { min-width: 120px; }
+.tp-label { font-family: var(--pixel); font-size: 8px; color: var(--muted); margin: 22px 0 8px; }
+.tp-presets { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.chip { font-family: var(--pixel); font-size: 9px; padding: 9px 12px; border: 2px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); }
+.chip.active { border-color: var(--ink); background: var(--ink); color: #fff; }
+.tp-note { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 18px auto 0; max-width: 34em; }
+
+/* the little LCD on the control panel */
+.deck-mid { display: flex; align-items: center; gap: clamp(10px, 3vw, 22px); }
+.lcd { display: grid; gap: 2px; justify-items: center; padding: 6px 10px; border: 2px solid var(--ink); border-radius: 8px; background: #9bbc0f; color: #0f380f; box-shadow: inset 0 0 0 2px #8bac0f; }
+.lcd-mode { font-family: var(--pixel); font-size: 6px; }
+.lcd-clock { font-family: var(--pixel); font-size: 12px; }
+.lcd.on-break { background: #c7e8d2; }
+@media (max-width: 420px) { .lcd { padding: 5px 6px; } .lcd-clock { font-size: 10px; } .deck-mid { gap: 8px; } }
+
+/* the timer window on the landing page */
+.timer-modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(17, 20, 24, 0.4); }
+.timer-card { width: min(480px, 100%); background: #fff; border-radius: 18px; padding: 20px 20px 24px; box-shadow: 0 24px 60px rgba(16, 24, 40, 0.25); }
+.timer-card-head { display: flex; justify-content: space-between; align-items: center; }
+.timer-card-head h2 { margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+.timer-close { border: 0; background: var(--soft); width: 34px; height: 34px; border-radius: 50%; font-size: 20px; line-height: 1; color: var(--ink); }
+.timer-card .timer-panel { margin-top: 10px; }
 .top-sound { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
 .top-sound:hover { color: var(--ink); border-color: var(--ink); }
 

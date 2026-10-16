@@ -398,9 +398,9 @@ function drawScene() {
   lastWagon = x;
 }
 
-// ---------- How to Play: slides in beside the game ----------
+// ---------- How to Play and the study timer: slide in beside the game ----------
 
-const VIEWS = ["play", "help"];
+const VIEWS = ["play", "help", "timer"];
 const HELP_SEEN_KEY = "study-helper-help-seen";
 let view = "play";
 let shopIsOpen = false;
@@ -676,6 +676,16 @@ function renderShop() {
   }));
 }
 
+// A short message at the bottom of the screen (used by the study timer).
+let toastTimer;
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.hidden = true), 4000);
+}
+
 // ---------- the arcade controls ----------
 
 let stickTimer;
@@ -738,12 +748,29 @@ $("shop-back").addEventListener("click", closeShop);
 $("help-btn").addEventListener("click", () => openHelp());
 $("help-back").addEventListener("click", closeHelp);
 
+// The study timer (timer.js) gets its own screen; the LCD on the control panel opens it.
+$("game-timer").innerHTML = StudyTimer.panelHTML();
+$("landing-timer-panel").innerHTML = StudyTimer.panelHTML();
+StudyTimer.render();
+function openTimer() {
+  if (shopIsOpen) return;
+  Sound.play("open");
+  showView("timer", "timer-back");
+}
+function closeTimer() {
+  Sound.play("close");
+  showView("play", "deck-timer");
+}
+$("deck-timer").addEventListener("click", () => (view === "timer" ? closeTimer() : openTimer()));
+$("timer-back").addEventListener("click", closeTimer);
+
 // Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape closes the store or help.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === "Escape") {
     if (shopIsOpen) return closeShop();
     if (view === "help") return closeHelp();
+    if (view === "timer") return closeTimer();
     return;
   }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") return wiggleStick(e.key === "ArrowLeft" ? "left" : "right");

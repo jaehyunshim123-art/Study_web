@@ -225,6 +225,21 @@ $("exit").addEventListener("click", () => exitGame());
 // ---------- start ----------
 
 $("landing-sound").addEventListener("click", toggleSound);
+
+// The study timer on the landing page opens in a small window.
+function openTimerModal() {
+  $("timer-modal").hidden = false;
+  StudyTimer.render();
+  $("timer-close").focus();
+}
+function closeTimerModal() {
+  $("timer-modal").hidden = true;
+  $("landing-timer").focus();
+}
+$("landing-timer").addEventListener("click", openTimerModal);
+$("timer-close").addEventListener("click", closeTimerModal);
+$("timer-modal").addEventListener("click", (e) => { if (e.target === $("timer-modal")) closeTimerModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("timer-modal").hidden) closeTimerModal(); });
 syncSound();
 game = loadGame();
 updateResume();
