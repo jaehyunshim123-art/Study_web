@@ -276,7 +276,11 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .view.bare .play { margin-top: 0; min-height: 100%; display: grid; align-content: center; }
 .card { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: clamp(12px, 2.4vw, 18px); box-shadow: 0 3px 0 var(--ink); }
 .q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 8px; }
-.q-count { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 0; }
+.q-count { font-family: var(--pixel); font-size: 9px; line-height: 1.5; color: var(--muted); margin: 0; flex: 1; min-width: 0; }
+.diff { flex: none; font-family: var(--pixel); font-size: 8px; line-height: 1; padding: 4px 6px; border: 2px solid var(--ink); border-radius: 4px; }
+.diff.easy { background: #dff3e4; color: #146c3a; }
+@media (max-width: 420px) { .q-total { display: none; } }
+.diff.hard { background: #ffe1d9; color: #b3261e; }
 .link-btn { border: 0; background: none; padding: 4px 0; font-family: var(--pixel); font-size: 8px; color: var(--b); text-decoration: underline; text-underline-offset: 3px; }
 .q-text { font-size: clamp(16px, 2vw, 19px); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; margin: 0 0 12px; }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -642,8 +646,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
                 <li><span class="num">1</span><div><h3>Read the lesson</h3><p>Every unit starts with a short summary: an overview, key points and key terms. Reopen it from any question with REVIEW LESSON.</p></div></li>
                 <li><span class="num">2</span><div><h3>Answer questions</h3><p>Pick A, B, C or D. Tap an answer, press the arcade buttons under the screen, or use keys 1-4.</p></div></li>
                 <li><span class="num">3</span><div><h3>Earn coins and miles</h3><p>Right answers earn coins and move your wagon. 100 miles reaches the unit's landmark and opens the next lesson.</p></div></li>
-                <li><span class="num">4</span><div><h3>Keep a streak</h3><p>Answers in a row build a streak. A wrong answer resets it and costs a few coins, and that question comes back later so you can learn it.</p></div></li>
-                <li><span class="num">5</span><div><h3>Upgrade in the shop</h3><p>Spend coins on Earnings (more coins), Streak bonus (extra coins per streak) and Stronger oxen (more miles per answer).</p></div></li>
+                <li><span class="num">4</span><div><h3>Keep a streak</h3><p>Answers in a row build a streak. A wrong answer resets it and costs 1 coin (EASY questions) or 2 coins (HARD ones), and that question comes back later so you can learn it.</p></div></li>
+                <li><span class="num">5</span><div><h3>Upgrade in the shop</h3><p>The store matches your subject (a law bookshop, a lab supply, a pharmacy...). Spend coins on upgrades that earn more coins per answer, pay extra for streaks, and give you stronger oxen (more miles per answer).</p></div></li>
                 <li><span class="num">6</span><div><h3>Reach the final exam</h3><p>Clear every unit to finish the trail. EXIT saves your game anytime. Tap the clock on the control panel for a focus/break study timer.</p></div></li>
               </ol>
             </section>
@@ -760,9 +764,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 </script>
 <script>
 
-const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false},"quizMoreSchema":{"type":"object","properties":{"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."}},"required":["question","choices","answerIndex","explanation","hint"],"additionalProperties":false}}},"required":["questions"],"additionalProperties":false}};
+const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.\nRate each question's difficulty: \"easy\" for recalling a fact or definition, \"hard\" for applying, comparing or reasoning in more than one step. Aim for roughly 60% easy and 40% hard.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."},"difficulty":{"type":"string","enum":["easy","hard"],"description":"easy: recall a fact or definition. hard: apply, compare or reason in more than one step."}},"required":["question","choices","answerIndex","explanation","hint","difficulty"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false},"quizMoreSchema":{"type":"object","properties":{"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."},"difficulty":{"type":"string","enum":["easy","hard"],"description":"easy: recall a fact or definition. hard: apply, compare or reason in more than one step."}},"required":["question","choices","answerIndex","explanation","hint","difficulty"],"additionalProperties":false}}},"required":["questions"],"additionalProperties":false}};
 const THEMES = ["frontier","law","science","math","literature","tech","health","business"];
-const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP.","hint":"Think about which organelle is called the cell's powerhouse."},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.","hint":"Plants need something rigid to stand upright."},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.","hint":"It's the special name for water's diffusion."},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.","hint":"Which one moves things against their gradient?"},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins.","hint":"These tiny structures read mRNA."},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles.","hint":"Think of a cell's shipping department."},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.","hint":"It's a gatekeeper, not a wall."},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus.","hint":"The control center of the cell."}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen.","hint":"It happens before the mitochondria are involved."},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP.","hint":"Think of the last, most productive stage."},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.","hint":"It's the gas you breathe in."},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light.","hint":"These membranes are stacked inside the chloroplast."},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen.","hint":"Plants give off the gas animals need."},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.","hint":"Its job is building sugar from carbon dioxide."},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.","hint":"The name means 'sugar splitting'."},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.","hint":"It's the pigment that makes leaves green."}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"theme":"science","demo":true};
+const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP.","hint":"Think about which organelle is called the cell's powerhouse.","difficulty":"easy"},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.","hint":"Plants need something rigid to stand upright.","difficulty":"easy"},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.","hint":"It's the special name for water's diffusion.","difficulty":"hard"},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.","hint":"Which one moves things against their gradient?","difficulty":"hard"},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins.","hint":"These tiny structures read mRNA.","difficulty":"easy"},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles.","hint":"Think of a cell's shipping department.","difficulty":"easy"},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.","hint":"It's a gatekeeper, not a wall.","difficulty":"hard"},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus.","hint":"The control center of the cell.","difficulty":"easy"}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen.","hint":"It happens before the mitochondria are involved.","difficulty":"easy"},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP.","hint":"Think of the last, most productive stage.","difficulty":"hard"},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.","hint":"It's the gas you breathe in.","difficulty":"hard"},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light.","hint":"These membranes are stacked inside the chloroplast.","difficulty":"easy"},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen.","hint":"Plants give off the gas animals need.","difficulty":"easy"},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.","hint":"Its job is building sugar from carbon dioxide.","difficulty":"hard"},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.","hint":"The name means 'sugar splitting'.","difficulty":"easy"},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.","hint":"It's the pigment that makes leaves green.","difficulty":"easy"}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"theme":"science","demo":true};
 function quizRequest(r) {
   const avoid = (Array.isArray(r.avoid) ? r.avoid : []).map((q) => `- ${String(q).slice(0, 160)}`).slice(0, 80).join("\n");
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
@@ -785,7 +789,7 @@ function cleanQuiz(questions) {
       Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex < 4)
     .map((q) => {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || "") };
+      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || ""), difficulty: q.difficulty === "hard" ? "hard" : "easy" };
     });
 }
 function cleanLesson(l) {
@@ -1097,37 +1101,93 @@ function botSVG(mood = "idle") {
 
 // ---------- the shop ----------
 
-function shopkeeperSVG(mood = "idle") {
+// Things on the store shelves. Each draws one item sitting on a shelf whose top is at y.
+const GOODS = {
+  sack: (x, y) => px(x, y - 8, 7, 8, "#e5d3ae") + px(x + 2, y - 10, 3, 2, "#8a5a32"),
+  jar: (x, y) => px(x + 1, y - 9, 5, 9, "#9fd3e6") + px(x + 1, y - 10, 5, 1, "#6e4a2b"),
+  crate: (x, y) => px(x, y - 6, 8, 6, "#d9634a") + px(x, y - 6, 8, 1, "#a0453a"),
+  bottle: (x, y) => px(x + 2, y - 8, 4, 8, "#3ce070") + px(x + 3, y - 9, 2, 1, "#6e4a2b"),
+  books: (x, y) => px(x, y - 9, 2, 9, "#a0453a") + px(x + 2, y - 8, 2, 8, "#3b6fe0") + px(x + 4, y - 9, 2, 9, "#1f9d55") + px(x + 6, y - 7, 2, 7, "#e0a100"),
+  lawbooks: (x, y) => px(x, y - 9, 2, 9, "#7a2e2e") + px(x + 2, y - 9, 2, 9, "#2e3f5c") + px(x + 4, y - 9, 2, 9, "#7a2e2e") + px(x + 6, y - 9, 2, 9, "#2e3f5c") +
+    px(x, y - 7, 8, 1, "#e0a100"),
+  scales: (x, y) => px(x + 3, y - 9, 1, 8, "#b8860b") + px(x, y - 9, 7, 1, "#b8860b") + px(x, y - 6, 2, 1, "#e0a100") + px(x + 5, y - 6, 2, 1, "#e0a100") +
+    px(x + 1, y - 1, 5, 1, "#b8860b"),
+  gavel: (x, y) => px(x, y - 7, 6, 3, "#8a5a32") + px(x + 2, y - 4, 2, 4, "#6e4a2b") + px(x + 5, y - 1, 3, 1, "#5a3a1a"),
+  flask: (x, y) => px(x + 2, y - 10, 3, 4, "#cfe8f2") + px(x, y - 6, 7, 6, "#cfe8f2") + px(x + 1, y - 4, 5, 4, "#6b5bd6"),
+  beaker: (x, y) => px(x, y - 8, 6, 8, "#cfe8f2") + px(x + 1, y - 5, 4, 5, "#3ce070") + px(x - 1, y - 8, 1, 1, "#cfe8f2"),
+  microscope: (x, y) => px(x + 2, y - 10, 2, 6, INK) + px(x + 4, y - 7, 2, 4, "#5b6577") + px(x + 1, y - 3, 6, 1, INK) + px(x, y - 1, 8, 1, "#5b6577"),
+  abacus: (x, y) => px(x, y - 8, 8, 8, "#8a5a32") + px(x + 1, y - 7, 6, 6, "#f5ebcc") +
+    px(x + 1, y - 6, 2, 1, "#e5484d") + px(x + 4, y - 4, 2, 1, "#3b6fe0") + px(x + 2, y - 2, 2, 1, "#1f9d55"),
+  setsquare: (x, y) => px(x, y - 2, 8, 2, "#6b9cf0") + px(x, y - 4, 6, 2, "#6b9cf0") + px(x, y - 6, 4, 2, "#6b9cf0") + px(x, y - 8, 2, 2, "#6b9cf0"),
+  compass: (x, y) => px(x + 3, y - 9, 2, 2, "#5b6577") + px(x + 2, y - 7, 1, 7, "#8f98a8") + px(x + 5, y - 7, 1, 7, "#8f98a8"),
+  quill: (x, y) => px(x + 1, y - 4, 5, 4, INK) + px(x + 4, y - 10, 2, 6, "#fbfaf6") + px(x + 5, y - 11, 1, 2, "#fbfaf6"),
+  scroll: (x, y) => px(x, y - 5, 8, 4, "#f5ebcc") + px(x, y - 6, 1, 6, "#c9a27a") + px(x + 7, y - 6, 1, 6, "#c9a27a"),
+  monitor: (x, y) => px(x, y - 10, 9, 7, INK) + px(x + 1, y - 9, 7, 5, "#3ce070") + px(x + 2, y - 8, 3, 1, "#0f380f") + px(x + 3, y - 3, 3, 3, INK),
+  floppy: (x, y) => px(x, y - 7, 7, 7, "#3b6fe0") + px(x + 2, y - 7, 3, 2, "#c9cdd4") + px(x + 1, y - 3, 5, 3, "#fbfaf6"),
+  chip: (x, y) => px(x, y - 6, 8, 5, "#2b2f36") + px(x + 1, y - 7, 1, 1, "#c9cdd4") + px(x + 3, y - 7, 1, 1, "#c9cdd4") + px(x + 5, y - 7, 1, 1, "#c9cdd4") +
+    px(x + 1, y - 1, 1, 1, "#c9cdd4") + px(x + 3, y - 1, 1, 1, "#c9cdd4") + px(x + 5, y - 1, 1, 1, "#c9cdd4"),
+  pills: (x, y) => px(x + 1, y - 8, 5, 8, "#ff9f43") + px(x + 1, y - 9, 5, 1, "#fbfaf6") + px(x + 2, y - 5, 3, 2, "#fbfaf6"),
+  firstaid: (x, y) => px(x, y - 7, 8, 7, "#fbfaf6") + px(x + 3, y - 6, 2, 5, "#e5484d") + px(x + 1, y - 4, 6, 1, "#e5484d"),
+  heart: (x, y) => px(x + 1, y - 7, 2, 2, "#e5484d") + px(x + 4, y - 7, 2, 2, "#e5484d") + px(x, y - 5, 7, 2, "#e5484d") + px(x + 1, y - 3, 5, 1, "#e5484d") + px(x + 2, y - 2, 3, 1, "#e5484d"),
+  briefcase: (x, y) => px(x, y - 6, 8, 6, "#7a4a1e") + px(x + 2, y - 8, 4, 2, "#5a3a1a") + px(x + 3, y - 7, 2, 1, "#c9cdd4") + px(x, y - 4, 8, 1, "#5a3a1a"),
+  coins: (x, y) => px(x + 1, y - 6, 6, 6, "#ffc94d") + px(x + 1, y - 4, 6, 1, "#e0a100") + px(x + 1, y - 2, 6, 1, "#e0a100"),
+  chart: (x, y) => px(x, y - 9, 8, 9, "#fbfaf6") + px(x + 1, y - 3, 1, 2, "#1f9d55") + px(x + 3, y - 5, 1, 4, "#1f9d55") + px(x + 5, y - 8, 1, 7, "#1f9d55"),
+};
+
+// The store for each theme: walls, shelf goods and the shopkeeper's outfit.
+// keeper: hat (cowboy | wig | cap | none), hair, shirt, front (apron, coat or tie), glasses, mustache.
+const STORE_LOOK = {
+  frontier:   { wall: "#d8ab73", line: "#c4955e", shelf: "#8a5a32", goods: ["sack", "jar", "crate", "bottle"],
+                keeper: { hat: "cowboy", hatColor: "#7a4a1e", shirt: "#3b6fe0", front: "#fbfaf6", mustache: true } },
+  law:        { wall: "#b98a5e", line: "#a57850", shelf: "#5a3a1a", goods: ["lawbooks", "scales", "lawbooks", "gavel"],
+                keeper: { hat: "wig", shirt: "#20242c", front: "#fbfaf6", glasses: true } },
+  science:    { wall: "#e6f0ee", line: "#cfe0dc", shelf: "#8f98a8", goods: ["flask", "beaker", "microscope", "flask"],
+                keeper: { hat: "none", hair: "#5a3a1a", shirt: "#fbfaf6", front: "#3ce070", glasses: true } },
+  math:       { wall: "#efe2bd", line: "#e0cf9f", shelf: "#8a5a32", goods: ["abacus", "setsquare", "compass", "scroll"],
+                keeper: { hat: "none", hair: "#8f98a8", shirt: "#1f7a4c", front: "#f5ebcc", glasses: true } },
+  literature: { wall: "#c98f6a", line: "#b57b57", shelf: "#5a3a1a", goods: ["books", "quill", "books", "scroll"],
+                keeper: { hat: "none", hair: "#a0453a", shirt: "#8e5bd6", front: "#f5ebcc", glasses: true } },
+  tech:       { wall: "#3a4252", line: "#4a5366", shelf: "#8f98a8", goods: ["monitor", "floppy", "chip", "floppy"],
+                keeper: { hat: "cap", hatColor: "#ff4d2e", hair: "#2b2f36", shirt: "#2b2f36", front: "#6b9cf0" } },
+  health:     { wall: "#eef6f3", line: "#d8e9e2", shelf: "#8fa1ad", goods: ["pills", "firstaid", "heart", "pills"],
+                keeper: { hat: "none", hair: "#2b2f36", shirt: "#5fb7a8", front: "#5fb7a8", glasses: false } },
+  business:   { wall: "#d9dde5", line: "#c6ccd8", shelf: "#5b6577", goods: ["briefcase", "coins", "chart", "coins"],
+                keeper: { hat: "none", hair: "#3a2a1a", shirt: "#2e3f5c", front: "#fbfaf6", tie: "#e5484d" } },
+};
+const storeLook = (theme) => STORE_LOOK[theme] || STORE_LOOK.frontier;
+
+function shopkeeperSVG(mood = "idle", k = STORE_LOOK.frontier.keeper) {
   const skin = "#f1c27d";
   const mouth = mood === "happy" ? px(9, 12, 2, 1, "#a0453a") : "";
+  let head = px(6, 6, 8, 7, skin) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK);
+  if (k.hat === "cowboy") head = px(6, 0, 8, 5, k.hatColor) + px(6, 3, 8, 1, "#ff4d2e") + px(3, 4, 14, 2, "#5a3a1a") + head;
+  else if (k.hat === "wig") head = px(5, 2, 10, 5, "#eceae4") + px(4, 5, 2, 9, "#eceae4") + px(14, 5, 2, 9, "#eceae4") + px(4, 8, 2, 1, "#cfcbc0") + px(14, 11, 2, 1, "#cfcbc0") + head;
+  else if (k.hat === "cap") head = px(5, 4, 10, 3, k.hair) + px(5, 2, 10, 3, k.hatColor) + px(13, 4, 5, 1, k.hatColor) + head;
+  else head = px(5, 3, 10, 4, k.hair) + px(5, 6, 1, 4, k.hair) + px(14, 6, 1, 4, k.hair) + head;
+  if (k.glasses) head += px(7, 7, 3, 3, "#cfe8f2") + px(10, 7, 3, 3, "#cfe8f2") + px(7, 7, 6, 1, INK) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK);
+  if (k.mustache) head += px(7, 10, 6, 1, "#5a3a1a") + px(7, 11, 1, 1, "#5a3a1a") + px(12, 11, 1, 1, "#5a3a1a");
+  const body = px(4, 13, 12, 9, k.shirt) + px(7, 14, 6, 9, k.front) + (k.tie ? px(9, 14, 2, 7, k.tie) : px(9, 16, 2, 1, "#e5d3ae"));
+  const arms = (mood === "happy" ? px(1, 10, 2, 6, k.shirt) + px(1, 8, 2, 2, skin) : px(2, 14, 2, 7, k.shirt) + px(2, 21, 2, 2, skin)) +
+    px(16, 14, 2, 7, k.shirt) + px(16, 21, 2, 2, skin);
   return `<svg viewBox="0 0 20 28" shape-rendering="crispEdges" aria-hidden="true">
-    ${px(6, 0, 8, 5, "#7a4a1e") + px(6, 3, 8, 1, "#ff4d2e") + px(3, 4, 14, 2, "#5a3a1a")}
-    ${px(6, 6, 8, 7, skin) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK)}
-    ${px(7, 10, 6, 1, "#5a3a1a") + px(7, 11, 1, 1, "#5a3a1a") + px(12, 11, 1, 1, "#5a3a1a") + mouth}
-    ${px(4, 13, 12, 9, "#3b6fe0") + px(7, 14, 6, 9, "#fbfaf6") + px(9, 16, 2, 1, "#e5d3ae")}
-    ${mood === "happy" ? px(1, 10, 2, 6, "#3b6fe0") + px(1, 8, 2, 2, skin) : px(2, 14, 2, 7, "#3b6fe0") + px(2, 21, 2, 2, skin)}
-    ${px(16, 14, 2, 7, "#3b6fe0") + px(16, 21, 2, 2, skin)}
+    ${head + mouth + body + arms}
     ${px(6, 23, 3, 4, "#3a2a1a") + px(11, 23, 3, 4, "#3a2a1a")}
   </svg>`;
 }
 
-// The store's inside: plank wall, shelves of goods, a counter, and the shopkeeper.
-function storeSVG(mood) {
-  let s = px(0, 0, 320, 90, "#d8ab73");
-  for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, "#c4955e");
-  [22, 46].forEach((y) => {
-    s += px(0, y, 320, 3, "#8a5a32");
-    for (let x = 8; x < 320; x += 18) {
-      const k = (x + y) % 4;
-      s += k === 0 ? px(x, y - 8, 7, 8, "#e5d3ae") + px(x + 2, y - 10, 3, 2, "#8a5a32")       // sack
-        : k === 1 ? px(x + 1, y - 9, 5, 9, "#9fd3e6") + px(x + 1, y - 10, 5, 1, "#6e4a2b")    // jar
-        : k === 2 ? px(x, y - 6, 8, 6, "#d9634a") + px(x, y - 6, 8, 1, "#a0453a")              // crate
-        : px(x + 2, y - 8, 4, 8, "#3ce070") + px(x + 3, y - 9, 2, 1, "#6e4a2b");               // bottle
-    }
+// The store's inside for this theme: wall, two shelves of goods, a counter, and the shopkeeper.
+function storeSVG(mood, theme) {
+  const look = storeLook(theme);
+  let s = px(0, 0, 320, 90, look.wall);
+  for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, look.line);
+  if (theme === "science" || theme === "health") for (let x = 0; x < 320; x += 10) s += px(x, 0, 1, 66, look.line); // tiles
+  [22, 46].forEach((y, row) => {
+    s += px(0, y, 320, 3, look.shelf);
+    for (let x = 8, i = row; x < 320; x += 18, i++) s += GOODS[look.goods[i % look.goods.length]](x, y);
   });
   s += px(0, 66, 320, 24, "#8a5a32") + px(0, 66, 320, 3, "#6e4a2b");
   s += px(196, 56, 22, 10, "#ffc94d") + px(198, 54, 18, 2, "#e0a100"); // coin pile
-  s += `<svg x="148" y="34" width="24" height="34" viewBox="0 0 20 28" shape-rendering="crispEdges">${shopkeeperSVG(mood).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg>`;
+  s += `<svg x="148" y="34" width="24" height="34" viewBox="0 0 20 28" shape-rendering="crispEdges">${shopkeeperSVG(mood, look.keeper).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg>`;
   return `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true">${s}</svg>`;
 }
 
@@ -1313,11 +1373,42 @@ const BOT = {
 };
 
 const KEEPER = {
-  welcome: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!", "Stronger oxen get you to the next landmark sooner."],
-  bought: ["Pleasure doing business!", "Fine choice, partner.", "That'll serve you well on the trail."],
+  bought: ["Pleasure doing business!", "Fine choice.", "That'll serve you well on the trail."],
   paint: "Looking sharp! Your wagon's freshly painted.",
   poor: (n) => `You'll need ${n} more coins for that. Answer a few more questions!`,
 };
+
+// Each subject gets its own store: the sign, the shopkeeper's lines, and what the upgrades are called.
+const SHOPS = {
+  frontier: { sign: "GENERAL STORE", hello: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!"],
+    earnings: ["Saddlebags", "Coins for each right answer"], streak: ["Lucky horseshoe", "Extra coins for every answer in a row"] },
+  law: { sign: "LAW BOOKSHOP", hello: ["Order in the shop! Every good case needs good supplies.", "Counsel, welcome. Shall we review the evidence... I mean, the prices?"],
+    earnings: ["Billable hours", "Coins for each right answer"], streak: ["Winning record", "Extra coins for every case won in a row"] },
+  science: { sign: "LAB SUPPLY", hello: ["Welcome to the lab! Goggles on, coins out.", "Hypothesis: you need an upgrade. Let's test it."],
+    earnings: ["Research grant", "Coins for each right answer"], streak: ["Chain reaction", "Extra coins for every answer in a row"] },
+  math: { sign: "COUNTING HOUSE", hello: ["Welcome! Everything here adds up.", "Do the math: upgrades now, faster miles later."],
+    earnings: ["Compound interest", "Coins for each right answer"], streak: ["Proof by induction", "Extra coins for every answer in a row"] },
+  literature: { sign: "BOOKSHOP", hello: ["Welcome, reader! Every journey needs a good chapter two.", "Ah, a fellow traveler of the page. Browse a while."],
+    earnings: ["Royalties", "Coins for each right answer"], streak: ["Page turner", "Extra coins for every answer in a row"] },
+  tech: { sign: "PARTS SHOP", hello: ["Welcome! Fresh hardware, fully patched.", "Running slow? Nothing a good upgrade can't fix."],
+    earnings: ["Overclock", "Coins for each right answer"], streak: ["Combo multiplier", "Extra coins for every answer in a row"] },
+  health: { sign: "PHARMACY", hello: ["Welcome in! Doctor's orders: keep studying.", "Here for a checkup? Your wagon could use one."],
+    earnings: ["Daily vitamins", "Coins for each right answer"], streak: ["Healthy habit", "Extra coins for every answer in a row"] },
+  business: { sign: "TRADING POST", hello: ["Welcome! Let's talk return on investment.", "Buy low, study high. What'll it be?"],
+    earnings: ["Dividends", "Coins for each right answer"], streak: ["Bull run", "Extra coins for every answer in a row"] },
+};
+const shopText = () => SHOPS[game.trail.theme] || SHOPS.frontier;
+const storeArt = (mood) => storeSVG(mood, game.trail.theme);
+const upgradeLabel = (u) => (shopText()[u.id] || [u.name, u.desc]);
+
+// The shopkeeper's greeting: a line for this subject, or one about the unit you're studying.
+function keeperWelcome() {
+  const unit = game.trail.units[game.unit];
+  const concept = unit && pick(unit.keyConcepts.length ? unit.keyConcepts : [unit.topic]);
+  const lines = [...shopText().hello];
+  if (unit) lines.push(`Headed for ${unit.name}? Brush up on ${concept} before you get there.`, `Studying ${unit.topic}? Smart upgrades make the miles go faster.`);
+  return pick(lines);
+}
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -1329,6 +1420,8 @@ const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
+// A wrong answer costs 1 coin on an easy question and 2 on a hard one.
+const penalty = (q) => (q.difficulty === "hard" ? 2 : 1);
 const paintColor = () => (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
 const shuffle = (list) => list.map((x) => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1503,7 +1596,8 @@ function renderQuestion(q, returning = false) {
   $("play").innerHTML = `
     <div class="card qcard">
       <div class="q-top">
-        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length} &middot; ${game.banks[game.unit].length} QUESTIONS${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        <span class="diff ${q.difficulty === "hard" ? "hard" : "easy"}" title="A wrong answer costs ${penalty(q)} coin${penalty(q) > 1 ? "s" : ""}">${q.difficulty === "hard" ? "HARD" : "EASY"} -${penalty(q)}</span>
+        <p class="q-count">UNIT ${game.unit + 1}/${units.length}<span class="q-total"> &middot; ${game.banks[game.unit].length} QUESTIONS</span>${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
       </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
@@ -1560,7 +1654,7 @@ function answer(picked) {
     botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;
-    const lost = Math.min(game.coins, Math.round(upgradeValue("earnings") / 2));
+    const lost = Math.min(game.coins, penalty(q));
     game.coins -= lost;
     game.queue.splice(2, 0, current); // see it again soon
     feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span>`;
@@ -1793,7 +1887,7 @@ function bannerRect() {
 function makeZoomer(atStore) {
   const z = document.createElement("div");
   z.className = "zoomer" + (atStore ? " store" : "");
-  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeSVG("idle")}</div>`;
+  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeArt("idle")}</div>`;
   document.querySelector(".screen").append(z);
   return z;
 }
@@ -1824,7 +1918,7 @@ function openShop() {
 
   if (reducedMotion()) {
     showStore();
-    keeperSay(pick(KEEPER.welcome));
+    keeperSay(keeperWelcome());
     $("shop-back").focus({ preventScroll: true });
     return;
   }
@@ -1843,7 +1937,7 @@ function openShop() {
   }, STORE_ZOOM_MS);
   // 3. The shopkeeper speaks once everything has settled.
   later(() => {
-    keeperSay(pick(KEEPER.welcome));
+    keeperSay(keeperWelcome());
     $("shop-back").focus({ preventScroll: true });
   }, STORE_ZOOM_MS + 320);
 }
@@ -1910,7 +2004,7 @@ function hideKeeperSpeech() {
 let keeperTimer, keeperTyping;
 function drawStore(mood) {
   $("store-scene").querySelector("svg")?.remove();
-  $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
+  $("store-scene").insertAdjacentHTML("afterbegin", storeArt(mood));
 }
 
 // The shopkeeper says something: the bubble pops in and the words type out.
@@ -1947,23 +2041,25 @@ function spend(cost) {
 }
 
 function renderShop() {
+  $("shop-title").textContent = shopText().sign;
   $("shop-coins").textContent = game.coins;
   $("shop-list").replaceChildren(...UPGRADES.map((u) => {
     const lvl = upgradeLevel(u.id);
     const maxed = lvl >= u.costs.length;
+    const [name, desc] = upgradeLabel(u);
     const el = document.createElement("div");
     el.className = "upgrade";
     el.innerHTML = `
       <div class="item-icon">${itemIcon(u.id)}</div>
       <div class="item-text">
-        <h3>${u.name}</h3>
-        <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
+        <h3>${name}</h3>
+        <p>${desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
         <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>
       </div>`;
     const buy = document.createElement("button");
     buy.className = "price" + (!maxed && game.coins < u.costs[lvl] ? " short" : "");
     buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
-    buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
+    buy.setAttribute("aria-label", maxed ? `${name} is maxed out` : `Buy ${name} for ${u.costs[lvl]} coins`);
     buy.disabled = maxed;
     buy.addEventListener("click", () => {
       if (!spend(u.costs[lvl])) return;

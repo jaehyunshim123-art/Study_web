@@ -267,7 +267,11 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .view.bare .play { margin-top: 0; min-height: 100%; display: grid; align-content: center; }
 .card { background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: clamp(12px, 2.4vw, 18px); box-shadow: 0 3px 0 var(--ink); }
 .q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 8px; }
-.q-count { font-family: var(--pixel); font-size: 9px; color: var(--muted); margin: 0; }
+.q-count { font-family: var(--pixel); font-size: 9px; line-height: 1.5; color: var(--muted); margin: 0; flex: 1; min-width: 0; }
+.diff { flex: none; font-family: var(--pixel); font-size: 8px; line-height: 1; padding: 4px 6px; border: 2px solid var(--ink); border-radius: 4px; }
+.diff.easy { background: #dff3e4; color: #146c3a; }
+@media (max-width: 420px) { .q-total { display: none; } }
+.diff.hard { background: #ffe1d9; color: #b3261e; }
 .link-btn { border: 0; background: none; padding: 4px 0; font-family: var(--pixel); font-size: 8px; color: var(--b); text-decoration: underline; text-underline-offset: 3px; }
 .q-text { font-size: clamp(16px, 2vw, 19px); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; margin: 0 0 12px; }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

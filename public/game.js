@@ -33,11 +33,42 @@ const BOT = {
 };
 
 const KEEPER = {
-  welcome: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!", "Stronger oxen get you to the next landmark sooner."],
-  bought: ["Pleasure doing business!", "Fine choice, partner.", "That'll serve you well on the trail."],
+  bought: ["Pleasure doing business!", "Fine choice.", "That'll serve you well on the trail."],
   paint: "Looking sharp! Your wagon's freshly painted.",
   poor: (n) => `You'll need ${n} more coins for that. Answer a few more questions!`,
 };
+
+// Each subject gets its own store: the sign, the shopkeeper's lines, and what the upgrades are called.
+const SHOPS = {
+  frontier: { sign: "GENERAL STORE", hello: ["Howdy, traveler! Upgrades make the trail go faster.", "Fresh stock today. Spend those coins wisely!"],
+    earnings: ["Saddlebags", "Coins for each right answer"], streak: ["Lucky horseshoe", "Extra coins for every answer in a row"] },
+  law: { sign: "LAW BOOKSHOP", hello: ["Order in the shop! Every good case needs good supplies.", "Counsel, welcome. Shall we review the evidence... I mean, the prices?"],
+    earnings: ["Billable hours", "Coins for each right answer"], streak: ["Winning record", "Extra coins for every case won in a row"] },
+  science: { sign: "LAB SUPPLY", hello: ["Welcome to the lab! Goggles on, coins out.", "Hypothesis: you need an upgrade. Let's test it."],
+    earnings: ["Research grant", "Coins for each right answer"], streak: ["Chain reaction", "Extra coins for every answer in a row"] },
+  math: { sign: "COUNTING HOUSE", hello: ["Welcome! Everything here adds up.", "Do the math: upgrades now, faster miles later."],
+    earnings: ["Compound interest", "Coins for each right answer"], streak: ["Proof by induction", "Extra coins for every answer in a row"] },
+  literature: { sign: "BOOKSHOP", hello: ["Welcome, reader! Every journey needs a good chapter two.", "Ah, a fellow traveler of the page. Browse a while."],
+    earnings: ["Royalties", "Coins for each right answer"], streak: ["Page turner", "Extra coins for every answer in a row"] },
+  tech: { sign: "PARTS SHOP", hello: ["Welcome! Fresh hardware, fully patched.", "Running slow? Nothing a good upgrade can't fix."],
+    earnings: ["Overclock", "Coins for each right answer"], streak: ["Combo multiplier", "Extra coins for every answer in a row"] },
+  health: { sign: "PHARMACY", hello: ["Welcome in! Doctor's orders: keep studying.", "Here for a checkup? Your wagon could use one."],
+    earnings: ["Daily vitamins", "Coins for each right answer"], streak: ["Healthy habit", "Extra coins for every answer in a row"] },
+  business: { sign: "TRADING POST", hello: ["Welcome! Let's talk return on investment.", "Buy low, study high. What'll it be?"],
+    earnings: ["Dividends", "Coins for each right answer"], streak: ["Bull run", "Extra coins for every answer in a row"] },
+};
+const shopText = () => SHOPS[game.trail.theme] || SHOPS.frontier;
+const storeArt = (mood) => storeSVG(mood, game.trail.theme);
+const upgradeLabel = (u) => (shopText()[u.id] || [u.name, u.desc]);
+
+// The shopkeeper's greeting: a line for this subject, or one about the unit you're studying.
+function keeperWelcome() {
+  const unit = game.trail.units[game.unit];
+  const concept = unit && pick(unit.keyConcepts.length ? unit.keyConcepts : [unit.topic]);
+  const lines = [...shopText().hello];
+  if (unit) lines.push(`Headed for ${unit.name}? Brush up on ${concept} before you get there.`, `Studying ${unit.topic}? Smart upgrades make the miles go faster.`);
+  return pick(lines);
+}
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -49,6 +80,8 @@ const pending = {};     // units being fetched
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
+// A wrong answer costs 1 coin on an easy question and 2 on a hard one.
+const penalty = (q) => (q.difficulty === "hard" ? 2 : 1);
 const paintColor = () => (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
 const shuffle = (list) => list.map((x) => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -223,7 +256,8 @@ function renderQuestion(q, returning = false) {
   $("play").innerHTML = `
     <div class="card qcard">
       <div class="q-top">
-        <p class="q-count">UNIT ${game.unit + 1} OF ${units.length} &middot; ${game.banks[game.unit].length} QUESTIONS${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
+        <span class="diff ${q.difficulty === "hard" ? "hard" : "easy"}" title="A wrong answer costs ${penalty(q)} coin${penalty(q) > 1 ? "s" : ""}">${q.difficulty === "hard" ? "HARD" : "EASY"} -${penalty(q)}</span>
+        <p class="q-count">UNIT ${game.unit + 1}/${units.length}<span class="q-total"> &middot; ${game.banks[game.unit].length} QUESTIONS</span>${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
         ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
       </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
@@ -280,7 +314,7 @@ function answer(picked) {
     botSay(pick(BOT.right) + (hintUsed ? " (Half coins for the hint.)" : ""), "happy");
   } else {
     game.streak = 0;
-    const lost = Math.min(game.coins, Math.round(upgradeValue("earnings") / 2));
+    const lost = Math.min(game.coins, penalty(q));
     game.coins -= lost;
     game.queue.splice(2, 0, current); // see it again soon
     feedback.innerHTML = `<span class="loss">${lost ? `-${lost} COINS` : "STREAK LOST"}</span>`;
@@ -513,7 +547,7 @@ function bannerRect() {
 function makeZoomer(atStore) {
   const z = document.createElement("div");
   z.className = "zoomer" + (atStore ? " store" : "");
-  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeSVG("idle")}</div>`;
+  z.innerHTML = `<div class="zoom-trail">${$("scene").innerHTML.replace(' id="wagon"', "")}</div><div class="zoom-store">${storeArt("idle")}</div>`;
   document.querySelector(".screen").append(z);
   return z;
 }
@@ -544,7 +578,7 @@ function openShop() {
 
   if (reducedMotion()) {
     showStore();
-    keeperSay(pick(KEEPER.welcome));
+    keeperSay(keeperWelcome());
     $("shop-back").focus({ preventScroll: true });
     return;
   }
@@ -563,7 +597,7 @@ function openShop() {
   }, STORE_ZOOM_MS);
   // 3. The shopkeeper speaks once everything has settled.
   later(() => {
-    keeperSay(pick(KEEPER.welcome));
+    keeperSay(keeperWelcome());
     $("shop-back").focus({ preventScroll: true });
   }, STORE_ZOOM_MS + 320);
 }
@@ -630,7 +664,7 @@ function hideKeeperSpeech() {
 let keeperTimer, keeperTyping;
 function drawStore(mood) {
   $("store-scene").querySelector("svg")?.remove();
-  $("store-scene").insertAdjacentHTML("afterbegin", storeSVG(mood));
+  $("store-scene").insertAdjacentHTML("afterbegin", storeArt(mood));
 }
 
 // The shopkeeper says something: the bubble pops in and the words type out.
@@ -667,23 +701,25 @@ function spend(cost) {
 }
 
 function renderShop() {
+  $("shop-title").textContent = shopText().sign;
   $("shop-coins").textContent = game.coins;
   $("shop-list").replaceChildren(...UPGRADES.map((u) => {
     const lvl = upgradeLevel(u.id);
     const maxed = lvl >= u.costs.length;
+    const [name, desc] = upgradeLabel(u);
     const el = document.createElement("div");
     el.className = "upgrade";
     el.innerHTML = `
       <div class="item-icon">${itemIcon(u.id)}</div>
       <div class="item-text">
-        <h3>${u.name}</h3>
-        <p>${u.desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
+        <h3>${name}</h3>
+        <p>${desc}: <b>${u.values[lvl]} ${u.unit}</b>${maxed ? "" : ` &rarr; ${u.values[lvl + 1]}`}</p>
         <div class="pips">${u.values.map((_, i) => `<i class="${i <= lvl ? "on" : ""}"></i>`).join("")}</div>
       </div>`;
     const buy = document.createElement("button");
     buy.className = "price" + (!maxed && game.coins < u.costs[lvl] ? " short" : "");
     buy.textContent = maxed ? "MAX" : `${u.costs[lvl]}`;
-    buy.setAttribute("aria-label", maxed ? `${u.name} is maxed out` : `Buy ${u.name} for ${u.costs[lvl]} coins`);
+    buy.setAttribute("aria-label", maxed ? `${name} is maxed out` : `Buy ${name} for ${u.costs[lvl]} coins`);
     buy.disabled = maxed;
     buy.addEventListener("click", () => {
       if (!spend(u.costs[lvl])) return;

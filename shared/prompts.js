@@ -44,7 +44,8 @@ For the unit you are given, first write a short lesson summary a student reads b
 a 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.
 Then write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.
 Each question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.
-Mix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.`;
+Mix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.
+Rate each question's difficulty: "easy" for recalling a fact or definition, "hard" for applying, comparing or reasoning in more than one step. Aim for roughly 60% easy and 40% hard.`;
 
 export const quizSchema = {
   type: "object",
@@ -78,8 +79,9 @@ export const quizSchema = {
           answerIndex: { type: "integer", description: "Index (0-3) of the correct choice." },
           explanation: { type: "string", description: "One sentence on why the answer is right." },
           hint: { type: "string", description: "One sentence that nudges toward the answer without giving it away." },
+          difficulty: { type: "string", enum: ["easy", "hard"], description: "easy: recall a fact or definition. hard: apply, compare or reason in more than one step." },
         },
-        required: ["question", "choices", "answerIndex", "explanation", "hint"],
+        required: ["question", "choices", "answerIndex", "explanation", "hint", "difficulty"],
         additionalProperties: false,
       },
     },
@@ -134,6 +136,6 @@ export function cleanQuiz(questions) {
       Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex < 4)
     .map((q) => {
       const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || "") };
+      return { question: q.question, choices: order.map((i) => String(q.choices[i])), answerIndex: order.indexOf(q.answerIndex), explanation: String(q.explanation || ""), hint: String(q.hint || ""), difficulty: q.difficulty === "hard" ? "hard" : "easy" };
     });
 }

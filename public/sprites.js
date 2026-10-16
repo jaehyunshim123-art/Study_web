@@ -131,37 +131,93 @@ function botSVG(mood = "idle") {
 
 // ---------- the shop ----------
 
-function shopkeeperSVG(mood = "idle") {
+// Things on the store shelves. Each draws one item sitting on a shelf whose top is at y.
+const GOODS = {
+  sack: (x, y) => px(x, y - 8, 7, 8, "#e5d3ae") + px(x + 2, y - 10, 3, 2, "#8a5a32"),
+  jar: (x, y) => px(x + 1, y - 9, 5, 9, "#9fd3e6") + px(x + 1, y - 10, 5, 1, "#6e4a2b"),
+  crate: (x, y) => px(x, y - 6, 8, 6, "#d9634a") + px(x, y - 6, 8, 1, "#a0453a"),
+  bottle: (x, y) => px(x + 2, y - 8, 4, 8, "#3ce070") + px(x + 3, y - 9, 2, 1, "#6e4a2b"),
+  books: (x, y) => px(x, y - 9, 2, 9, "#a0453a") + px(x + 2, y - 8, 2, 8, "#3b6fe0") + px(x + 4, y - 9, 2, 9, "#1f9d55") + px(x + 6, y - 7, 2, 7, "#e0a100"),
+  lawbooks: (x, y) => px(x, y - 9, 2, 9, "#7a2e2e") + px(x + 2, y - 9, 2, 9, "#2e3f5c") + px(x + 4, y - 9, 2, 9, "#7a2e2e") + px(x + 6, y - 9, 2, 9, "#2e3f5c") +
+    px(x, y - 7, 8, 1, "#e0a100"),
+  scales: (x, y) => px(x + 3, y - 9, 1, 8, "#b8860b") + px(x, y - 9, 7, 1, "#b8860b") + px(x, y - 6, 2, 1, "#e0a100") + px(x + 5, y - 6, 2, 1, "#e0a100") +
+    px(x + 1, y - 1, 5, 1, "#b8860b"),
+  gavel: (x, y) => px(x, y - 7, 6, 3, "#8a5a32") + px(x + 2, y - 4, 2, 4, "#6e4a2b") + px(x + 5, y - 1, 3, 1, "#5a3a1a"),
+  flask: (x, y) => px(x + 2, y - 10, 3, 4, "#cfe8f2") + px(x, y - 6, 7, 6, "#cfe8f2") + px(x + 1, y - 4, 5, 4, "#6b5bd6"),
+  beaker: (x, y) => px(x, y - 8, 6, 8, "#cfe8f2") + px(x + 1, y - 5, 4, 5, "#3ce070") + px(x - 1, y - 8, 1, 1, "#cfe8f2"),
+  microscope: (x, y) => px(x + 2, y - 10, 2, 6, INK) + px(x + 4, y - 7, 2, 4, "#5b6577") + px(x + 1, y - 3, 6, 1, INK) + px(x, y - 1, 8, 1, "#5b6577"),
+  abacus: (x, y) => px(x, y - 8, 8, 8, "#8a5a32") + px(x + 1, y - 7, 6, 6, "#f5ebcc") +
+    px(x + 1, y - 6, 2, 1, "#e5484d") + px(x + 4, y - 4, 2, 1, "#3b6fe0") + px(x + 2, y - 2, 2, 1, "#1f9d55"),
+  setsquare: (x, y) => px(x, y - 2, 8, 2, "#6b9cf0") + px(x, y - 4, 6, 2, "#6b9cf0") + px(x, y - 6, 4, 2, "#6b9cf0") + px(x, y - 8, 2, 2, "#6b9cf0"),
+  compass: (x, y) => px(x + 3, y - 9, 2, 2, "#5b6577") + px(x + 2, y - 7, 1, 7, "#8f98a8") + px(x + 5, y - 7, 1, 7, "#8f98a8"),
+  quill: (x, y) => px(x + 1, y - 4, 5, 4, INK) + px(x + 4, y - 10, 2, 6, "#fbfaf6") + px(x + 5, y - 11, 1, 2, "#fbfaf6"),
+  scroll: (x, y) => px(x, y - 5, 8, 4, "#f5ebcc") + px(x, y - 6, 1, 6, "#c9a27a") + px(x + 7, y - 6, 1, 6, "#c9a27a"),
+  monitor: (x, y) => px(x, y - 10, 9, 7, INK) + px(x + 1, y - 9, 7, 5, "#3ce070") + px(x + 2, y - 8, 3, 1, "#0f380f") + px(x + 3, y - 3, 3, 3, INK),
+  floppy: (x, y) => px(x, y - 7, 7, 7, "#3b6fe0") + px(x + 2, y - 7, 3, 2, "#c9cdd4") + px(x + 1, y - 3, 5, 3, "#fbfaf6"),
+  chip: (x, y) => px(x, y - 6, 8, 5, "#2b2f36") + px(x + 1, y - 7, 1, 1, "#c9cdd4") + px(x + 3, y - 7, 1, 1, "#c9cdd4") + px(x + 5, y - 7, 1, 1, "#c9cdd4") +
+    px(x + 1, y - 1, 1, 1, "#c9cdd4") + px(x + 3, y - 1, 1, 1, "#c9cdd4") + px(x + 5, y - 1, 1, 1, "#c9cdd4"),
+  pills: (x, y) => px(x + 1, y - 8, 5, 8, "#ff9f43") + px(x + 1, y - 9, 5, 1, "#fbfaf6") + px(x + 2, y - 5, 3, 2, "#fbfaf6"),
+  firstaid: (x, y) => px(x, y - 7, 8, 7, "#fbfaf6") + px(x + 3, y - 6, 2, 5, "#e5484d") + px(x + 1, y - 4, 6, 1, "#e5484d"),
+  heart: (x, y) => px(x + 1, y - 7, 2, 2, "#e5484d") + px(x + 4, y - 7, 2, 2, "#e5484d") + px(x, y - 5, 7, 2, "#e5484d") + px(x + 1, y - 3, 5, 1, "#e5484d") + px(x + 2, y - 2, 3, 1, "#e5484d"),
+  briefcase: (x, y) => px(x, y - 6, 8, 6, "#7a4a1e") + px(x + 2, y - 8, 4, 2, "#5a3a1a") + px(x + 3, y - 7, 2, 1, "#c9cdd4") + px(x, y - 4, 8, 1, "#5a3a1a"),
+  coins: (x, y) => px(x + 1, y - 6, 6, 6, "#ffc94d") + px(x + 1, y - 4, 6, 1, "#e0a100") + px(x + 1, y - 2, 6, 1, "#e0a100"),
+  chart: (x, y) => px(x, y - 9, 8, 9, "#fbfaf6") + px(x + 1, y - 3, 1, 2, "#1f9d55") + px(x + 3, y - 5, 1, 4, "#1f9d55") + px(x + 5, y - 8, 1, 7, "#1f9d55"),
+};
+
+// The store for each theme: walls, shelf goods and the shopkeeper's outfit.
+// keeper: hat (cowboy | wig | cap | none), hair, shirt, front (apron, coat or tie), glasses, mustache.
+const STORE_LOOK = {
+  frontier:   { wall: "#d8ab73", line: "#c4955e", shelf: "#8a5a32", goods: ["sack", "jar", "crate", "bottle"],
+                keeper: { hat: "cowboy", hatColor: "#7a4a1e", shirt: "#3b6fe0", front: "#fbfaf6", mustache: true } },
+  law:        { wall: "#b98a5e", line: "#a57850", shelf: "#5a3a1a", goods: ["lawbooks", "scales", "lawbooks", "gavel"],
+                keeper: { hat: "wig", shirt: "#20242c", front: "#fbfaf6", glasses: true } },
+  science:    { wall: "#e6f0ee", line: "#cfe0dc", shelf: "#8f98a8", goods: ["flask", "beaker", "microscope", "flask"],
+                keeper: { hat: "none", hair: "#5a3a1a", shirt: "#fbfaf6", front: "#3ce070", glasses: true } },
+  math:       { wall: "#efe2bd", line: "#e0cf9f", shelf: "#8a5a32", goods: ["abacus", "setsquare", "compass", "scroll"],
+                keeper: { hat: "none", hair: "#8f98a8", shirt: "#1f7a4c", front: "#f5ebcc", glasses: true } },
+  literature: { wall: "#c98f6a", line: "#b57b57", shelf: "#5a3a1a", goods: ["books", "quill", "books", "scroll"],
+                keeper: { hat: "none", hair: "#a0453a", shirt: "#8e5bd6", front: "#f5ebcc", glasses: true } },
+  tech:       { wall: "#3a4252", line: "#4a5366", shelf: "#8f98a8", goods: ["monitor", "floppy", "chip", "floppy"],
+                keeper: { hat: "cap", hatColor: "#ff4d2e", hair: "#2b2f36", shirt: "#2b2f36", front: "#6b9cf0" } },
+  health:     { wall: "#eef6f3", line: "#d8e9e2", shelf: "#8fa1ad", goods: ["pills", "firstaid", "heart", "pills"],
+                keeper: { hat: "none", hair: "#2b2f36", shirt: "#5fb7a8", front: "#5fb7a8", glasses: false } },
+  business:   { wall: "#d9dde5", line: "#c6ccd8", shelf: "#5b6577", goods: ["briefcase", "coins", "chart", "coins"],
+                keeper: { hat: "none", hair: "#3a2a1a", shirt: "#2e3f5c", front: "#fbfaf6", tie: "#e5484d" } },
+};
+const storeLook = (theme) => STORE_LOOK[theme] || STORE_LOOK.frontier;
+
+function shopkeeperSVG(mood = "idle", k = STORE_LOOK.frontier.keeper) {
   const skin = "#f1c27d";
   const mouth = mood === "happy" ? px(9, 12, 2, 1, "#a0453a") : "";
+  let head = px(6, 6, 8, 7, skin) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK);
+  if (k.hat === "cowboy") head = px(6, 0, 8, 5, k.hatColor) + px(6, 3, 8, 1, "#ff4d2e") + px(3, 4, 14, 2, "#5a3a1a") + head;
+  else if (k.hat === "wig") head = px(5, 2, 10, 5, "#eceae4") + px(4, 5, 2, 9, "#eceae4") + px(14, 5, 2, 9, "#eceae4") + px(4, 8, 2, 1, "#cfcbc0") + px(14, 11, 2, 1, "#cfcbc0") + head;
+  else if (k.hat === "cap") head = px(5, 4, 10, 3, k.hair) + px(5, 2, 10, 3, k.hatColor) + px(13, 4, 5, 1, k.hatColor) + head;
+  else head = px(5, 3, 10, 4, k.hair) + px(5, 6, 1, 4, k.hair) + px(14, 6, 1, 4, k.hair) + head;
+  if (k.glasses) head += px(7, 7, 3, 3, "#cfe8f2") + px(10, 7, 3, 3, "#cfe8f2") + px(7, 7, 6, 1, INK) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK);
+  if (k.mustache) head += px(7, 10, 6, 1, "#5a3a1a") + px(7, 11, 1, 1, "#5a3a1a") + px(12, 11, 1, 1, "#5a3a1a");
+  const body = px(4, 13, 12, 9, k.shirt) + px(7, 14, 6, 9, k.front) + (k.tie ? px(9, 14, 2, 7, k.tie) : px(9, 16, 2, 1, "#e5d3ae"));
+  const arms = (mood === "happy" ? px(1, 10, 2, 6, k.shirt) + px(1, 8, 2, 2, skin) : px(2, 14, 2, 7, k.shirt) + px(2, 21, 2, 2, skin)) +
+    px(16, 14, 2, 7, k.shirt) + px(16, 21, 2, 2, skin);
   return `<svg viewBox="0 0 20 28" shape-rendering="crispEdges" aria-hidden="true">
-    ${px(6, 0, 8, 5, "#7a4a1e") + px(6, 3, 8, 1, "#ff4d2e") + px(3, 4, 14, 2, "#5a3a1a")}
-    ${px(6, 6, 8, 7, skin) + px(8, 8, 1, 1, INK) + px(11, 8, 1, 1, INK)}
-    ${px(7, 10, 6, 1, "#5a3a1a") + px(7, 11, 1, 1, "#5a3a1a") + px(12, 11, 1, 1, "#5a3a1a") + mouth}
-    ${px(4, 13, 12, 9, "#3b6fe0") + px(7, 14, 6, 9, "#fbfaf6") + px(9, 16, 2, 1, "#e5d3ae")}
-    ${mood === "happy" ? px(1, 10, 2, 6, "#3b6fe0") + px(1, 8, 2, 2, skin) : px(2, 14, 2, 7, "#3b6fe0") + px(2, 21, 2, 2, skin)}
-    ${px(16, 14, 2, 7, "#3b6fe0") + px(16, 21, 2, 2, skin)}
+    ${head + mouth + body + arms}
     ${px(6, 23, 3, 4, "#3a2a1a") + px(11, 23, 3, 4, "#3a2a1a")}
   </svg>`;
 }
 
-// The store's inside: plank wall, shelves of goods, a counter, and the shopkeeper.
-function storeSVG(mood) {
-  let s = px(0, 0, 320, 90, "#d8ab73");
-  for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, "#c4955e");
-  [22, 46].forEach((y) => {
-    s += px(0, y, 320, 3, "#8a5a32");
-    for (let x = 8; x < 320; x += 18) {
-      const k = (x + y) % 4;
-      s += k === 0 ? px(x, y - 8, 7, 8, "#e5d3ae") + px(x + 2, y - 10, 3, 2, "#8a5a32")       // sack
-        : k === 1 ? px(x + 1, y - 9, 5, 9, "#9fd3e6") + px(x + 1, y - 10, 5, 1, "#6e4a2b")    // jar
-        : k === 2 ? px(x, y - 6, 8, 6, "#d9634a") + px(x, y - 6, 8, 1, "#a0453a")              // crate
-        : px(x + 2, y - 8, 4, 8, "#3ce070") + px(x + 3, y - 9, 2, 1, "#6e4a2b");               // bottle
-    }
+// The store's inside for this theme: wall, two shelves of goods, a counter, and the shopkeeper.
+function storeSVG(mood, theme) {
+  const look = storeLook(theme);
+  let s = px(0, 0, 320, 90, look.wall);
+  for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, look.line);
+  if (theme === "science" || theme === "health") for (let x = 0; x < 320; x += 10) s += px(x, 0, 1, 66, look.line); // tiles
+  [22, 46].forEach((y, row) => {
+    s += px(0, y, 320, 3, look.shelf);
+    for (let x = 8, i = row; x < 320; x += 18, i++) s += GOODS[look.goods[i % look.goods.length]](x, y);
   });
   s += px(0, 66, 320, 24, "#8a5a32") + px(0, 66, 320, 3, "#6e4a2b");
   s += px(196, 56, 22, 10, "#ffc94d") + px(198, 54, 18, 2, "#e0a100"); // coin pile
-  s += `<svg x="148" y="34" width="24" height="34" viewBox="0 0 20 28" shape-rendering="crispEdges">${shopkeeperSVG(mood).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg>`;
+  s += `<svg x="148" y="34" width="24" height="34" viewBox="0 0 20 28" shape-rendering="crispEdges">${shopkeeperSVG(mood, look.keeper).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg>`;
   return `<svg viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" aria-hidden="true">${s}</svg>`;
 }
 
