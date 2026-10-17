@@ -1,25 +1,32 @@
-// The machine's game menu, and two more games that quiz you on the same syllabus questions:
+// The machine's game menu, and three more games that quiz you on the same syllabus questions:
 //   QUIZ KART: four lanes, four answers. Steer into the lane of the right answer before you
 //   reach the gate. A wrong lane costs one of your 5 lives.
 //   SYLLABUS FIGHTER: a one-on-one fight. Right answers land hits on the boss; a wrong answer,
 //   or running out of time, lets the boss hit you. Knock out one boss and the next steps up.
-// Both run on an overlay that covers the machine's screen, and both use the arcade buttons:
+//   FLAPPY FACTS: flap through the gap in the wall marked with the right answer. 3 lives.
+// The menu works like an arcade's attract screen: one game at a time, with a demo of it playing
+// itself (Kart and Flappy run on autopilot), and arrows to flip to the next game.
+// Everything runs on an overlay that covers the machine's screen and uses the arcade buttons:
 // A-D (or keys 1-4 / A-D) pick an answer, the arrow keys move the joystick, Escape goes back.
 // Coins won here go into the same wallet as the trail game, so they spend in its store.
 
 const Arcade = (() => {
   const root = () => $("arcade");
-  let mode = null;     // null (closed) | "menu" | "kart" | "fight"
+  let mode = null;     // null (closed) | "menu" | "kart" | "fight" | "flap"
   let paused = false;  // hidden while the study timer is open
   let unit = null;     // the unit Quiz Kart and Syllabus Fighter quiz you on
   let stop = null;     // stops the running game's loop and timers
   let onPad = null;    // what the current screen does with arcade button i (returns true if handled)
   let onStick = null;  // what the current screen does with the joystick ("left" | "right")
+  let onKey = null;    // other keys the current screen uses (returns true if handled)
+  let pick = 0;        // the game showing on the menu
 
+  // trailer(el) plays a demo of the game in el and returns a function that stops it.
   const GAMES = [
-    { id: "trail", name: "TRAIL QUEST", desc: "Take your wagon from the first unit to the final exam." },
-    { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer. 5 lives." },
-    { id: "fight", name: "SYLLABUS FIGHTER", desc: "Answer to land hits. Miss, or run out of time, and the boss hits back." },
+    { id: "trail", name: "TRAIL QUEST", desc: "Take your wagon from the first unit to the final exam: a lesson, then questions, for every unit.", trailer: trailTrailer },
+    { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer before you reach the gate. 5 lives.", trailer: (el) => startKart(null, el), start: startKart },
+    { id: "fight", name: "SYLLABUS FIGHTER", desc: "Right answers land hits. Miss, or run out of time, and the boss hits back.", trailer: fightTrailer, start: startFight },
+    { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
   ];
 
   const best = () => (game.best ||= {});
@@ -46,7 +53,7 @@ const Arcade = (() => {
 
   function show(html) {
     if (stop) stop();
-    stop = onPad = onStick = null;
+    stop = onPad = onStick = onKey = null;
     root().innerHTML = html;
     root().scrollTop = 0;
   }
@@ -70,68 +77,97 @@ const Arcade = (() => {
     Sound.play("open");
   }
 
-  function renderMenu() {
+  // dir: -1 or 1 when flipping to the previous or next game (the screen slides that way)
+  function renderMenu(dir = 0) {
     const units = game.trail.units;
+    const g = GAMES[pick];
     const b = best();
-    const notes = {
-      trail: game.finished ? "Finished!" : `Unit ${game.unit + 1} of ${units.length}`,
-      kart: b.kart ? `Best: ${b.kart} gate${b.kart === 1 ? "" : "s"}` : "New!",
-      fight: b.fight ? `Best: ${b.fight} knockout${b.fight === 1 ? "" : "s"}` : "New!",
-    };
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const note = {
+      trail: game.finished ? "FINISHED!" : `UNIT ${game.unit + 1} OF ${units.length}`,
+      kart: b.kart ? `BEST: ${plural(b.kart, "GATE")}` : "NEW!",
+      fight: b.fight ? `BEST: ${plural(b.fight, "KNOCKOUT")}` : "NEW!",
+      flap: b.flap ? `BEST: ${plural(b.flap, "WALL")}` : "NEW!",
+    }[g.id];
+    const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
       <div class="arc-menu">
         <div class="hud">
           <button class="hud-btn" data-act="exit" aria-label="Exit to the arcade">&lt;<span class="lbl"> EXIT</span></button>
+          <p class="arc-head">SELECT GAME</p>
           <div class="hud-stat"><span class="k">COINS</span><span class="v">${game.coins}</span></div>
         </div>
         <div class="arc-body">
-        <h2 class="arc-title">SELECT GAME</h2>
-        <p class="arc-course">${escapeHTML(game.trail.courseTitle)}</p>
-        <div class="arc-games">
-          ${GAMES.map((g, i) => `
-            <button class="arc-game" data-pad="${i}" data-game="${g.id}">
-              <span class="arc-key">${"ABC"[i]}</span>
-              <span class="arc-icon">${gameIcon(g.id)}</span>
-              <span class="arc-name">${g.name}</span>
-              <span class="arc-desc">${g.desc}</span>
-              <span class="arc-note">${notes[g.id]}</span>
-            </button>`).join("")}
-        </div>
-        <div class="arc-unit">
-          <p class="arc-unit-label">QUIZ KART + FIGHTER QUESTIONS FROM</p>
-          <div class="arc-unit-row">
-            <button class="hud-btn" data-act="prev" aria-label="Previous unit" ${unit === 0 ? "disabled" : ""}>&lt;</button>
-            <span class="arc-unit-name">${escapeHTML(units[unit].topic)}</span>
-            <button class="hud-btn" data-act="next" aria-label="Next unit" ${unit === units.length - 1 ? "disabled" : ""}>&gt;</button>
+          <div class="arc-stage">
+            <button class="arc-arrow prev" data-act="left" aria-label="Previous game">${arrow}</button>
+            <div class="arc-screen ${dir > 0 ? "from-right" : dir < 0 ? "from-left" : ""}">
+              <div class="trailer" id="trailer" aria-hidden="true"></div>
+              <span class="trailer-tag">DEMO</span>
+              <span class="trailer-count">${pick + 1}/${GAMES.length}</span>
+            </div>
+            <button class="arc-arrow next" data-act="right" aria-label="Next game">${arrow}</button>
           </div>
-        </div>
+          <div class="arc-info ${dir ? "fade" : ""}" aria-live="polite">
+            <h2 class="arc-name">${g.name}</h2>
+            <p class="arc-desc">${g.desc}</p>
+            <p class="arc-note">${note}</p>
+          </div>
+          <div class="arc-dots">${GAMES.map((x, i) => `<button class="arc-dot ${i === pick ? "on" : ""}" data-dot="${i}" aria-label="${x.name}" ${i === pick ? 'aria-current="true"' : ""}></button>`).join("")}</div>
+          <button class="btn-next arc-play" data-pad="0">PRESS<span class="hint" aria-hidden="true">A</span>TO PLAY</button>
+          ${g.id === "trail" ? "" : `
+          <div class="arc-unit">
+            <p class="arc-unit-label">QUESTIONS FROM</p>
+            <div class="arc-unit-row">
+              <button class="hud-btn" data-act="prev" aria-label="Previous unit" ${unit === 0 ? "disabled" : ""}>&lt;</button>
+              <span class="arc-unit-name">${escapeHTML(units[unit].topic)}</span>
+              <button class="hud-btn" data-act="next" aria-label="Next unit" ${unit === units.length - 1 ? "disabled" : ""}>&gt;</button>
+            </div>
+          </div>`}
         </div>
       </div>`);
-    const pickGame = (id) => (id === "trail" ? playTrail() : loadThen(id === "kart" ? startKart : startFight, id));
-    root().querySelectorAll(".arc-game").forEach((b) => b.addEventListener("click", () => pickGame(b.dataset.game)));
-    root().querySelector("[data-act=exit]").addEventListener("click", () => exitGame());
+    const flip = (d) => {
+      pick = (pick + d + GAMES.length) % GAMES.length;
+      Sound.play("blip");
+      renderMenu(d);
+    };
     const step = (d) => {
       const next = Math.max(0, Math.min(units.length - 1, unit + d));
-      if (next === unit) return;
+      if (next === unit || g.id === "trail") return;
       unit = next;
       Sound.play("step");
       renderMenu();
     };
-    root().querySelector("[data-act=prev]").addEventListener("click", () => step(-1));
-    root().querySelector("[data-act=next]").addEventListener("click", () => step(1));
-    onPad = (i) => { if (i < 3) pickGame(GAMES[i].id); return true; };
-    onStick = (dir) => step(dir === "left" ? -1 : 1);
+    const play = () => {
+      Sound.play("coin");
+      if (g.id === "trail") return playTrail();
+      loadThen(g.start, g.id);
+    };
+    root().querySelector("[data-act=exit]").addEventListener("click", () => exitGame());
+    root().querySelector("[data-act=left]").addEventListener("click", () => flip(-1));
+    root().querySelector("[data-act=right]").addEventListener("click", () => flip(1));
+    root().querySelectorAll("[data-dot]").forEach((d) => d.addEventListener("click", () => {
+      const i = Number(d.dataset.dot);
+      if (i !== pick) { const dirn = i > pick ? 1 : -1; pick = i; Sound.play("blip"); renderMenu(dirn); }
+    }));
+    root().querySelector("[data-act=prev]")?.addEventListener("click", () => step(-1));
+    root().querySelector("[data-act=next]")?.addEventListener("click", () => step(1));
+    root().querySelector(".arc-play").addEventListener("click", play);
+    onPad = (i) => { if (i === 0) play(); return true; };
+    onStick = (dir) => flip(dir === "left" ? -1 : 1);
+    onKey = (key) => {
+      if (key === "ArrowUp" || key === "ArrowDown") { step(key === "ArrowUp" ? -1 : 1); return true; }
+      return false;
+    };
+    stop = g.trailer($("trailer"));
   }
 
   function playTrail() {
-    Sound.play("blip");
     close();
     startGame();
   }
 
   // Make sure the chosen unit has questions (the AI writes them the first time), then start.
   async function loadThen(start, id) {
-    Sound.play("blip");
     const u = unit;
     if (!game.banks[u]?.length) {
       mode = id;
@@ -152,7 +188,7 @@ const Arcade = (() => {
     }
     fillBank(u);
     mode = id;
-    start(u);
+    stop = start(u);
   }
 
   // Buttons marked data-pad="i" are pressed by arcade button i too.
@@ -167,12 +203,18 @@ const Arcade = (() => {
 
   function close() {
     if (stop) stop();
-    stop = onPad = onStick = null;
+    stop = onPad = onStick = onKey = null;
     mode = null;
     paused = false;
     root().hidden = true;
     root().innerHTML = "";
     $("views").inert = false;
+  }
+
+  // A row of pixel hearts: n full out of max.
+  function heartsHTML(n, max) {
+    const heart = px(1, 0, 2, 1, "#e5484d") + px(4, 0, 2, 1, "#e5484d") + px(0, 1, 7, 2, "#e5484d") + px(1, 3, 5, 1, "#e5484d") + px(2, 4, 3, 1, "#e5484d") + px(3, 5, 1, 1, "#e5484d") + px(1, 1, 1, 1, "#fff");
+    return Array.from({ length: max }, (_, i) => `<svg class="heart ${i < n ? "" : "lost"}" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true">${heart}</svg>`).join("");
   }
 
   // ---------- QUIZ KART ----------
@@ -181,8 +223,11 @@ const Arcade = (() => {
   const SPAWN = 30;  // how far away (in road units) each gate appears
   const SEG = 0.7;   // length of one road stripe
 
-  function startKart(u) {
-    const deck = makeDeck(u);
+  // demo: an element to play a silent, self-driving demo in (for the menu). Returns a stop function.
+  function startKart(u, demo = null) {
+    const ui = !demo;
+    const sfx = (name) => { if (ui) Sound.play(name); };
+    const deck = ui ? makeDeck(u) : null;
     const look = themeLook(game.trail.theme);
     const paint = (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
     const k = {
@@ -192,7 +237,8 @@ const Arcade = (() => {
       color: paint === PAINTS[0].color ? "#ff4d2e" : paint,
     };
 
-    show(`
+    if (demo) demo.innerHTML = "<canvas></canvas>";
+    else show(`
       <div class="kart">
         <div class="arc-bar">
           <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
@@ -206,12 +252,13 @@ const Arcade = (() => {
           <div class="k-card" id="k-card"></div>
         </div>
       </div>`);
-    root().querySelector("[data-act=menu]").addEventListener("click", openMenu);
-    const canvas = $("k-canvas");
+    if (ui) root().querySelector("[data-act=menu]").addEventListener("click", openMenu);
+    const box = demo || $("k-road");
+    const canvas = box.querySelector("canvas");
     const ctx = canvas.getContext("2d");
 
     const fit = () => {
-      const r = $("k-road").getBoundingClientRect();
+      const r = box.getBoundingClientRect();
       if (!r.width || !r.height) return;
       k.W = 320;
       k.H = Math.max(150, Math.min(420, Math.round((320 * r.height) / r.width)));
@@ -220,19 +267,20 @@ const Arcade = (() => {
       ctx.imageSmoothingEnabled = false;
     };
     const resize = new ResizeObserver(fit);
-    resize.observe($("k-road"));
+    resize.observe(box);
     fit();
     document.fonts?.load('8px "Press Start 2P"').catch(() => {});
 
     const renderLives = () => {
-      const heart = px(1, 0, 2, 1, "#e5484d") + px(4, 0, 2, 1, "#e5484d") + px(0, 1, 7, 2, "#e5484d") + px(1, 3, 5, 1, "#e5484d") + px(2, 4, 3, 1, "#e5484d") + px(3, 5, 1, 1, "#e5484d") + px(1, 1, 1, 1, "#fff");
-      $("k-lives").innerHTML = Array.from({ length: 5 }, (_, i) => `<svg class="heart ${i < k.lives ? "" : "lost"}" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true">${heart}</svg>`).join("");
+      if (!ui) return;
+      $("k-lives").innerHTML = heartsHTML(k.lives, 5);
       $("k-lives").setAttribute("aria-label", `${k.lives} of 5 lives left`);
     };
     renderLives();
 
     // the question and the four lanes' answers
     const renderQuestion = (result) => {
+      if (!ui) return;
       const q = k.q;
       if (!q) { $("k-q").innerHTML = ""; return; }
       $("k-q").innerHTML = `
@@ -247,19 +295,19 @@ const Arcade = (() => {
       $("k-q").querySelectorAll(".k-choice").forEach((b) => b.addEventListener("click", () => steer(Number(b.dataset.i))));
     };
 
-    const markLane = () => $("k-q").querySelectorAll(".k-choice").forEach((b, i) => b.classList.toggle("on", i === k.lane));
+    const markLane = () => ui && $("k-q").querySelectorAll(".k-choice").forEach((b, i) => b.classList.toggle("on", i === k.lane));
 
     function steer(lane) {
       if (k.phase !== "drive" && k.phase !== "count") return;
       lane = Math.max(0, Math.min(3, lane));
       if (lane === k.lane) return;
       k.lane = lane;
-      Sound.play("step");
+      sfx("step");
       if (k.gate && !k.gate.judged) markLane();
       canvas.setAttribute("aria-label", `The race track. Your kart is in lane ${"ABCD"[lane]}.`);
     }
 
-    canvas.addEventListener("pointerdown", (e) => {
+    if (ui) canvas.addEventListener("pointerdown", (e) => {
       const r = canvas.getBoundingClientRect();
       steer(k.lane + (e.clientX - r.left < r.width / 2 ? -1 : 1));
     });
@@ -293,7 +341,14 @@ const Arcade = (() => {
     }
 
     function spawnGate() {
-      k.q = deck.next();
+      if (ui) k.q = deck.next();
+      else {
+        // the demo driver usually picks the right lane, partway down the road
+        const answerIndex = Math.floor(Math.random() * 4);
+        k.q = { answerIndex };
+        k.aim = Math.random() < 0.8 ? answerIndex : (answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+        k.aimAt = 0.25 + Math.random() * 0.4;
+      }
       const seconds = Math.max(5, 11 - k.gates * 0.3); // gates come faster as you go
       k.speed = (SPAWN - 1) / seconds;
       k.gate = { z: k.pos + SPAWN, judged: false };
@@ -309,25 +364,27 @@ const Arcade = (() => {
         k.gates++;
         k.streak++;
         k.coins += coins;
-        earn(coins);
+        if (ui) earn(coins);
         k.flash = 1; k.flashColor = "31,157,85";
         popText(`+${coins} COINS`, "good");
-        Sound.play("right");
-        setTimeout(() => Sound.play("coindrop"), 200);
+        sfx("right");
+        setTimeout(() => sfx("coindrop"), 200);
         k.wait = 1;
       } else {
-        k.lives--;
+        if (ui) k.lives--;
         k.misses++;
         k.streak = 0;
         k.shake = 0.6; k.flash = 1; k.flashColor = "217,58,58"; k.spin = 1; k.slow = 1.2;
-        deck.again(q);
+        if (ui) deck.again(q);
         popText("-1 LIFE", "bad");
-        Sound.play("crash");
+        sfx("crash");
         renderLives();
         k.wait = k.lives ? 2.6 : 1.6;
       }
-      $("k-gates").textContent = k.gates;
-      $("k-coins").textContent = `+${k.coins}`;
+      if (ui) {
+        $("k-gates").textContent = k.gates;
+        $("k-coins").textContent = `+${k.coins}`;
+      }
       renderQuestion({ right, lane: k.lane });
       k.phase = "result";
     }
@@ -358,7 +415,7 @@ const Arcade = (() => {
       const pop = document.createElement("div");
       pop.className = `k-pop ${kind}`;
       pop.textContent = text;
-      $("k-road").append(pop);
+      box.append(pop);
       setTimeout(() => pop.remove(), 1100);
     }
 
@@ -377,15 +434,16 @@ const Arcade = (() => {
       if (k.phase === "count") {
         const before = Math.ceil(k.count);
         k.count -= dt;
-        if (Math.ceil(k.count) !== before && k.count > 0) Sound.play("press");
+        if (Math.ceil(k.count) !== before && k.count > 0) sfx("press");
         if (k.count <= 0) {
           k.phase = "drive";
-          Sound.play("go");
+          sfx("go");
           spawnGate();
         }
       } else if (k.phase === "drive" && k.gate) {
         const dz = k.gate.z - k.pos;
-        const bar = $("k-dist");
+        if (!ui && (SPAWN - dz) / SPAWN > k.aimAt) steer(k.aim);
+        const bar = ui && $("k-dist");
         if (bar) bar.style.width = `${Math.min(100, (100 * (SPAWN - dz)) / (SPAWN - 1))}%`;
         if (dz <= 1) judge();
       } else if (k.phase === "result") {
@@ -561,9 +619,14 @@ const Arcade = (() => {
     };
     raf = requestAnimationFrame(frame);
 
-    intro();
-    onStick = (dir) => steer(k.lane + (dir === "left" ? -1 : 1));
-    stop = () => {
+    if (ui) {
+      intro();
+      onStick = (dir) => steer(k.lane + (dir === "left" ? -1 : 1));
+    } else {
+      k.phase = "drive";
+      spawnGate();
+    }
+    return () => {
       cancelAnimationFrame(raf);
       resize.disconnect();
     };
@@ -612,8 +675,13 @@ const Arcade = (() => {
     return s;
   }
 
+  // Where each fighter stands (left edge) and where hits land on them. The menu's demo stands
+  // them closer together so both fit on a narrow screen.
+  const STANCE = { me: 82, them: 200, hitMe: 104, hitThem: 214 };
+  const STANCE_NEAR = { me: 108, them: 174, hitMe: 127, hitThem: 193 };
+
   // The whole fight scene as one SVG: the stage, both fighters, and a layer for hit effects.
-  function stageSVG(boss) {
+  function stageSVG(boss, at = STANCE) {
     const look = themeLook(game.trail.theme);
     let s = px(0, 0, 320, 90, look.sky) + px(262, 22, 12, 12, "#ffc94d");
     s += BACKDROPS[look.backdrop](look);
@@ -625,8 +693,37 @@ const Arcade = (() => {
           <g ${flip ? 'transform="translate(28 0) scale(-1 1)"' : ""}><g class="ft-art">${fighterArt(f, "idle")}</g></g>
         </svg>
       </g>`;
-    s += fighter("me", PLAYER, 82, false) + fighter("them", boss, 200, true);
-    return `<svg class="f-svg" viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="You against ${boss.name}">${s}<g id="f-fx"></g></svg>`;
+    s += fighter("me", PLAYER, at.me, false) + fighter("them", boss, at.them, true);
+    return `<svg class="f-svg ${at === STANCE_NEAR ? "near" : ""}" viewBox="0 0 320 90" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" role="img" aria-label="You against ${boss.name}">${s}<g id="f-fx"></g></svg>`;
+  }
+
+  // move: "attack" (lunge and punch) | "hurt" | "ko" | "" (back to idle). later(fn, ms) schedules
+  // the punch frames so the caller can cancel them.
+  function fighterMove(who, move, data, later) {
+    const g = $(`f-${who}`);
+    if (!g) return;
+    const art = g.querySelector(".ft-art");
+    g.classList.remove("attack", "hurt", "ko");
+    g.getBoundingClientRect(); // restart the animation
+    if (move) g.classList.add(move);
+    if (move === "attack") {
+      later(() => (art.innerHTML = fighterArt(data, "punch")), 140);
+      later(() => (art.innerHTML = fighterArt(data, "idle")), 420);
+    } else {
+      art.innerHTML = fighterArt(data, "idle");
+    }
+  }
+
+  // A hit spark with a number (or COMBO!) over the fighter at x.
+  function hitFx(text, x, kind, later) {
+    const layer = $("f-fx");
+    if (!layer) return;
+    const star = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    star.setAttribute("class", `f-hit ${kind}`);
+    star.innerHTML = `${px(x - 7, 36, 14, 2, "#ffd23f")}${px(x - 1, 30, 2, 14, "#ffd23f")}${px(x - 3, 34, 6, 6, "#fff")}
+      <text x="${x}" y="52" text-anchor="middle">${text}</text>`;
+    layer.append(star);
+    later(() => star.remove(), 900);
   }
 
   function startFight(u) {
@@ -670,34 +767,8 @@ const Arcade = (() => {
     const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
     const timers = [];
 
-    // move: "attack" (lunge and punch) | "hurt" | "ko" | "" (back to idle)
-    function act(who, move) {
-      const g = $(`f-${who}`);
-      if (!g) return;
-      const art = g.querySelector(".ft-art");
-      const data = who === "me" ? PLAYER : boss;
-      g.classList.remove("attack", "hurt", "ko");
-      g.getBoundingClientRect(); // restart the animation
-      if (move) g.classList.add(move);
-      if (move === "attack") {
-        later(() => (art.innerHTML = fighterArt(data, "punch")), 140);
-        later(() => (art.innerHTML = fighterArt(data, "idle")), 420);
-      } else {
-        art.innerHTML = fighterArt(data, "idle");
-      }
-    }
-
-    function fx(text, x, kind) {
-      const layer = $("f-fx");
-      if (!layer) return;
-      const NS = "http://www.w3.org/2000/svg";
-      const star = document.createElementNS(NS, "g");
-      star.setAttribute("class", `f-hit ${kind}`);
-      star.innerHTML = `${px(x - 7, 36, 14, 2, "#ffd23f")}${px(x - 1, 30, 2, 14, "#ffd23f")}${px(x - 3, 34, 6, 6, "#fff")}
-        <text x="${x}" y="52" text-anchor="middle">${text}</text>`;
-      layer.append(star);
-      later(() => star.remove(), 900);
-    }
+    const act = (who, move) => fighterMove(who, move, who === "me" ? PLAYER : boss, later);
+    const fx = (text, x, kind) => hitFx(text, x, kind, later);
 
     function intro() {
       setQ(`<div class="message">
@@ -759,7 +830,7 @@ const Arcade = (() => {
         act("me", "attack");
         later(() => {
           act("them", "hurt");
-          fx(f.combo >= 3 ? "COMBO!" : `-${dmg}`, 214, "good");
+          fx(f.combo >= 3 ? "COMBO!" : `-${dmg}`, STANCE.hitThem, "good");
           Sound.play("punch");
           bars();
         }, 220);
@@ -774,7 +845,7 @@ const Arcade = (() => {
         act("them", "attack");
         later(() => {
           act("me", "hurt");
-          fx(`-${dmg}`, 104, "bad");
+          fx(`-${dmg}`, STANCE.hitMe, "bad");
           Sound.play("punch");
           later(() => Sound.play("wrong"), 120);
           bars();
@@ -837,32 +908,491 @@ const Arcade = (() => {
           <div><b>${best().fight || 0}</b><span>best</span></div>
         </div>
         <button class="btn-next" data-pad="0">FIGHT AGAIN<span class="hint" aria-hidden="true">A</span></button>
-        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: () => { if (mode === "fight") startFight(u); }, 1: openMenu });
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: () => { if (mode === "fight") stop = startFight(u); }, 1: openMenu });
     }
 
     intro();
-    stop = () => {
+    return () => {
       clearInterval(timer);
       timers.forEach(clearTimeout);
     };
   }
 
-  // ---------- menu icons ----------
+  // ---------- FLAPPY FACTS ----------
 
-  function gameIcon(id) {
-    if (id === "trail") return `<svg viewBox="-16 42 40 28" shape-rendering="crispEdges" aria-hidden="true">${wagonSprite(paintColor())}</svg>`;
-    if (id === "kart") {
-      const c = "#ff4d2e";
-      return `<svg viewBox="0 0 40 28" shape-rendering="crispEdges" aria-hidden="true">
-        ${px(0, 24, 40, 4, "#6b7280") + px(4, 25, 6, 1, "#e9ecef") + px(18, 25, 6, 1, "#e9ecef") + px(32, 25, 6, 1, "#e9ecef")}
-        ${px(1, 15, 8, 9, INK) + px(31, 15, 8, 9, INK) + px(6, 10, 28, 9, c) + px(14, 14, 12, 4, INK) + px(4, 7, 32, 3, INK)}
-        ${px(15, 0, 10, 9, "#fbfaf6") + px(16, 3, 8, 3, INK) + px(15, 0, 10, 2, c)}
-      </svg>`;
+  const WALL_W = 26;
+
+  // demo: an element to play a silent, self-flying demo in (for the menu). Returns a stop function.
+  function startFlap(u, demo = null) {
+    const ui = !demo;
+    const sfx = (name) => { if (ui) Sound.play(name); };
+    const deck = ui ? makeDeck(u) : null;
+    const look = themeLook(game.trail.theme);
+    const b = {
+      phase: "intro", lives: 3, walls: 0, misses: 0, coins: 0, y: 100, vy: 0, list: [], q: null, next: 0,
+      scroll: 0, shake: 0, flash: 0, flashColor: "", blink: 0, t: 0, W: 320, H: 240,
+    };
+
+    if (demo) demo.innerHTML = "<canvas></canvas>";
+    else show(`
+      <div class="kart flap">
+        <div class="arc-bar">
+          <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
+          <div class="lives" id="k-lives"></div>
+          <div class="hud-stat"><span class="k">WALLS</span><span class="v" id="k-gates">0</span></div>
+          <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
+        </div>
+        <div class="k-q" id="k-q"></div>
+        <div class="k-road" id="k-road">
+          <canvas aria-label="Your bird and the wall of answers. Tap or press any button to flap."></canvas>
+          <div class="k-card" id="k-card"></div>
+        </div>
+      </div>`);
+    if (ui) root().querySelector("[data-act=menu]").addEventListener("click", openMenu);
+    const box = demo || $("k-road");
+    const canvas = box.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Always 240 pixels tall (so the gaps keep their size); as wide as the screen's shape allows.
+    const fit = () => {
+      const r = box.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      b.H = 240;
+      b.W = Math.max(180, Math.min(720, Math.round((240 * r.width) / r.height)));
+      canvas.width = b.W;
+      canvas.height = b.H;
+      ctx.imageSmoothingEnabled = false;
+    };
+    const resize = new ResizeObserver(fit);
+    resize.observe(box);
+    fit();
+
+    // The play area, and the wall's four gaps (A-D from top to bottom), in canvas pixels.
+    const groundY = () => Math.round(b.H * 0.88);
+    const birdX = () => Math.round(b.W * 0.26);
+    const gaps = () => {
+      const playH = groundY();
+      const gapH = playH * 0.17;
+      const solid = (playH - 4 * gapH) / 5;
+      return [0, 1, 2, 3].map((i) => ({ top: solid * (i + 1) + gapH * i, bottom: solid * (i + 1) + gapH * (i + 1) }));
+    };
+    // a wall takes about 8 seconds to reach the bird, a little less after each one you clear
+    const speed = () => ((b.W - birdX()) / 8) * (1 + Math.min(0.8, b.walls * 0.05));
+    const active = () => b.list.find((w) => !w.judged);
+
+    const renderLives = () => {
+      if (!ui) return;
+      $("k-lives").innerHTML = heartsHTML(b.lives, 3);
+      $("k-lives").setAttribute("aria-label", `${b.lives} of 3 lives left`);
+    };
+    renderLives();
+
+    // gap: the one the bird went through (-1: it crashed)
+    const renderQuestion = (result) => {
+      if (!ui) return;
+      const q = b.q;
+      if (!q) { $("k-q").innerHTML = ""; return; }
+      $("k-q").innerHTML = `
+        <p class="k-qtext">${escapeHTML(q.question)}</p>
+        <div class="k-choices">${q.choices.map((c, i) => {
+          const cls = !result ? "" : i === q.answerIndex ? " right" : i === result.gap ? " wrong" : " dim";
+          return `<div class="k-choice${cls}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></div>`;
+        }).join("")}</div>
+        ${result && !result.right && q.explanation ? `<p class="k-why">${result.gap < 0 ? "Crashed! " : ""}${escapeHTML(q.explanation)}</p>` : ""}`;
+    };
+
+    const card = (html, buttons) => {
+      $("k-card").innerHTML = html;
+      $("k-card").hidden = false;
+      wireButtons(buttons);
+    };
+
+    function popText(text, kind) {
+      const pop = document.createElement("div");
+      pop.className = `k-pop ${kind}`;
+      pop.textContent = text;
+      box.append(pop);
+      setTimeout(() => pop.remove(), 1100);
     }
-    return `<svg viewBox="0 -3 56 39" shape-rendering="crispEdges" aria-hidden="true">
-      ${fighterArt(PLAYER, "punch")}
-      <g transform="translate(56 0) scale(-1 1)">${fighterArt(BOSSES[game.trail.theme] || BOSSES.frontier, "idle")}</g>
-    </svg>`;
+
+    function intro() {
+      b.phase = "intro";
+      card(`<div class="card message">
+        <h2>FLAPPY FACTS</h2>
+        <p>A wall with four gaps (A, B, C, D) is coming. Flap through the gap with the right answer.
+        Tap the screen, press any arcade button, or Space to flap. A wrong gap, the wall or the ground costs a life. You have 3.</p>
+        <button class="btn-next" data-pad="0">START<span class="hint" aria-hidden="true">A</span></button>
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: ready, 1: openMenu });
+    }
+
+    function ready() {
+      $("k-card").hidden = true;
+      Object.assign(b, { phase: "ready", lives: 3, walls: 0, misses: 0, coins: 0, list: [], q: null, next: 0, blink: 0 });
+      renderLives();
+      $("k-gates").textContent = "0";
+      $("k-coins").textContent = "+0";
+      renderQuestion();
+      onPad = () => { flap(); return true; };
+      sfx("press");
+    }
+
+    function flap() {
+      if (b.phase === "ready") {
+        b.phase = "fly";
+        spawnWall();
+      }
+      if (b.phase !== "fly") return;
+      b.vy = -120;
+      sfx("flap");
+    }
+
+    function spawnWall() {
+      const wall = { x: b.W + 4, judged: false, gap: -1 };
+      if (ui) b.q = deck.next();
+      else {
+        // the demo bird usually heads for the right gap
+        const answerIndex = Math.floor(Math.random() * 4);
+        b.q = { answerIndex };
+        wall.aim = Math.random() < 0.8 ? answerIndex : (answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+      }
+      wall.q = b.q;
+      b.list.push(wall);
+      renderQuestion();
+    }
+
+    function judge(wall) {
+      wall.judged = true;
+      const q = wall.q;
+      const right = wall.gap === q.answerIndex;
+      if (right) {
+        const coins = q.difficulty === "hard" ? 10 : 5;
+        b.walls++;
+        b.coins += coins;
+        if (ui) earn(coins);
+        b.flash = 1; b.flashColor = "31,157,85";
+        popText(`+${coins} COINS`, "good");
+        sfx("right");
+        setTimeout(() => sfx("coindrop"), 200);
+        b.next = 1.2;
+      } else {
+        loseLife(q);
+        popText("WRONG GAP! -1 LIFE", "bad");
+        sfx("wrong");
+        b.next = 2.4;
+      }
+      updateStats();
+      renderQuestion({ right, gap: wall.gap });
+      if (!b.lives) b.phase = "dead";
+    }
+
+    // Hit the wall or the ground: back to the middle, and the question counts as missed.
+    function crash() {
+      const wall = active();
+      if (wall) {
+        wall.judged = true;
+        b.list = b.list.filter((w) => w !== wall);
+        renderQuestion({ right: false, gap: -1 });
+      }
+      loseLife(wall?.q);
+      popText("CRASH! -1 LIFE", "bad");
+      sfx("crash");
+      b.shake = 0.5;
+      b.blink = 1.6;
+      b.y = groundY() * 0.45;
+      b.vy = 0;
+      b.next = 2.4;
+      updateStats();
+      b.phase = b.lives ? "hover" : "dead";
+    }
+
+    function loseLife(q) {
+      if (ui) b.lives--;
+      b.misses++;
+      b.flash = 1; b.flashColor = "217,58,58";
+      if (ui && q) deck.again(q);
+      renderLives();
+    }
+
+    function updateStats() {
+      if (!ui) return;
+      $("k-gates").textContent = b.walls;
+      $("k-coins").textContent = `+${b.coins}`;
+    }
+
+    function gameOver() {
+      b.phase = "over";
+      b.q = null;
+      const record = b.walls > (best().flap || 0);
+      if (record) best().flap = b.walls;
+      persistGame();
+      renderQuestion();
+      sfx("lose");
+      const tries = b.walls + b.misses;
+      card(`<div class="card message">
+        <h2>${record && b.walls ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <div class="stats">
+          <div><b>${b.walls}</b><span>walls cleared</span></div>
+          <div><b>${tries ? Math.round((100 * b.walls) / tries) : 0}%</b><span>accuracy</span></div>
+          <div><b>+${b.coins}</b><span>coins won</span></div>
+          <div><b>${best().flap || 0}</b><span>best</span></div>
+        </div>
+        <button class="btn-next" data-pad="0">FLY AGAIN<span class="hint" aria-hidden="true">A</span></button>
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: ready, 1: openMenu });
+    }
+
+    function update(dt) {
+      b.t += dt;
+      b.shake = Math.max(0, b.shake - dt);
+      b.flash = Math.max(0, b.flash - dt * 2.2);
+      b.blink = Math.max(0, b.blink - dt);
+      if (b.phase !== "over") b.scroll += speed() * dt;
+      for (const w of b.list) w.x -= speed() * dt;
+      b.list = b.list.filter((w) => w.x + WALL_W > -8);
+
+      if (b.phase === "intro" || b.phase === "ready" || b.phase === "hover") {
+        // hover in the middle until it's time to fly
+        b.y = groundY() * 0.45 + Math.sin(b.t * 4) * 4;
+        b.vy = 0;
+        if (b.phase === "hover") {
+          b.next -= dt;
+          if (b.next <= 0) {
+            b.phase = "fly";
+            if (!active()) spawnWall();
+            b.vy = -90;
+          }
+        }
+        return;
+      }
+      if (b.phase === "dead") {
+        b.next -= dt;
+        b.vy = Math.min(240, b.vy + 430 * dt);
+        b.y = Math.min(groundY() - 5, b.y + b.vy * dt);
+        if (b.next <= 1.2) gameOver();
+        return;
+      }
+      if (b.phase !== "fly") return;
+
+      // the demo bird flaps toward the middle of the gap it's aiming for
+      const wall = active();
+      if (!ui) {
+        const g = wall ? gaps()[wall.aim] : null;
+        const target = g ? (g.top + g.bottom) / 2 : groundY() * 0.45;
+        if (b.y > target + 6 && b.vy > -30) flap();
+      }
+
+      b.vy = Math.min(240, b.vy + 430 * dt);
+      b.y += b.vy * dt;
+      if (b.y < 5) { b.y = 5; b.vy = 0; }
+      if (b.y + 5 >= groundY()) return crash();
+
+      if (wall) {
+        const bx = birdX();
+        if (bx + 4 > wall.x && bx - 4 < wall.x + WALL_W) {
+          const gap = gaps().findIndex((g) => b.y - 4 >= g.top && b.y + 4 <= g.bottom);
+          if (gap < 0) return crash();
+          wall.gap = gap;
+        } else if (bx - 4 >= wall.x + WALL_W) {
+          judge(wall);
+        }
+      } else {
+        b.next -= dt;
+        if (b.next <= 0) spawnWall();
+      }
+    }
+
+    // ---- drawing ----
+
+    function draw() {
+      const { W, H } = b;
+      const gy = groundY();
+      ctx.save();
+      if (b.shake) ctx.translate(Math.round((Math.random() - 0.5) * 8 * b.shake), Math.round((Math.random() - 0.5) * 6 * b.shake));
+      ctx.fillStyle = look.sky; ctx.fillRect(-8, -8, W + 16, H + 16);
+      ctx.fillStyle = "#ffc94d"; ctx.fillRect(W - 50, Math.round(H * 0.1), 12, 12);
+      ctx.fillStyle = "#fff";
+      for (const [cx, cy] of [[40, 0.18], [190, 0.3], [300, 0.12]]) {
+        const x = Math.round(((cx - b.scroll * 0.15) % (W + 60) + W + 60) % (W + 60)) - 30;
+        ctx.fillRect(x, Math.round(H * cy), 26, 5); ctx.fillRect(x + 6, Math.round(H * cy) - 4, 14, 4);
+      }
+      ctx.fillStyle = look.far;
+      for (let x = -8; x < W + 8; x += 8) {
+        const p = x + b.scroll * 0.35;
+        const h = Math.round(H * 0.1 + 6 * Math.sin(p / 23) + 4 * Math.sin(p / 9));
+        ctx.fillRect(x, gy - h, 8, h);
+      }
+      for (const w of b.list) drawWall(w);
+      // ground
+      ctx.fillStyle = look.ground; ctx.fillRect(-8, gy, W + 16, H - gy + 8);
+      ctx.fillStyle = look.edge; ctx.fillRect(-8, gy, W + 16, 3);
+      for (let x = -(b.scroll % 16); x < W; x += 16) ctx.fillRect(Math.round(x), gy + 6, 8, 3);
+      if (!(b.blink && Math.floor(b.t * 12) % 2)) drawBird();
+      if (b.phase === "ready") label("TAP TO FLAP");
+      if (b.phase === "hover") label("GET READY");
+      ctx.restore();
+      if (b.flash) {
+        ctx.fillStyle = `rgba(${b.flashColor},${(b.flash * 0.35).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    function drawWall(w) {
+      const x = Math.round(w.x);
+      const gy = groundY();
+      const gs = gaps();
+      const done = w.judged;
+      // the solid parts between (and around) the gaps
+      let top = 0;
+      for (let i = 0; i <= 4; i++) {
+        const bottom = i < 4 ? gs[i].top : gy;
+        ctx.fillStyle = "#1f6e3a"; ctx.fillRect(x, Math.round(top), WALL_W, Math.round(bottom - top));
+        ctx.fillStyle = "#3ca55c"; ctx.fillRect(x + 2, Math.round(top), WALL_W - 4, Math.round(bottom - top));
+        ctx.fillStyle = "#6fcf8a"; ctx.fillRect(x + 5, Math.round(top), 3, Math.round(bottom - top));
+        if (i < 4) top = gs[i].bottom;
+      }
+      // each gap: colored lips and its letter
+      gs.forEach((g, i) => {
+        const dim = done && i !== w.q.answerIndex;
+        const color = dim ? "#9aa3b2" : LANE_COLORS[i];
+        ctx.fillStyle = INK;
+        ctx.fillRect(x - 3, Math.round(g.top) - 4, WALL_W + 6, 4);
+        ctx.fillRect(x - 3, Math.round(g.bottom), WALL_W + 6, 4);
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 2, Math.round(g.top) - 3, WALL_W + 4, 2);
+        ctx.fillRect(x - 2, Math.round(g.bottom) + 1, WALL_W + 4, 2);
+        const size = g.bottom - g.top >= 30 ? 16 : 8;
+        ctx.font = `${size}px "Press Start 2P", monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = INK;
+        ctx.fillText("ABCD"[i], x + WALL_W / 2 + 1, (g.top + g.bottom) / 2 + 2);
+        ctx.fillStyle = color;
+        ctx.fillText("ABCD"[i], x + WALL_W / 2, (g.top + g.bottom) / 2 + 1);
+      });
+    }
+
+    function drawBird() {
+      const tilt = Math.max(-0.5, Math.min(0.9, b.vy / 300));
+      const wingUp = b.phase === "fly" ? b.vy < 0 : Math.floor(b.t * 6) % 2 === 0;
+      ctx.save();
+      ctx.translate(birdX(), Math.round(b.y));
+      ctx.rotate(tilt);
+      const r = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+      r(-8, -6, 14, 12, INK);
+      r(-7, -5, 12, 10, "#ffc94d");
+      r(-7, 2, 12, 3, "#ffb000");
+      r(1, -5, 5, 5, "#fff"); r(4, -3, 2, 2, INK);     // eye
+      r(6, -1, 5, 3, INK); r(6, 0, 4, 2, "#ff8a3d");   // beak
+      if (wingUp) { r(-9, -6, 7, 4, INK); r(-8, -5, 5, 2, "#fff"); }
+      else { r(-9, 0, 7, 4, INK); r(-8, 1, 5, 2, "#fff"); }
+      ctx.restore();
+    }
+
+    function label(text) {
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const y = Math.round(groundY() * 0.45) - 22;
+      ctx.fillStyle = INK; ctx.fillText(text, b.W / 2 + 1, y + 1);
+      ctx.fillStyle = "#fff"; ctx.fillText(text, b.W / 2, y);
+    }
+
+    let raf, last = performance.now();
+    const frame = (t) => {
+      const dt = Math.min(0.05, (t - last) / 1000);
+      last = t;
+      if (!paused) update(dt);
+      draw();
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    if (ui) {
+      intro();
+      canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); flap(); });
+      onKey = (key) => {
+        if (key === " " || key === "ArrowUp") { flap(); return true; }
+        return false;
+      };
+    } else {
+      b.phase = "fly";
+      spawnWall();
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      resize.disconnect();
+    };
+  }
+
+  // ---------- the menu's demos for Trail Quest and Syllabus Fighter ----------
+
+  // The wagon rolling along the trail toward the first landmark, over and over.
+  function trailTrailer(el) {
+    // a narrow screen shows only the middle of the 320-wide scene, so drive across that part
+    const shown = Math.min(320, (90 * el.clientWidth) / Math.max(1, el.clientHeight));
+    const from = Math.max(30, 160 - shown / 2 + 16);
+    const to = Math.min(262, 160 + shown / 2 - 24);
+    let x = from;
+    const draw = () => {
+      el.innerHTML = trailSceneSVG({
+        theme: game.trail.theme, startSign: true, reached: false, x, cover: paintColor(), label: "Trail Quest",
+      }).replace(' id="wagon"', "");
+    };
+    draw();
+    const timer = setInterval(() => {
+      if (paused) return;
+      x += Math.max(10, (to - from) / 9);
+      if (x > to) { x = from; return draw(); }
+      const wagon = el.querySelector(".wagon");
+      if (wagon) wagon.style.transform = `translateX(${x}px)`;
+    }, 750);
+    return () => clearInterval(timer);
+  }
+
+  // You and the boss trading blows until someone is knocked out, then a rematch.
+  function fightTrailer(el) {
+    const boss = BOSSES[game.trail.theme] || BOSSES.frontier;
+    const timers = [];
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    let hp = { me: 100, them: 100 };
+    let rest = 0;
+    const draw = () => {
+      el.innerHTML = `
+        <div class="f-bars">
+          <div class="f-hp"><span class="f-name">YOU</span><div class="f-bar"><i data-hp="me"></i></div></div>
+          <div class="f-clock">VS</div>
+          <div class="f-hp them"><span class="f-name">${boss.name}</span><div class="f-bar"><i data-hp="them"></i></div></div>
+        </div>${stageSVG(boss, STANCE_NEAR)}`;
+    };
+    const bars = () => {
+      for (const who of ["me", "them"]) {
+        const bar = el.querySelector(`[data-hp=${who}]`);
+        if (bar) { bar.style.width = `${hp[who]}%`; bar.classList.toggle("low", hp[who] <= 30); }
+      }
+    };
+    draw();
+    bars();
+    const timer = setInterval(() => {
+      if (paused) return;
+      if (rest) {
+        if (--rest === 0) { hp = { me: 100, them: 100 }; draw(); bars(); }
+        return;
+      }
+      const attacker = Math.random() < 0.62 ? "me" : "them";
+      const target = attacker === "me" ? "them" : "me";
+      const dmg = 20 + 10 * Math.floor(Math.random() * 2);
+      fighterMove(attacker, "attack", attacker === "me" ? PLAYER : boss, later);
+      later(() => {
+        hp[target] = Math.max(0, hp[target] - dmg);
+        fighterMove(target, hp[target] ? "hurt" : "ko", target === "me" ? PLAYER : boss, later);
+        hitFx(hp[target] ? `-${dmg}` : "K.O.!", target === "me" ? STANCE_NEAR.hitMe : STANCE_NEAR.hitThem, attacker === "me" ? "good" : "bad", later);
+        bars();
+        if (!hp[target]) rest = 2;
+      }, 220);
+    }, 1200);
+    return () => {
+      clearInterval(timer);
+      timers.forEach(clearTimeout);
+    };
   }
 
   // ---------- controls (called from game.js) ----------
@@ -889,6 +1419,7 @@ const Arcade = (() => {
         openMenu();
         return true;
       }
+      if (onKey?.(e.key)) return true;
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const dir = e.key === "ArrowLeft" ? "left" : "right";
         wiggleStick(dir);

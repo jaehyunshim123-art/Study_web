@@ -79,6 +79,7 @@ const Sound = (() => {
     deny: (a) => { note(a, 150, 0, 0.1, { volume: 0.06 }); note(a, 150, 0.14, 0.12, { volume: 0.06 }); },
     step: (a) => note(a, 1200, 0, 0.04, { volume: 0.03 }),
     arrive: (a) => tune(a, [523, 659, 784, 1047, 784, 1047], 0.09, { type: "square", volume: 0.05 }),
+    flap: (a) => note(a, 420, 0, 0.08, { volume: 0.035, slide: 780 }),
     go: (a) => { note(a, 784, 0, 0.08); note(a, 1047, 0.09, 0.3); },
     crash: (a) => { noise(a, 0, 0.5, { volume: 0.14, freq: 900 }); note(a, 160, 0, 0.4, { type: "sawtooth", volume: 0.05, slide: 50 }); },
     punch: (a) => { noise(a, 0, 0.13, { volume: 0.18, freq: 650 }); note(a, 120, 0, 0.12, { volume: 0.06, slide: 55 }); },
