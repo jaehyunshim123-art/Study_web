@@ -20,7 +20,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI maps a journey from your first unit to the final exam, writes a short lesson for each unit, then quizzes you on it. Answer to earn coins, upgrade your wagon and reach the finish.</p>
+        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, or battle in Syllabus Fighter.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -80,7 +80,7 @@
       <ol>
         <li><span class="how-num">1</span><h3>Insert your syllabus</h3><p>Upload the PDF (or paste the text). The AI turns each unit into a stop on a wagon journey to the final exam.</p></li>
         <li><span class="how-num">2</span><h3>Read the lesson</h3><p>Every unit opens with a short summary: an overview, the key points and the key terms.</p></li>
-        <li><span class="how-num">3</span><h3>Answer to travel</h3><p>Right answers earn coins and move your wagon. Spend coins on upgrades and reach the finish.</p></li>
+        <li><span class="how-num">3</span><h3>Pick a game</h3><p>Trail Quest (answer to move your wagon), Quiz Kart (steer through the gate with the right answer; 5 lives) or Syllabus Fighter (right answers land hits). Every game earns coins for the store.</p></li>
       </ol>
     </section>
 
@@ -95,7 +95,7 @@
           <div class="views" id="views">
             <section class="view" id="view-play">
               <div class="hud" id="hud">
-                <button id="exit" class="hud-btn" aria-label="Exit to the arcade">&lt;<span class="lbl"> EXIT</span></button>
+                <button id="exit" class="hud-btn" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
                 <div class="hud-stat"><span class="k">COINS</span><span class="v" id="coins">0</span></div>
                 <div class="hud-stat"><span class="k">STREAK</span><span class="v" id="streak">0</span></div>
                 <button id="help-btn" class="hud-btn hud-help" aria-label="How to play">?</button>
@@ -154,6 +154,9 @@
               <div id="paint-list" class="paint-list"></div>
             </div>
           </div>
+
+          <!-- GAME MENU, QUIZ KART and SYLLABUS FIGHTER (arcade.js) cover the whole screen -->
+          <div class="arcade" id="arcade" hidden></div>
         </div>
       </div>
 
@@ -194,6 +197,7 @@
   <script src="sprites.js"></script>
   <script src="timer.js"></script>
   <script src="game.js"></script>
+  <script src="arcade.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

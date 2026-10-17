@@ -1,9 +1,14 @@
 # Study Helper + Syllabus
 
-A study arcade. Upload your course syllabus and step up to the machine: the page zooms into the cabinet, and the AI (Claude) reads your syllabus on its screen, maps a journey from your first unit to the final exam, and writes a lesson and questions for each unit.
+A study arcade. Upload your course syllabus and step up to the machine: the page zooms into the cabinet, and the AI (Claude) reads your syllabus on its screen, maps a journey from your first unit to the final exam, and writes a lesson and questions for each unit. Then pick one of three games, all built on those questions.
 
 ## How it plays
 
+- **Three games, one syllabus:** after loading, the machine shows a SELECT GAME menu (buttons A, B, C):
+  - **Trail Quest:** the wagon journey below, a lesson then questions for each unit.
+  - **Quiz Kart:** a pixel racer. A gate with four lanes (A-D) comes down the road while the question shows above it; steer into the lane with the right answer (A-D buttons, arrow keys, or tap an answer) before you reach the gate. A wrong lane costs one of 5 lives, and the gates come faster as you go.
+  - **Syllabus Fighter:** a one-on-one fight against a boss that fits the subject (The Judge for law, Dr. Entropy for science...). Right answers land hits (hard questions hit harder, three in a row is a combo); a wrong answer or running out the clock lets the boss hit you. Knock out a boss to face the next one.
+  - Pick which unit Quiz Kart and Syllabus Fighter quiz you on from the menu. Coins from every game go into the same wallet, and each game keeps a best score.
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
 - **A world that fits the subject:** the AI picks a theme from your syllabus (law, science, math, literature, tech, health, business, or the frontier), and the trail's scenery and landmarks match it: courthouses for law, labs for science, pyramids for math.
@@ -48,6 +53,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 | `public/sprites.js` | All the pixel art: themed scenery and landmarks, the wagon, BYTE, the shopkeeper, the store and item icons. |
 | `public/sound.js` | Arcade sound effects, synthesized with the Web Audio API. |
 | `public/timer.js` | The study timer: focus and break sessions, saved in the browser. |
+| `public/arcade.js` | The SELECT GAME menu, Quiz Kart (a canvas racer) and Syllabus Fighter. |
 | `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |

@@ -132,7 +132,7 @@ $("start").addEventListener("click", async () => {
     await questionsFor(0).catch(() => {}); // if this fails, the game screen shows a retry
     renderLoading((step = 3));
     await wait(600);
-    startGame();
+    Arcade.openMenu();
   } catch (err) {
     clearTimeout(mapping);
     renderLoading(step, err.message || "Something went wrong. Try again.", () => exitGame());
@@ -142,7 +142,7 @@ $("start").addEventListener("click", async () => {
   }
 });
 
-$("resume").addEventListener("click", () => enterMachine(startGame));
+$("resume").addEventListener("click", () => enterMachine(() => Arcade.openMenu()));
 
 function updateResume() {
   $("resume").hidden = !game;
@@ -221,7 +221,7 @@ function exitGame(clear = false) {
   setTimeout(() => landing.classList.remove("unzooming"), ZOOM_MS);
 }
 
-$("exit").addEventListener("click", () => exitGame());
+$("exit").addEventListener("click", () => Arcade.openMenu()); // the trail's < MENU button
 
 // ---------- start ----------
 

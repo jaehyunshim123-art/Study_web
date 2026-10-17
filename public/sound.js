@@ -34,6 +34,25 @@ const Sound = (() => {
     osc.stop(t + length + 0.02);
   }
 
+  // A burst of static (crashes and punches), softened with a low-pass filter.
+  function noise(a, at, length, { volume = 0.08, freq = 1200 } = {}) {
+    const t = a.currentTime + at;
+    const buf = a.createBuffer(1, Math.ceil(a.sampleRate * length), a.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const filter = a.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = freq;
+    const gain = a.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    src.connect(filter).connect(gain).connect(a.destination);
+    src.start(t);
+    src.stop(t + length);
+  }
+
   const tune = (a, notes, step, opts) => notes.forEach((f, i) => note(a, f, i * step, step * 1.4, opts));
 
   const EFFECTS = {
@@ -60,6 +79,11 @@ const Sound = (() => {
     deny: (a) => { note(a, 150, 0, 0.1, { volume: 0.06 }); note(a, 150, 0.14, 0.12, { volume: 0.06 }); },
     step: (a) => note(a, 1200, 0, 0.04, { volume: 0.03 }),
     arrive: (a) => tune(a, [523, 659, 784, 1047, 784, 1047], 0.09, { type: "square", volume: 0.05 }),
+    go: (a) => { note(a, 784, 0, 0.08); note(a, 1047, 0.09, 0.3); },
+    crash: (a) => { noise(a, 0, 0.5, { volume: 0.14, freq: 900 }); note(a, 160, 0, 0.4, { type: "sawtooth", volume: 0.05, slide: 50 }); },
+    punch: (a) => { noise(a, 0, 0.13, { volume: 0.18, freq: 650 }); note(a, 120, 0, 0.12, { volume: 0.06, slide: 55 }); },
+    ko: (a) => { noise(a, 0, 0.3, { volume: 0.16, freq: 500 }); note(a, 620, 0.05, 0.75, { type: "sawtooth", volume: 0.05, slide: 70 }); },
+    lose: (a) => tune(a, [392, 330, 262, 196], 0.17, { type: "triangle", volume: 0.08 }),
     win: (a) => tune(a, [392, 523, 659, 784, 659, 784, 1047, 1319], 0.11, { type: "square", volume: 0.05 }),
   };
 

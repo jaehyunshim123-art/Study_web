@@ -257,8 +257,8 @@ function renderQuestion(q, returning = false) {
     <div class="card qcard">
       <div class="q-top">
         <span class="diff ${q.difficulty === "hard" ? "hard" : "easy"}" title="A wrong answer costs ${penalty(q)} coin${penalty(q) > 1 ? "s" : ""}">${q.difficulty === "hard" ? "HARD" : "EASY"} -${penalty(q)}</span>
-        <p class="q-count">UNIT ${game.unit + 1}/${units.length}<span class="q-total"> &middot; ${game.banks[game.unit].length} QUESTIONS</span>${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</p>
-        ${game.lessons[game.unit] ? `<button class="link-btn" id="review">REVIEW LESSON</button>` : ""}
+        <p class="q-count">UNIT ${game.unit + 1}/${units.length}<span class="q-total"> &middot; ${game.banks[game.unit].length} QUESTIONS${game.streak > 1 ? ` &middot; STREAK x${game.streak}` : ""}</span></p>
+        ${game.lessons[game.unit] ? `<button class="link-btn" id="review" aria-label="Review the lesson"><span class="long">REVIEW </span>LESSON</button>` : ""}
       </div>
       <p class="q-text">${escapeHTML(q.question)}</p>
       <div class="answers">${q.choices.map((c, i) => `<button class="answer" data-i="${i}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`).join("")}</div>
@@ -646,6 +646,7 @@ function closeShop() {
 
 // Put the game screens back to normal right away (used when leaving the machine).
 function resetScreens() {
+  Arcade.close();
   shopIsOpen = false;
   shopTimers.forEach(clearTimeout);
   shopTimers = [];
@@ -788,6 +789,7 @@ function pressPad(i) {
   setTimeout(() => pad.classList.remove("pressed"), 120);
   wiggleStick(i < 2 ? "left" : "right");
   Sound.play("press");
+  if (Arcade.isOpen()) return Arcade.pad(i);
   if (overlayOpen()) return;
   if (answering) return answer(i);
   $("play").querySelector(".btn-next")?.click();
@@ -838,12 +840,14 @@ $("landing-timer-panel").innerHTML = StudyTimer.panelHTML();
 StudyTimer.render();
 function openTimer() {
   if (shopIsOpen) return;
+  if (Arcade.isOpen()) Arcade.pause(true); // the timer covers the arcade game for a while
   Sound.play("open");
   showView("timer", "timer-back");
 }
 function closeTimer() {
   Sound.play("close");
   showView("play", "deck-timer");
+  if (Arcade.isPaused()) Arcade.pause(false);
 }
 $("deck-timer").addEventListener("click", () => (view === "timer" ? closeTimer() : openTimer()));
 $("timer-back").addEventListener("click", closeTimer);
@@ -851,6 +855,7 @@ $("timer-back").addEventListener("click", closeTimer);
 // Keyboard: 1-4 or A-D press the arcade buttons, arrows move the joystick, Escape closes the store or help.
 document.addEventListener("keydown", (e) => {
   if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (Arcade.isOpen() && Arcade.key(e)) return e.preventDefault();
   if (e.key === "Escape") {
     if (shopIsOpen) return closeShop();
     if (view === "help") return closeHelp();

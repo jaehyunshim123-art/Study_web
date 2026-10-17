@@ -95,7 +95,7 @@ function trailSceneSVG({ theme, startSign, reached, x, cover, label }) {
   const look = themeLook(theme);
   const landmark = LANDMARKS[look.landmark];
   let s = px(0, 0, 320, 90, look.sky);
-  s += px(40, 14, 22, 5, "#fff") + px(46, 10, 12, 4, "#fff") + px(180, 20, 28, 5, "#fff") + px(188, 16, 14, 4, "#fff") + px(270, 10, 12, 12, "#ffc94d");
+  s += px(40, 26, 22, 5, "#fff") + px(46, 22, 12, 4, "#fff") + px(180, 30, 28, 5, "#fff") + px(188, 26, 14, 4, "#fff") + px(262, 22, 12, 12, "#ffc94d");
   s += BACKDROPS[look.backdrop](look);
   s += px(0, 62, 320, 28, look.ground) + px(0, 62, 320, 2, look.edge) + px(0, 66, 320, 5, look.path);
   if (look.path === "#9aa3b2") for (let dx = 4; dx < 320; dx += 16) s += px(dx, 68, 8, 1, "#e9efff"); // road markings
@@ -211,7 +211,7 @@ function storeSVG(mood, theme) {
   let s = px(0, 0, 320, 90, look.wall);
   for (let y = 8; y < 70; y += 10) s += px(0, y, 320, 1, look.line);
   if (theme === "science" || theme === "health") for (let x = 0; x < 320; x += 10) s += px(x, 0, 1, 66, look.line); // tiles
-  [22, 46].forEach((y, row) => {
+  [32, 52].forEach((y, row) => {
     s += px(0, y, 320, 3, look.shelf);
     for (let x = 8, i = row; x < 320; x += 18, i++) s += GOODS[look.goods[i % look.goods.length]](x, y);
   });
