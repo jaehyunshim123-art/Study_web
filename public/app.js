@@ -11,7 +11,7 @@ let busy = false;
 function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!data?.trail?.units?.length) return null;
+    if (!data?.trail?.units?.length || data.demo) return null; // a saved sample course isn't kept
     return { lessons: {}, lessonSeen: {}, paint: "canvas", paints: [], ...data };
   } catch {
     return null;

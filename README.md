@@ -9,7 +9,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
   - **Quiz Kart:** a pixel racer. A gate with four lanes (A-D) comes down the road while the question shows above it; steer into the lane with the right answer (A-D buttons, arrow keys, or tap an answer) before you reach the gate. A wrong lane costs one of 5 lives, and the gates come faster as you go.
   - **Syllabus Fighter:** a one-on-one fight against a boss that fits the subject (The Judge for law, Dr. Entropy for science...). Right answers land hits (hard questions hit harder, three in a row is a combo); a wrong answer or running out the clock lets the boss hit you. Knock out a boss to face the next one.
   - **Flappy Facts:** a flappy-bird game. A wall with four gaps (A-D, top to bottom) scrolls in while the question shows above; flap (tap, any arcade button, or Space) through the gap with the right answer. A wrong gap, the wall or the ground costs one of 3 lives.
-  - **Quiz Blocks:** falling-block puzzle (Tetris-style). The arcade buttons are A left, B rotate, C right, D drop (or the arrow keys and Space; on a phone, tap the left, middle or right of the well, or swipe down). Every 6 pieces a QUIZ DROP pauses the game: a right answer blasts away your bottom 2 rows, a wrong one pushes up a junk row.
+  - **Quiz Blocks:** a Tetris-style falling-block puzzle (2nd on the menu). The arcade buttons are A left, B rotate, C right, D drop (or the arrow keys and Space; on a phone, tap the left, middle or right of the well, or swipe down). Every 6 pieces a QUIZ DROP pauses the game: a right answer blasts away your bottom 2 rows, a wrong one pushes up a junk row.
   - Pick which unit the quiz games quiz you on from the menu (up/down arrow keys work too). Coins from every game go into the same wallet, and each game keeps a best score.
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
@@ -42,7 +42,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 
 ## One-file preview
 
-`npm run preview` builds `dist/preview.html`: the whole game in a single file that runs without the server. Published as a claude.ai artifact with the `sample` capability, it uses Claude on the viewer's own account (same prompts as the server) and reads PDFs in the page with pdf.js. Opened anywhere else, it falls back to the demo trail.
+`npm run preview` builds `dist/preview.html`: the whole game in a single file that runs without the server. Published as a claude.ai artifact with the `sample` capability, it uses Claude on the viewer's own account (same prompts as the server) and reads PDFs in the page with pdf.js. There is no demo course in the preview: opened anywhere else (or if the viewer doesn't allow Claude), the loading screen says Claude is needed.
 
 ## How it fits together
 

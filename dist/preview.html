@@ -563,9 +563,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .trailer > svg, .trailer > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 .trailer::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.09) 0 1px, transparent 1px 3px); }
 .trailer .k-pop { font-size: 11px; }
-.trailer-tag, .trailer-count { position: absolute; bottom: clamp(12px, 1.8vw, 18px); z-index: 2; font-family: var(--pixel); font-size: 8px; line-height: 1; padding: 4px 6px; border-radius: 4px; }
-.trailer-tag { left: clamp(12px, 1.8vw, 18px); color: #fff; background: var(--accent); animation: blink 1.1s steps(2) infinite; }
-.trailer-count { right: clamp(12px, 1.8vw, 18px); color: #fff; background: rgba(17, 20, 24, 0.7); }
+.trailer-count { position: absolute; bottom: clamp(12px, 1.8vw, 18px); z-index: 2; font-family: var(--pixel); font-size: 8px; line-height: 1; padding: 4px 6px; border-radius: 4px; right: clamp(12px, 1.8vw, 18px); color: #fff; background: rgba(17, 20, 24, 0.7); }
 .arc-screen.from-right .trailer { animation: slide-in-r 320ms ease-out; }
 .arc-screen.from-left .trailer { animation: slide-in-l 320ms ease-out; }
 @keyframes slide-in-r { from { transform: translateX(30%); opacity: 0; } }
@@ -597,7 +595,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .arc-unit-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .arc-unit-name { min-width: 0; max-width: 28em; font-weight: 600; font-size: 15px; line-height: 1.3; }
 @media (max-width: 480px) { .arc-desc { font-size: 13px; } .arc-unit-name { font-size: 14px; } .arc-head { font-size: 9px; } }
-@media (prefers-reduced-motion: reduce) { .arc-arrow, .arc-play, .trailer-tag { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .arc-arrow, .arc-play { animation: none; } }
 
 /* the top bar of both games */
 .arc-bar { display: flex; align-items: center; gap: 10px; }
@@ -934,7 +932,6 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 
 const PROMPTS = {"trailPrompt":"You design the route for Study Helper + Syllabus, a study game where a wagon travels from the first day of class to the final exam.\nTurn the syllabus into the route: one stop per unit, in syllabus order.\nFirst pick the theme whose world best fits the subject: law, science, math, literature, tech, health, business, or frontier (history and anything else).\nEach stop is a landmark in that world, named playfully after the unit's topic: \"Precedent Plaza\" for law, \"Fort Mitochondria\" for biology, \"Derivative Peak\" for calculus.\nFor each unit, list 5-10 key concepts as the syllabus covers them. Quiz questions are written from them.\nUse only what is in the syllabus.","trailSchema":{"type":"object","properties":{"courseTitle":{"type":"string"},"theme":{"type":"string","enum":["frontier","law","science","math","literature","tech","health","business"],"description":"The world the journey travels through."},"units":{"type":"array","description":"One stop per unit, in syllabus order.","items":{"type":"object","properties":{"name":{"type":"string","description":"The landmark, named after the unit's topic."},"topic":{"type":"string","description":"The real unit title from the syllabus."},"keyConcepts":{"type":"array","items":{"type":"string"},"description":"5-10 key terms, facts or skills from this unit."}},"required":["name","topic","keyConcepts"],"additionalProperties":false}}},"required":["courseTitle","theme","units"],"additionalProperties":false},"quizPrompt":"You write study material for Study Helper + Syllabus, a study game.\nFor the unit you are given, first write a short lesson summary a student reads before playing:\na 2-3 sentence overview, 4-6 key points, and 3-6 key terms with one-line definitions.\nThen write multiple-choice questions that check the lesson. Questions must test real understanding of the course material at the level of the course.\nEach question has exactly 4 short choices with one clearly correct answer and plausible wrong answers.\nMix definitions, applying an idea to an example, and comparing concepts. Keep each question under 30 words.\nRate each question's difficulty: \"easy\" for recalling a fact or definition, \"hard\" for applying, comparing or reasoning in more than one step. Aim for roughly 60% easy and 40% hard.","quizSchema":{"type":"object","properties":{"lesson":{"type":"object","properties":{"overview":{"type":"string","description":"2-3 sentences on what this unit is about."},"keyPoints":{"type":"array","items":{"type":"string"},"description":"4-6 key points, one sentence each."},"keyTerms":{"type":"array","description":"3-6 key terms.","items":{"type":"object","properties":{"term":{"type":"string"},"definition":{"type":"string"}},"required":["term","definition"],"additionalProperties":false}}},"required":["overview","keyPoints","keyTerms"],"additionalProperties":false},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."},"difficulty":{"type":"string","enum":["easy","hard"],"description":"easy: recall a fact or definition. hard: apply, compare or reason in more than one step."}},"required":["question","choices","answerIndex","explanation","hint","difficulty"],"additionalProperties":false}}},"required":["lesson","questions"],"additionalProperties":false},"quizMoreSchema":{"type":"object","properties":{"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"},"description":"Exactly 4 answer choices."},"answerIndex":{"type":"integer","description":"Index (0-3) of the correct choice."},"explanation":{"type":"string","description":"One sentence on why the answer is right."},"hint":{"type":"string","description":"One sentence that nudges toward the answer without giving it away."},"difficulty":{"type":"string","enum":["easy","hard"],"description":"easy: recall a fact or definition. hard: apply, compare or reason in more than one step."}},"required":["question","choices","answerIndex","explanation","hint","difficulty"],"additionalProperties":false}}},"required":["questions"],"additionalProperties":false}};
 const THEMES = ["frontier","law","science","math","literature","tech","health","business"];
-const DEMO_TRAIL = {"courseTitle":"AP Biology","units":[{"name":"Fort Organelle","topic":"Unit 1: Cell structure and function","keyConcepts":["organelles","plant vs animal cells","cell membrane","diffusion","osmosis","active transport","protein synthesis"],"demoQuiz":[{"question":"Which organelle makes most of a cell's ATP?","choices":["Nucleus","Mitochondrion","Ribosome","Golgi apparatus"],"answerIndex":1,"explanation":"Mitochondria run cellular respiration, which produces most of the cell's ATP.","hint":"Think about which organelle is called the cell's powerhouse.","difficulty":"easy"},{"question":"Which structure is found in plant cells but not in animal cells?","choices":["Cell membrane","Ribosome","Cell wall","Mitochondrion"],"answerIndex":2,"explanation":"Plant cells have a rigid cellulose cell wall outside the membrane; animal cells don't.","hint":"Plants need something rigid to stand upright.","difficulty":"easy"},{"question":"Water moving across a membrane toward the side with more dissolved solute is called:","choices":["Active transport","Osmosis","Endocytosis","Phosphorylation"],"answerIndex":1,"explanation":"Osmosis is the diffusion of water across a selectively permeable membrane toward higher solute concentration.","hint":"It's the special name for water's diffusion.","difficulty":"hard"},{"question":"Which of these needs energy from ATP?","choices":["Simple diffusion","Osmosis","Facilitated diffusion","The sodium-potassium pump"],"answerIndex":3,"explanation":"The sodium-potassium pump moves ions against their gradients, so it is active transport and uses ATP.","hint":"Which one moves things against their gradient?","difficulty":"hard"},{"question":"Where are proteins made in the cell?","choices":["Ribosomes","Lysosomes","Vacuoles","Cell wall"],"answerIndex":0,"explanation":"Ribosomes read mRNA and link amino acids into proteins.","hint":"These tiny structures read mRNA.","difficulty":"easy"},{"question":"Which organelle modifies and packages proteins to be shipped out?","choices":["Golgi apparatus","Nucleolus","Chloroplast","Centriole"],"answerIndex":0,"explanation":"The Golgi apparatus modifies, sorts and packages proteins into vesicles.","hint":"Think of a cell's shipping department.","difficulty":"easy"},{"question":"What does a selectively permeable membrane do?","choices":["Lets every substance through","Blocks every substance","Lets some substances through but not others","Makes proteins"],"answerIndex":2,"explanation":"The membrane controls traffic: small or nonpolar molecules pass easily, while others need channels or pumps.","hint":"It's a gatekeeper, not a wall.","difficulty":"hard"},{"question":"Which organelle holds most of a eukaryotic cell's DNA?","choices":["Nucleus","Ribosome","Vacuole","Cell wall"],"answerIndex":0,"explanation":"In eukaryotic cells, DNA is stored inside the nucleus.","hint":"The control center of the cell.","difficulty":"easy"}],"demoLesson":{"overview":"Cells are the basic units of life. This unit covers the parts of a cell, how plant and animal cells differ, and how substances cross the cell membrane.","keyPoints":["Organelles are specialized structures inside a cell, each with its own job.","Mitochondria release energy from food as ATP; ribosomes build proteins.","Plant cells have a cell wall and chloroplasts; animal cells do not.","The cell membrane is selectively permeable: it controls what enters and leaves.","Diffusion and osmosis need no energy; active transport uses ATP to move substances against a gradient."],"keyTerms":[{"term":"Organelle","definition":"A structure inside a cell that does a specific job."},{"term":"Osmosis","definition":"Diffusion of water across a membrane toward higher solute concentration."},{"term":"Active transport","definition":"Moving substances against their gradient using energy (ATP)."},{"term":"Golgi apparatus","definition":"Modifies, sorts and packages proteins for transport."}]}},{"name":"Energy Ridge","topic":"Unit 2: Cellular respiration and photosynthesis","keyConcepts":["glycolysis","Krebs cycle","electron transport chain","ATP","light-dependent reactions","Calvin cycle"],"demoQuiz":[{"question":"Where does glycolysis take place?","choices":["Mitochondrial matrix","Cytoplasm","Thylakoid membrane","Nucleus"],"answerIndex":1,"explanation":"Glycolysis happens in the cytoplasm and doesn't need oxygen.","hint":"It happens before the mitochondria are involved.","difficulty":"easy"},{"question":"Which stage of cellular respiration makes the most ATP?","choices":["Glycolysis","Krebs cycle","Electron transport chain","Fermentation"],"answerIndex":2,"explanation":"The electron transport chain powers ATP synthase and makes most of the ATP.","hint":"Think of the last, most productive stage.","difficulty":"hard"},{"question":"What is the final electron acceptor in aerobic respiration?","choices":["Oxygen","Carbon dioxide","Glucose","NADH"],"answerIndex":0,"explanation":"Oxygen accepts electrons at the end of the chain and combines with hydrogen to form water.","hint":"It's the gas you breathe in.","difficulty":"hard"},{"question":"The light-dependent reactions of photosynthesis happen in the:","choices":["Stroma","Thylakoid membranes","Cytoplasm","Cell wall"],"answerIndex":1,"explanation":"The light reactions run in the thylakoid membranes, where chlorophyll captures light.","hint":"These membranes are stacked inside the chloroplast.","difficulty":"easy"},{"question":"Which gas is released by the light-dependent reactions?","choices":["Carbon dioxide","Nitrogen","Oxygen","Methane"],"answerIndex":2,"explanation":"Splitting water in the light reactions releases oxygen.","hint":"Plants give off the gas animals need.","difficulty":"easy"},{"question":"The Calvin cycle uses ATP and NADPH to:","choices":["Split water","Turn CO2 into sugar","Make oxygen","Absorb light"],"answerIndex":1,"explanation":"The Calvin cycle fixes carbon dioxide into sugar using ATP and NADPH from the light reactions.","hint":"Its job is building sugar from carbon dioxide.","difficulty":"hard"},{"question":"Glycolysis splits one glucose molecule into two molecules of:","choices":["Pyruvate","Oxygen","Chlorophyll","Water"],"answerIndex":0,"explanation":"Glycolysis breaks glucose into two pyruvate, which then move on toward the Krebs cycle.","hint":"The name means 'sugar splitting'.","difficulty":"easy"},{"question":"Which pigment captures light energy in plants?","choices":["Hemoglobin","Chlorophyll","Melanin","Keratin"],"answerIndex":1,"explanation":"Chlorophyll in the thylakoid membranes absorbs light for photosynthesis.","hint":"It's the pigment that makes leaves green.","difficulty":"easy"}],"demoLesson":{"overview":"Cells need energy to live. This unit follows how cellular respiration releases energy from glucose and how photosynthesis captures light energy to make it.","keyPoints":["Glycolysis splits glucose into two pyruvate in the cytoplasm.","The Krebs cycle and electron transport chain run in the mitochondria; the chain makes most of the ATP.","Oxygen is the final electron acceptor in aerobic respiration.","Light-dependent reactions in the thylakoids split water and release oxygen.","The Calvin cycle uses ATP and NADPH to turn carbon dioxide into sugar."],"keyTerms":[{"term":"ATP","definition":"The molecule cells use to carry and spend energy."},{"term":"Glycolysis","definition":"The first step of respiration, splitting glucose into pyruvate."},{"term":"Chlorophyll","definition":"The green pigment that absorbs light for photosynthesis."},{"term":"Calvin cycle","definition":"Light-independent reactions that fix carbon dioxide into sugar."}]}}],"theme":"science","demo":true};
 function quizRequest(r) {
   const avoid = (Array.isArray(r.avoid) ? r.avoid : []).map((q) => `- ${String(q).slice(0, 160)}`).slice(0, 80).join("\n");
   const concepts = (Array.isArray(r.concepts) ? r.concepts : []).map(String).slice(0, 20).join("; ");
@@ -970,9 +967,13 @@ function cleanLesson(l) {
 }
 
 const samplePromise = window.claude?.use ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
-const NO_AI = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+const NO_CLAUDE = "This needs Claude to read your syllabus. Open the page on claude.ai and press Allow when it asks to use Claude.";
 const ERRORS = {
   not_granted: "Claude isn't allowed on this page. Allow it from the artifact's Permissions menu, then try again.",
+  sampling_disabled: "Claude isn't available on this account right now.",
+  not_declared: NO_CLAUDE,
+  capability_disabled: NO_CLAUDE,
+  capability_removed: NO_CLAUDE,
   rate_limited: "Too many requests right now. Wait a little and try again.",
   refused: "Claude declined that one. Try different text.",
   invalid_json: "The AI's answer came back garbled. Try again.",
@@ -1016,28 +1017,20 @@ async function handle(path, req, signal) {
   const waiting = { modelTier: "quick", signal, onText: ({ text }) => progress(text.length) };
 
   if (path.endsWith("/api/trail")) {
-    if (!sample) return DEMO_TRAIL;
+    if (!sample) throw new Error(NO_CLAUDE);
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
       const fromPdf = await pdfToText(req.pdf).catch(() => "");
       if (!fromPdf) throw new Error("Couldn't read any text in that PDF (it may be a scanned image). Paste the syllabus text instead.");
       syllabus = fromPdf + (syllabus ? "\n\nExtra notes: " + syllabus : "");
     }
-    try {
-      const trail = await sample.json(PROMPTS.trailPrompt + "\n\n" + asJSON(PROMPTS.trailSchema) + "\n\nHere is my syllabus:\n\n" + syllabus.slice(0, 60000), waiting);
-      return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
-    } catch (e) {
-      if (NO_AI.includes(e?.code)) return DEMO_TRAIL;
-      throw e;
-    }
+    const trail = await sample.json(PROMPTS.trailPrompt + "\n\n" + asJSON(PROMPTS.trailSchema) + "\n\nHere is my syllabus:\n\n" + syllabus.slice(0, 60000), waiting);
+    return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
   }
 
   if (path.endsWith("/api/unit")) {
     const count = quizCount(req.count);
-    if (!sample || req.demo) {
-      const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
-      return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
-    }
+    if (!sample) throw new Error(NO_CLAUDE);
     const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }),
       req.more ? { cache: false } : { ...waiting, cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
@@ -2422,7 +2415,7 @@ document.addEventListener("keydown", (e) => {
 //   or running out of time, lets the boss hit you. Knock out one boss and the next steps up.
 //   FLAPPY FACTS: flap through the gap in the wall marked with the right answer. 3 lives.
 //   QUIZ BLOCKS: falling blocks; every few pieces a quiz blasts away rows (right) or adds junk (wrong).
-// The menu works like an arcade's attract screen: one game at a time, with a demo of it playing
+// The menu works like an arcade's attract screen: one game at a time, with a trailer of it playing
 // itself (Kart, Flappy and Blocks run on autopilot), and arrows to flip to the next game.
 // Everything runs on an overlay that covers the machine's screen and uses the arcade buttons:
 // A-D (or keys 1-4 / A-D) pick an answer, the arrow keys move the joystick, Escape goes back.
@@ -2442,10 +2435,10 @@ const Arcade = (() => {
   // trailer(el) plays a demo of the game in el and returns a function that stops it.
   const GAMES = [
     { id: "trail", name: "TRAIL QUEST", desc: "Take your wagon from the first unit to the final exam: a lesson, then questions, for every unit.", trailer: trailTrailer },
+    { id: "blocks", name: "QUIZ BLOCKS", desc: "Tetris-style falling blocks. Every 6 pieces, a quiz: right blasts 2 rows away, wrong adds a junk row.", trailer: (el) => startBlocks(null, el), start: startBlocks },
     { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer before you reach the gate. 5 lives.", trailer: (el) => startKart(null, el), start: startKart },
     { id: "fight", name: "SYLLABUS FIGHTER", desc: "Right answers land hits. Miss, or run out of time, and the boss hits back.", trailer: fightTrailer, start: startFight },
     { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
-    { id: "blocks", name: "QUIZ BLOCKS", desc: "Stack falling blocks. Every 6 pieces, a quiz: right blasts 2 rows, wrong adds a junk row.", trailer: (el) => startBlocks(null, el), start: startBlocks },
   ];
 
   const best = () => (game.best ||= {});
@@ -2522,7 +2515,6 @@ const Arcade = (() => {
             <button class="arc-arrow prev" data-act="left" aria-label="Previous game">${arrow}</button>
             <div class="arc-screen ${dir > 0 ? "from-right" : dir < 0 ? "from-left" : ""}">
               <div class="trailer" id="trailer" aria-hidden="true"></div>
-              <span class="trailer-tag">DEMO</span>
               <span class="trailer-count">${pick + 1}/${GAMES.length}</span>
             </div>
             <button class="arc-arrow next" data-act="right" aria-label="Next game">${arrow}</button>
@@ -4323,7 +4315,7 @@ let busy = false;
 function loadGame() {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!data?.trail?.units?.length) return null;
+    if (!data?.trail?.units?.length || data.demo) return null; // a saved sample course isn't kept
     return { lessons: {}, lessonSeen: {}, paint: "canvas", paints: [], ...data };
   } catch {
     return null;

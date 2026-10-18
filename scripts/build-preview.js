@@ -3,8 +3,8 @@
 //
 // Inside claude.ai the preview asks Claude through the artifact "sample" capability (on the viewer's
 // own Claude account), using the same prompts as server.js. PDFs are read in the page with pdf.js.
-// Anywhere Claude isn't available (opened as a plain file, or the viewer says no) it falls back
-// to the demo course from demo-quests.json.
+// There is no demo course: where Claude isn't available (opened as a plain file, or the viewer
+// says no) the loading screen says so.
 //
 // Run with: npm run preview
 
@@ -13,22 +13,24 @@ import vm from "node:vm";
 import { THEMES, trailPrompt, trailSchema, quizPrompt, quizSchema, quizMoreSchema, quizRequest, quizCount, cleanQuiz, cleanLesson } from "../shared/prompts.js";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const demo = JSON.parse(read("demo-quests.json"));
 
 // Stands in for server.js's two API routes.
 const previewServer = `
 const PROMPTS = ${JSON.stringify({ trailPrompt, trailSchema, quizPrompt, quizSchema, quizMoreSchema })};
 const THEMES = ${JSON.stringify(THEMES)};
-const DEMO_TRAIL = ${JSON.stringify({ ...demo, demo: true })};
 ${quizRequest}
 ${quizCount}
 ${cleanQuiz}
 ${cleanLesson}
 
 const samplePromise = window.claude?.use ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
-const NO_AI = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+const NO_CLAUDE = "This needs Claude to read your syllabus. Open the page on claude.ai and press Allow when it asks to use Claude.";
 const ERRORS = {
   not_granted: "Claude isn't allowed on this page. Allow it from the artifact's Permissions menu, then try again.",
+  sampling_disabled: "Claude isn't available on this account right now.",
+  not_declared: NO_CLAUDE,
+  capability_disabled: NO_CLAUDE,
+  capability_removed: NO_CLAUDE,
   rate_limited: "Too many requests right now. Wait a little and try again.",
   refused: "Claude declined that one. Try different text.",
   invalid_json: "The AI's answer came back garbled. Try again.",
@@ -72,28 +74,20 @@ async function handle(path, req, signal) {
   const waiting = { modelTier: "quick", signal, onText: ({ text }) => progress(text.length) };
 
   if (path.endsWith("/api/trail")) {
-    if (!sample) return DEMO_TRAIL;
+    if (!sample) throw new Error(NO_CLAUDE);
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
       const fromPdf = await pdfToText(req.pdf).catch(() => "");
       if (!fromPdf) throw new Error("Couldn't read any text in that PDF (it may be a scanned image). Paste the syllabus text instead.");
       syllabus = fromPdf + (syllabus ? "\\n\\nExtra notes: " + syllabus : "");
     }
-    try {
-      const trail = await sample.json(PROMPTS.trailPrompt + "\\n\\n" + asJSON(PROMPTS.trailSchema) + "\\n\\nHere is my syllabus:\\n\\n" + syllabus.slice(0, 60000), waiting);
-      return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
-    } catch (e) {
-      if (NO_AI.includes(e?.code)) return DEMO_TRAIL;
-      throw e;
-    }
+    const trail = await sample.json(PROMPTS.trailPrompt + "\\n\\n" + asJSON(PROMPTS.trailSchema) + "\\n\\nHere is my syllabus:\\n\\n" + syllabus.slice(0, 60000), waiting);
+    return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
   }
 
   if (path.endsWith("/api/unit")) {
     const count = quizCount(req.count);
-    if (!sample || req.demo) {
-      const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
-      return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
-    }
+    if (!sample) throw new Error(NO_CLAUDE);
     const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }),
       req.more ? { cache: false } : { ...waiting, cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);

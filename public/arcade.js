@@ -5,7 +5,7 @@
 //   or running out of time, lets the boss hit you. Knock out one boss and the next steps up.
 //   FLAPPY FACTS: flap through the gap in the wall marked with the right answer. 3 lives.
 //   QUIZ BLOCKS: falling blocks; every few pieces a quiz blasts away rows (right) or adds junk (wrong).
-// The menu works like an arcade's attract screen: one game at a time, with a demo of it playing
+// The menu works like an arcade's attract screen: one game at a time, with a trailer of it playing
 // itself (Kart, Flappy and Blocks run on autopilot), and arrows to flip to the next game.
 // Everything runs on an overlay that covers the machine's screen and uses the arcade buttons:
 // A-D (or keys 1-4 / A-D) pick an answer, the arrow keys move the joystick, Escape goes back.
@@ -25,10 +25,10 @@ const Arcade = (() => {
   // trailer(el) plays a demo of the game in el and returns a function that stops it.
   const GAMES = [
     { id: "trail", name: "TRAIL QUEST", desc: "Take your wagon from the first unit to the final exam: a lesson, then questions, for every unit.", trailer: trailTrailer },
+    { id: "blocks", name: "QUIZ BLOCKS", desc: "Tetris-style falling blocks. Every 6 pieces, a quiz: right blasts 2 rows away, wrong adds a junk row.", trailer: (el) => startBlocks(null, el), start: startBlocks },
     { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer before you reach the gate. 5 lives.", trailer: (el) => startKart(null, el), start: startKart },
     { id: "fight", name: "SYLLABUS FIGHTER", desc: "Right answers land hits. Miss, or run out of time, and the boss hits back.", trailer: fightTrailer, start: startFight },
     { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
-    { id: "blocks", name: "QUIZ BLOCKS", desc: "Stack falling blocks. Every 6 pieces, a quiz: right blasts 2 rows, wrong adds a junk row.", trailer: (el) => startBlocks(null, el), start: startBlocks },
   ];
 
   const best = () => (game.best ||= {});
@@ -105,7 +105,6 @@ const Arcade = (() => {
             <button class="arc-arrow prev" data-act="left" aria-label="Previous game">${arrow}</button>
             <div class="arc-screen ${dir > 0 ? "from-right" : dir < 0 ? "from-left" : ""}">
               <div class="trailer" id="trailer" aria-hidden="true"></div>
-              <span class="trailer-tag">DEMO</span>
               <span class="trailer-count">${pick + 1}/${GAMES.length}</span>
             </div>
             <button class="arc-arrow next" data-act="right" aria-label="Next game">${arrow}</button>
