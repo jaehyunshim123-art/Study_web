@@ -114,33 +114,94 @@ $("start").addEventListener("click", async () => {
   updateStart();
   setStatus("");
   setScreen("LOADING", true);
-  await enterMachine(() => renderLoading(0));
+  await enterMachine(() => showLoading(0));
+  await loadCourse({ syllabus: $("syllabus").value, pdf: pdfData });
+});
+
+// ---------- loading the course ----------
+// Claude can take a minute or two to read a syllabus (and, in the claude.ai preview, first asks
+// the player to allow it), so the loading screen says what it's waiting for, shows Claude's
+// writing as it arrives, and always offers the demo course instead.
+
+let loadCtl = null; // cancels the loading that's under way
+const live = { start: 0, chars: 0, timer: null };
+
+window.addEventListener("ai-progress", (e) => {
+  live.chars = e.detail.chars;
+  showLive();
+});
+
+function showLive() {
+  const el = $("load-live");
+  if (!el) return;
+  const secs = Math.round((Date.now() - live.start) / 1000);
+  if (live.chars) el.textContent = `Claude is writing... ${live.chars.toLocaleString()} characters so far (${secs}s)`;
+  else if (window.claude) el.textContent = `Waiting for Claude (${secs}s). If a box asks to let this page use Claude, press Allow. Reading a syllabus can take a minute or two.`;
+  else el.textContent = `Working on it (${secs}s). Reading a syllabus can take a minute or two.`;
+}
+
+function showLoading(step, error = "") {
+  renderLoading(step, error, error ? () => exitGame() : null);
+  const card = $("play").querySelector(".loading");
+  if (!error) card.insertAdjacentHTML("beforeend", `<p class="load-live" id="load-live" aria-live="polite"></p>`);
+  const demo = document.createElement("button");
+  demo.className = "btn-ghost load-demo";
+  demo.textContent = "PLAY THE DEMO COURSE INSTEAD";
+  demo.addEventListener("click", playDemo);
+  card.append(demo);
+  showLive();
+}
+
+// body: what /api/trail needs ({syllabus, pdf}, or {demo: true})
+async function loadCourse(body) {
+  const ctl = (loadCtl = new AbortController());
+  loadSignal = ctl.signal;
+  Object.assign(live, { start: Date.now(), chars: 0 });
+  clearInterval(live.timer);
+  live.timer = setInterval(showLive, 1000);
   let step = 0;
-  const mapping = setTimeout(() => renderLoading((step = 1)), 2500); // the AI reads and maps in one go
+  const mapping = setTimeout(() => !ctl.signal.aborted && showLoading((step = 1)), 2500); // the AI reads and maps in one go
   try {
     const res = await fetch("/api/trail", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ syllabus: $("syllabus").value, pdf: pdfData }),
+      body: JSON.stringify(body),
+      signal: ctl.signal,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     clearTimeout(mapping);
-    game = newGame(data, data.syllabusText || $("syllabus").value);
+    if (ctl.signal.aborted) return;
+    game = newGame(data, data.syllabusText || body.syllabus || "");
+    for (const k in pending) delete pending[k]; // nothing from an earlier course
     persistGame();
-    renderLoading((step = 2));
+    live.chars = 0;
+    showLoading((step = 2));
     await questionsFor(0).catch(() => {}); // if this fails, the game screen shows a retry
-    renderLoading((step = 3));
+    if (ctl.signal.aborted) return;
+    showLoading((step = 3));
     await wait(600);
+    if (ctl.signal.aborted) return;
     Arcade.openMenu();
   } catch (err) {
     clearTimeout(mapping);
-    renderLoading(step, err.message || "Something went wrong. Try again.", () => exitGame());
+    if (!ctl.signal.aborted) showLoading(step, err.message || "Something went wrong. Try again.");
   } finally {
-    busy = false;
-    updateStart();
+    if (loadCtl === ctl) {
+      loadCtl = loadSignal = null;
+      clearInterval(live.timer);
+      busy = false;
+      updateStart();
+    }
   }
-});
+}
+
+function playDemo() {
+  loadCtl?.abort();
+  Sound.play("blip");
+  busy = true;
+  loadCourse({ demo: true });
+}
 
 $("resume").addEventListener("click", () => enterMachine(() => Arcade.openMenu()));
 
@@ -198,6 +259,7 @@ function enterMachine(show) {
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
+  loadCtl?.abort();
   resetScreens();
   $("game").hidden = true;
   if (clear) {

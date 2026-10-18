@@ -346,6 +346,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .steps li { display: flex; gap: 12px; align-items: center; color: var(--muted); }
 .steps li .box { flex: none; width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .steps li.active { color: var(--ink); font-weight: 600; }
+.load-live { margin: 16px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); min-height: 2.9em; }
+.load-demo { display: block; margin: 14px auto 0; font-size: 9px; padding: 10px 14px; }
 .steps li.active .box { border-color: var(--ink); animation: blink 0.9s steps(2) infinite; }
 .steps li.done { color: var(--ink); }
 .steps li.done .box { background: var(--good); border-color: var(--good); color: #fff; }

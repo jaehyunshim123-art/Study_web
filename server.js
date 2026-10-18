@@ -42,6 +42,8 @@ function askClaude(params) {
 const textOf = (response) => response.content.filter((b) => b.type === "text").map((b) => b.text).join("");
 
 app.post("/api/trail", async (req, res) => {
+  // The loading screen's "play the demo instead" button.
+  if (req.body?.demo) return res.json({ ...demoData(), demo: true });
   const syllabus = String(req.body?.syllabus || "").trim();
   const pdf = typeof req.body?.pdf === "string" ? req.body.pdf : "";
   if (!syllabus && !pdf) return res.status(400).json({ error: "Upload or paste your syllabus first." });

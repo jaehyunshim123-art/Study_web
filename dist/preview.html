@@ -355,6 +355,8 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .steps li { display: flex; gap: 12px; align-items: center; color: var(--muted); }
 .steps li .box { flex: none; width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .steps li.active { color: var(--ink); font-weight: 600; }
+.load-live { margin: 16px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); min-height: 2.9em; }
+.load-demo { display: block; margin: 14px auto 0; font-size: 9px; padding: 10px 14px; }
 .steps li.active .box { border-color: var(--ink); animation: blink 0.9s steps(2) infinite; }
 .steps li.done { color: var(--ink); }
 .steps li.done .box { background: var(--good); border-color: var(--good); color: #fff; }
@@ -972,6 +974,8 @@ const ERRORS = {
   prompt_too_large: "That syllabus is too long. Try pasting just the schedule and unit list.",
   session_expired: "Sign in to Claude again, then try again.",
 };
+// The loading screen shows how much Claude has written so far (game.js listens for this).
+const progress = (chars) => window.dispatchEvent(new CustomEvent("ai-progress", { detail: { chars } }));
 const errorText = (e) => ERRORS[e?.code] || e?.message || "Something went wrong. Try again.";
 const asJSON = (schema) => "Reply with only a JSON value matching this JSON Schema:\n" + JSON.stringify(schema);
 
@@ -999,11 +1003,15 @@ function cleanTrail(t) {
   return { courseTitle: String(t.courseTitle || "Your course"), theme: THEMES.includes(t.theme) ? t.theme : "frontier", units };
 }
 
-async function handle(path, req) {
+// signal: lets the loading screen's "play the demo instead" button cancel the call.
+async function handle(path, req, signal) {
   const sample = await samplePromise;
+  // The two calls the player waits on use the fast model and stream progress; the background
+  // top-ups (more questions while you play) use the regular model.
+  const waiting = { modelTier: "quick", signal, onText: ({ text }) => progress(text.length) };
 
   if (path.endsWith("/api/trail")) {
-    if (!sample) return DEMO_TRAIL;
+    if (!sample || req.demo) return DEMO_TRAIL;
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
       const fromPdf = await pdfToText(req.pdf).catch(() => "");
@@ -1011,7 +1019,7 @@ async function handle(path, req) {
       syllabus = fromPdf + (syllabus ? "\n\nExtra notes: " + syllabus : "");
     }
     try {
-      const trail = await sample.json(PROMPTS.trailPrompt + "\n\n" + asJSON(PROMPTS.trailSchema) + "\n\nHere is my syllabus:\n\n" + syllabus.slice(0, 60000));
+      const trail = await sample.json(PROMPTS.trailPrompt + "\n\n" + asJSON(PROMPTS.trailSchema) + "\n\nHere is my syllabus:\n\n" + syllabus.slice(0, 60000), waiting);
       return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
     } catch (e) {
       if (NO_AI.includes(e?.code)) return DEMO_TRAIL;
@@ -1025,7 +1033,8 @@ async function handle(path, req) {
       const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
       return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
-    const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }), { cache: false });
+    const data = await sample.json(PROMPTS.quizPrompt + "\n\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\n\n" + quizRequest({ ...req, count }),
+      req.more ? { cache: false } : { ...waiting, cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
     return req.more ? { questions } : { lesson: cleanLesson(data?.lesson), questions };
@@ -1037,7 +1046,7 @@ window.fetch = async (url, options = {}) => {
   const req = options.body ? JSON.parse(options.body) : {};
   let status = 200, body;
   try {
-    body = await handle(String(url), req);
+    body = await handle(String(url), req, options.signal);
   } catch (e) {
     status = 500;
     body = { error: errorText(e) };
@@ -1603,6 +1612,7 @@ let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
 let hintUsed = false;   // the player asked BYTE for a hint on this question
 const pending = {};     // units being fetched
+let loadSignal = null;  // while the course is loading: lets "play the demo instead" cancel the first unit
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
@@ -1627,17 +1637,19 @@ function questionsFor(unit) {
 }
 
 async function fetchUnit(unit) {
-  const u = game.trail.units[unit];
+  const thisGame = game;
+  const u = thisGame.trail.units[unit];
   const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: FIRST_BATCH, demo: game.demo }),
+    body: JSON.stringify({ course: thisGame.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: thisGame.syllabus, unit, count: FIRST_BATCH, demo: thisGame.demo }),
+    signal: loadSignal,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
   if (!data.questions?.length) throw new Error("No questions came back. Try again.");
-  game.lessons[unit] = data.lesson || null;
-  game.banks[unit] = data.questions;
+  thisGame.lessons[unit] = data.lesson || null;
+  thisGame.banks[unit] = data.questions;
   persistGame();
   return data.questions;
 }
@@ -3951,33 +3963,94 @@ $("start").addEventListener("click", async () => {
   updateStart();
   setStatus("");
   setScreen("LOADING", true);
-  await enterMachine(() => renderLoading(0));
+  await enterMachine(() => showLoading(0));
+  await loadCourse({ syllabus: $("syllabus").value, pdf: pdfData });
+});
+
+// ---------- loading the course ----------
+// Claude can take a minute or two to read a syllabus (and, in the claude.ai preview, first asks
+// the player to allow it), so the loading screen says what it's waiting for, shows Claude's
+// writing as it arrives, and always offers the demo course instead.
+
+let loadCtl = null; // cancels the loading that's under way
+const live = { start: 0, chars: 0, timer: null };
+
+window.addEventListener("ai-progress", (e) => {
+  live.chars = e.detail.chars;
+  showLive();
+});
+
+function showLive() {
+  const el = $("load-live");
+  if (!el) return;
+  const secs = Math.round((Date.now() - live.start) / 1000);
+  if (live.chars) el.textContent = `Claude is writing... ${live.chars.toLocaleString()} characters so far (${secs}s)`;
+  else if (window.claude) el.textContent = `Waiting for Claude (${secs}s). If a box asks to let this page use Claude, press Allow. Reading a syllabus can take a minute or two.`;
+  else el.textContent = `Working on it (${secs}s). Reading a syllabus can take a minute or two.`;
+}
+
+function showLoading(step, error = "") {
+  renderLoading(step, error, error ? () => exitGame() : null);
+  const card = $("play").querySelector(".loading");
+  if (!error) card.insertAdjacentHTML("beforeend", `<p class="load-live" id="load-live" aria-live="polite"></p>`);
+  const demo = document.createElement("button");
+  demo.className = "btn-ghost load-demo";
+  demo.textContent = "PLAY THE DEMO COURSE INSTEAD";
+  demo.addEventListener("click", playDemo);
+  card.append(demo);
+  showLive();
+}
+
+// body: what /api/trail needs ({syllabus, pdf}, or {demo: true})
+async function loadCourse(body) {
+  const ctl = (loadCtl = new AbortController());
+  loadSignal = ctl.signal;
+  Object.assign(live, { start: Date.now(), chars: 0 });
+  clearInterval(live.timer);
+  live.timer = setInterval(showLive, 1000);
   let step = 0;
-  const mapping = setTimeout(() => renderLoading((step = 1)), 2500); // the AI reads and maps in one go
+  const mapping = setTimeout(() => !ctl.signal.aborted && showLoading((step = 1)), 2500); // the AI reads and maps in one go
   try {
     const res = await fetch("/api/trail", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ syllabus: $("syllabus").value, pdf: pdfData }),
+      body: JSON.stringify(body),
+      signal: ctl.signal,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     clearTimeout(mapping);
-    game = newGame(data, data.syllabusText || $("syllabus").value);
+    if (ctl.signal.aborted) return;
+    game = newGame(data, data.syllabusText || body.syllabus || "");
+    for (const k in pending) delete pending[k]; // nothing from an earlier course
     persistGame();
-    renderLoading((step = 2));
+    live.chars = 0;
+    showLoading((step = 2));
     await questionsFor(0).catch(() => {}); // if this fails, the game screen shows a retry
-    renderLoading((step = 3));
+    if (ctl.signal.aborted) return;
+    showLoading((step = 3));
     await wait(600);
+    if (ctl.signal.aborted) return;
     Arcade.openMenu();
   } catch (err) {
     clearTimeout(mapping);
-    renderLoading(step, err.message || "Something went wrong. Try again.", () => exitGame());
+    if (!ctl.signal.aborted) showLoading(step, err.message || "Something went wrong. Try again.");
   } finally {
-    busy = false;
-    updateStart();
+    if (loadCtl === ctl) {
+      loadCtl = loadSignal = null;
+      clearInterval(live.timer);
+      busy = false;
+      updateStart();
+    }
   }
-});
+}
+
+function playDemo() {
+  loadCtl?.abort();
+  Sound.play("blip");
+  busy = true;
+  loadCourse({ demo: true });
+}
 
 $("resume").addEventListener("click", () => enterMachine(() => Arcade.openMenu()));
 
@@ -4035,6 +4108,7 @@ function enterMachine(show) {
 
 // Back out to the arcade. With clear = true, forget this course.
 function exitGame(clear = false) {
+  loadCtl?.abort();
   resetScreens();
   $("game").hidden = true;
   if (clear) {

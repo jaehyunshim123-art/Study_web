@@ -35,6 +35,8 @@ const ERRORS = {
   prompt_too_large: "That syllabus is too long. Try pasting just the schedule and unit list.",
   session_expired: "Sign in to Claude again, then try again.",
 };
+// The loading screen shows how much Claude has written so far (game.js listens for this).
+const progress = (chars) => window.dispatchEvent(new CustomEvent("ai-progress", { detail: { chars } }));
 const errorText = (e) => ERRORS[e?.code] || e?.message || "Something went wrong. Try again.";
 const asJSON = (schema) => "Reply with only a JSON value matching this JSON Schema:\\n" + JSON.stringify(schema);
 
@@ -62,11 +64,15 @@ function cleanTrail(t) {
   return { courseTitle: String(t.courseTitle || "Your course"), theme: THEMES.includes(t.theme) ? t.theme : "frontier", units };
 }
 
-async function handle(path, req) {
+// signal: lets the loading screen's "play the demo instead" button cancel the call.
+async function handle(path, req, signal) {
   const sample = await samplePromise;
+  // The two calls the player waits on use the fast model and stream progress; the background
+  // top-ups (more questions while you play) use the regular model.
+  const waiting = { modelTier: "quick", signal, onText: ({ text }) => progress(text.length) };
 
   if (path.endsWith("/api/trail")) {
-    if (!sample) return DEMO_TRAIL;
+    if (!sample || req.demo) return DEMO_TRAIL;
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
       const fromPdf = await pdfToText(req.pdf).catch(() => "");
@@ -74,7 +80,7 @@ async function handle(path, req) {
       syllabus = fromPdf + (syllabus ? "\\n\\nExtra notes: " + syllabus : "");
     }
     try {
-      const trail = await sample.json(PROMPTS.trailPrompt + "\\n\\n" + asJSON(PROMPTS.trailSchema) + "\\n\\nHere is my syllabus:\\n\\n" + syllabus.slice(0, 60000));
+      const trail = await sample.json(PROMPTS.trailPrompt + "\\n\\n" + asJSON(PROMPTS.trailSchema) + "\\n\\nHere is my syllabus:\\n\\n" + syllabus.slice(0, 60000), waiting);
       return { ...cleanTrail(trail), syllabusText: syllabus.slice(0, 20000) };
     } catch (e) {
       if (NO_AI.includes(e?.code)) return DEMO_TRAIL;
@@ -88,7 +94,8 @@ async function handle(path, req) {
       const unit = DEMO_TRAIL.units[req.unit] || DEMO_TRAIL.units[0];
       return { lesson: unit.demoLesson, questions: cleanQuiz([...unit.demoQuiz].sort(() => Math.random() - 0.5).slice(0, count)) };
     }
-    const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }), { cache: false });
+    const data = await sample.json(PROMPTS.quizPrompt + "\\n\\n" + asJSON(req.more ? PROMPTS.quizMoreSchema : PROMPTS.quizSchema) + "\\n\\n" + quizRequest({ ...req, count }),
+      req.more ? { cache: false } : { ...waiting, cache: false });
     const questions = cleanQuiz(data?.questions).slice(0, count);
     if (!questions.length) throw new Error("No questions came back. Try again.");
     return req.more ? { questions } : { lesson: cleanLesson(data?.lesson), questions };
@@ -100,7 +107,7 @@ window.fetch = async (url, options = {}) => {
   const req = options.body ? JSON.parse(options.body) : {};
   let status = 200, body;
   try {
-    body = await handle(String(url), req);
+    body = await handle(String(url), req, options.signal);
   } catch (e) {
     status = 500;
     body = { error: errorText(e) };

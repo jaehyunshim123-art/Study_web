@@ -77,6 +77,7 @@ let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
 let hintUsed = false;   // the player asked BYTE for a hint on this question
 const pending = {};     // units being fetched
+let loadSignal = null;  // while the course is loading: lets "play the demo instead" cancel the first unit
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];
@@ -101,17 +102,19 @@ function questionsFor(unit) {
 }
 
 async function fetchUnit(unit) {
-  const u = game.trail.units[unit];
+  const thisGame = game;
+  const u = thisGame.trail.units[unit];
   const res = await fetch("/api/unit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ course: game.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: game.syllabus, unit, count: FIRST_BATCH, demo: game.demo }),
+    body: JSON.stringify({ course: thisGame.trail.courseTitle, topic: u.topic, concepts: u.keyConcepts, syllabus: thisGame.syllabus, unit, count: FIRST_BATCH, demo: thisGame.demo }),
+    signal: loadSignal,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
   if (!data.questions?.length) throw new Error("No questions came back. Try again.");
-  game.lessons[unit] = data.lesson || null;
-  game.banks[unit] = data.questions;
+  thisGame.lessons[unit] = data.lesson || null;
+  thisGame.banks[unit] = data.questions;
   persistGame();
   return data.questions;
 }
