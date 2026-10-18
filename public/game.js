@@ -77,7 +77,7 @@ let current = null;     // index of the question on screen
 let answering = false;  // a question is waiting for an answer
 let hintUsed = false;   // the player asked BYTE for a hint on this question
 const pending = {};     // units being fetched
-let loadSignal = null;  // while the course is loading: lets "play the demo instead" cancel the first unit
+let loadSignal = null;  // while the course is loading: cancels the first unit if you leave
 
 const upgradeLevel = (id) => game.levels[id] || 0;
 const upgradeValue = (id) => UPGRADES.find((u) => u.id === id).values[upgradeLevel(id)];

@@ -114,14 +114,15 @@ $("start").addEventListener("click", async () => {
   updateStart();
   setStatus("");
   setScreen("LOADING", true);
+  Object.assign(live, { start: Date.now(), chars: 0 });
   await enterMachine(() => showLoading(0));
   await loadCourse({ syllabus: $("syllabus").value, pdf: pdfData });
 });
 
 // ---------- loading the course ----------
 // Claude can take a minute or two to read a syllabus (and, in the claude.ai preview, first asks
-// the player to allow it), so the loading screen says what it's waiting for, shows Claude's
-// writing as it arrives, and always offers the demo course instead.
+// the player to allow it), so the loading screen says what it's waiting for and shows Claude's
+// writing as it arrives.
 
 let loadCtl = null; // cancels the loading that's under way
 const live = { start: 0, chars: 0, timer: null };
@@ -144,15 +145,10 @@ function showLoading(step, error = "") {
   renderLoading(step, error, error ? () => exitGame() : null);
   const card = $("play").querySelector(".loading");
   if (!error) card.insertAdjacentHTML("beforeend", `<p class="load-live" id="load-live" aria-live="polite"></p>`);
-  const demo = document.createElement("button");
-  demo.className = "btn-ghost load-demo";
-  demo.textContent = "PLAY THE DEMO COURSE INSTEAD";
-  demo.addEventListener("click", playDemo);
-  card.append(demo);
   showLive();
 }
 
-// body: what /api/trail needs ({syllabus, pdf}, or {demo: true})
+// body: what /api/trail needs ({syllabus, pdf})
 async function loadCourse(body) {
   const ctl = (loadCtl = new AbortController());
   loadSignal = ctl.signal;
@@ -196,12 +192,6 @@ async function loadCourse(body) {
   }
 }
 
-function playDemo() {
-  loadCtl?.abort();
-  Sound.play("blip");
-  busy = true;
-  loadCourse({ demo: true });
-}
 
 $("resume").addEventListener("click", () => enterMachine(() => Arcade.openMenu()));
 

@@ -1,18 +1,19 @@
-// The machine's game menu, and three more games that quiz you on the same syllabus questions:
+// The machine's game menu, and four more games that quiz you on the same syllabus questions:
 //   QUIZ KART: four lanes, four answers. Steer into the lane of the right answer before you
 //   reach the gate. A wrong lane costs one of your 5 lives.
 //   SYLLABUS FIGHTER: a one-on-one fight. Right answers land hits on the boss; a wrong answer,
 //   or running out of time, lets the boss hit you. Knock out one boss and the next steps up.
 //   FLAPPY FACTS: flap through the gap in the wall marked with the right answer. 3 lives.
+//   QUIZ BLOCKS: falling blocks; every few pieces a quiz blasts away rows (right) or adds junk (wrong).
 // The menu works like an arcade's attract screen: one game at a time, with a demo of it playing
-// itself (Kart and Flappy run on autopilot), and arrows to flip to the next game.
+// itself (Kart, Flappy and Blocks run on autopilot), and arrows to flip to the next game.
 // Everything runs on an overlay that covers the machine's screen and uses the arcade buttons:
 // A-D (or keys 1-4 / A-D) pick an answer, the arrow keys move the joystick, Escape goes back.
 // Coins won here go into the same wallet as the trail game, so they spend in its store.
 
 const Arcade = (() => {
   const root = () => $("arcade");
-  let mode = null;     // null (closed) | "menu" | "kart" | "fight" | "flap"
+  let mode = null;     // null (closed) | "menu" | "kart" | "fight" | "flap" | "blocks"
   let paused = false;  // hidden while the study timer is open
   let unit = null;     // the unit Quiz Kart and Syllabus Fighter quiz you on
   let stop = null;     // stops the running game's loop and timers
@@ -27,6 +28,7 @@ const Arcade = (() => {
     { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer before you reach the gate. 5 lives.", trailer: (el) => startKart(null, el), start: startKart },
     { id: "fight", name: "SYLLABUS FIGHTER", desc: "Right answers land hits. Miss, or run out of time, and the boss hits back.", trailer: fightTrailer, start: startFight },
     { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
+    { id: "blocks", name: "QUIZ BLOCKS", desc: "Stack falling blocks. Every 6 pieces, a quiz: right blasts 2 rows, wrong adds a junk row.", trailer: (el) => startBlocks(null, el), start: startBlocks },
   ];
 
   const best = () => (game.best ||= {});
@@ -88,6 +90,7 @@ const Arcade = (() => {
       kart: b.kart ? `BEST: ${plural(b.kart, "GATE")}` : "NEW!",
       fight: b.fight ? `BEST: ${plural(b.fight, "KNOCKOUT")}` : "NEW!",
       flap: b.flap ? `BEST: ${plural(b.flap, "WALL")}` : "NEW!",
+      blocks: b.blocks ? `BEST: ${plural(b.blocks, "LINE")}` : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -953,12 +956,13 @@ const Arcade = (() => {
     const canvas = box.querySelector("canvas");
     const ctx = canvas.getContext("2d");
 
-    // Always 240 pixels tall (so the gaps keep their size); as wide as the screen's shape allows.
+    // At least 240 pixels tall (so the gaps keep their size) and 180 wide, keeping the screen's shape.
     const fit = () => {
       const r = box.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      b.H = 240;
-      b.W = Math.max(180, Math.min(720, Math.round((240 * r.width) / r.height)));
+      const ratio = r.width / r.height;
+      b.H = Math.max(240, Math.round(180 / ratio));
+      b.W = Math.min(720, Math.round(b.H * ratio));
       canvas.width = b.W;
       canvas.height = b.H;
       ctx.imageSmoothingEnabled = false;
@@ -972,7 +976,7 @@ const Arcade = (() => {
     const birdX = () => Math.round(b.W * 0.26);
     const gaps = () => {
       const playH = groundY();
-      const gapH = playH * 0.17;
+      const gapH = playH * 0.205; // big gaps: the solid bits between them are thin
       const solid = (playH - 4 * gapH) / 5;
       return [0, 1, 2, 3].map((i) => ({ top: solid * (i + 1) + gapH * i, bottom: solid * (i + 1) + gapH * (i + 1) }));
     };
@@ -1073,12 +1077,12 @@ const Arcade = (() => {
         popText(`+${coins} COINS`, "good");
         sfx("right");
         setTimeout(() => sfx("coindrop"), 200);
-        b.next = 1.2;
+        b.next = 2;
       } else {
         loseLife(q);
         popText("WRONG GAP! -1 LIFE", "bad");
         sfx("wrong");
-        b.next = 2.4;
+        b.next = 2.8;
       }
       updateStats();
       renderQuestion({ right, gap: wall.gap });
@@ -1187,11 +1191,11 @@ const Arcade = (() => {
 
       if (wall) {
         const bx = birdX();
-        if (bx + 4 > wall.x && bx - 4 < wall.x + WALL_W) {
-          const gap = gaps().findIndex((g) => b.y - 4 >= g.top && b.y + 4 <= g.bottom);
+        if (bx + 3 > wall.x && bx - 3 < wall.x + WALL_W) {
+          const gap = gaps().findIndex((g) => b.y - 3 >= g.top && b.y + 3 <= g.bottom); // a forgiving hitbox
           if (gap < 0) return crash();
           wall.gap = gap;
-        } else if (bx - 4 >= wall.x + WALL_W) {
+        } else if (bx - 3 >= wall.x + WALL_W) {
           judge(wall);
         }
       } else {
@@ -1318,6 +1322,460 @@ const Arcade = (() => {
       spawnWall();
     }
     return () => {
+      cancelAnimationFrame(raf);
+      resize.disconnect();
+    };
+  }
+
+  // ---------- QUIZ BLOCKS ----------
+  // Falling-block puzzle. Every QUIZ_EVERY pieces a QUIZ DROP pauses the game for a question:
+  // right blasts away your bottom two rows, wrong pushes a junk row up from the bottom.
+
+  const COLS = 10, ROWS = 20, CELL = 10;
+  const QUIZ_EVERY = 6;
+  const SHAPES = {
+    I: [[0, 1], [1, 1], [2, 1], [3, 1]], O: [[1, 0], [2, 0], [1, 1], [2, 1]], T: [[1, 0], [0, 1], [1, 1], [2, 1]],
+    S: [[1, 0], [2, 0], [0, 1], [1, 1]], Z: [[0, 0], [1, 0], [1, 1], [2, 1]], J: [[0, 0], [0, 1], [1, 1], [2, 1]], L: [[2, 0], [0, 1], [1, 1], [2, 1]],
+  };
+  const BLOCK_COLORS = { I: "#3fc1d9", O: "#ffc94d", T: "#8e5bd6", S: "#3ca55c", Z: "#e5484d", J: "#3b6fe0", L: "#ff8a3d", X: "#8f98a8" };
+
+  // demo: an element to play a silent, self-playing demo in (for the menu). Returns a stop function.
+  function startBlocks(u, demo = null) {
+    const ui = !demo;
+    const sfx = (name) => { if (ui) Sound.play(name); };
+    const deck = ui ? makeDeck(u) : null;
+    const t = {
+      phase: "intro", board: [], piece: null, next: null, bag: [], lines: 0, coins: 0, right: 0, wrong: 0,
+      untilQuiz: QUIZ_EVERY, fall: 0, q: null, flash: 0, flashColor: "", shake: 0, banner: "", bannerT: 0,
+      W: 240, H: 220, ai: null, aiT: 0, alive: true,
+    };
+
+    if (demo) demo.innerHTML = "<canvas></canvas>";
+    else show(`
+      <div class="kart blocks">
+        <div class="arc-bar">
+          <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
+          <div class="hud-stat"><span class="k">LINES</span><span class="v" id="k-gates">0</span></div>
+          <div class="hud-stat"><span class="k">QUIZZES</span><span class="v" id="t-quiz">0/0</span></div>
+          <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
+        </div>
+        <div class="k-q" id="k-q"></div>
+        <div class="k-road" id="k-road">
+          <canvas aria-label="The block well. Use the arcade buttons: A left, B rotate, C right, D drop."></canvas>
+          <div class="k-card" id="k-card"></div>
+        </div>
+      </div>`);
+    if (ui) root().querySelector("[data-act=menu]").addEventListener("click", openMenu);
+    const box = demo || $("k-road");
+    const canvas = box.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // At least 220 pixels tall (the well is 200) and 190 wide, keeping the screen's shape.
+    const fit = () => {
+      const r = box.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const ratio = r.width / r.height;
+      t.H = Math.max(220, Math.round(190 / ratio));
+      t.W = Math.min(720, Math.round(t.H * ratio));
+      canvas.width = t.W;
+      canvas.height = t.H;
+      ctx.imageSmoothingEnabled = false;
+    };
+    const resize = new ResizeObserver(fit);
+    resize.observe(box);
+    fit();
+    const wellX = () => Math.round(t.W / 2 - 75);
+    const wellTop = () => Math.round((t.H - ROWS * CELL) / 2);
+
+    // ---- pieces and the well ----
+
+    const emptyBoard = () => Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    function takeFromBag() {
+      if (!t.bag.length) t.bag = shuffle(Object.keys(SHAPES));
+      return t.bag.pop();
+    }
+    const cellsOf = (p) => p.cells.map(([x, y]) => [p.x + x, p.y + y]);
+    const fits = (p) => cellsOf(p).every(([x, y]) => x >= 0 && x < COLS && y < ROWS && (y < 0 || !t.board[y][x]));
+    function rotated(p) {
+      if (p.type === "O") return p;
+      const size = p.type === "I" ? 4 : 3;
+      return { ...p, cells: p.cells.map(([x, y]) => [size - 1 - y, x]) };
+    }
+    function spawn() {
+      const type = t.next || takeFromBag();
+      t.next = takeFromBag();
+      t.piece = { type, cells: SHAPES[type].map((c) => [...c]), x: 3, y: type === "I" ? -1 : 0 };
+      if (!fits(t.piece)) return gameOver();
+      if (!ui) t.ai = bestMove(t.piece);
+    }
+    function move(dx) {
+      if (t.phase !== "play") return;
+      const p = { ...t.piece, x: t.piece.x + dx };
+      if (fits(p)) { t.piece = p; sfx("step"); }
+    }
+    function rotate() {
+      if (t.phase !== "play") return;
+      const r = rotated(t.piece);
+      for (const kick of [0, -1, 1, -2, 2]) {
+        const p = { ...r, x: r.x + kick };
+        if (fits(p)) { t.piece = p; sfx("blip"); return; }
+      }
+    }
+    // One row down; locks the piece when it can't go further. Returns false once locked.
+    function stepDown() {
+      const p = { ...t.piece, y: t.piece.y + 1 };
+      if (fits(p)) { t.piece = p; return true; }
+      lock();
+      return false;
+    }
+    function hardDrop() {
+      if (t.phase !== "play") return;
+      while (stepDown());
+      sfx("press");
+    }
+    function lock() {
+      for (const [x, y] of cellsOf(t.piece)) {
+        if (y < 0) return gameOver();
+        t.board[y][x] = t.piece.type;
+      }
+      const full = t.board.filter((row) => row.every(Boolean)).length;
+      if (full) {
+        t.board = t.board.filter((row) => !row.every(Boolean));
+        while (t.board.length < ROWS) t.board.unshift(Array(COLS).fill(null));
+        t.lines += full;
+        t.flash = 1; t.flashColor = "255,255,255";
+        sfx(full >= 4 ? "win" : "right");
+        if (ui) $("k-gates").textContent = t.lines;
+      }
+      t.piece = null;
+      t.untilQuiz--;
+      if (t.untilQuiz <= 0) quizDrop();
+      else spawn();
+    }
+    // the junk row a wrong answer pushes up: grey with one hole
+    function addJunk() {
+      const hole = Math.floor(Math.random() * COLS);
+      if (t.board[0].some(Boolean)) return gameOver();
+      t.board.shift();
+      t.board.push(Array.from({ length: COLS }, (_, i) => (i === hole ? null : "X")));
+    }
+    function blastRows(n) {
+      t.board.splice(ROWS - n, n);
+      while (t.board.length < ROWS) t.board.unshift(Array(COLS).fill(null));
+    }
+
+    // ---- the quiz drop ----
+
+    function quizDrop() {
+      t.untilQuiz = QUIZ_EVERY;
+      t.phase = "quiz";
+      t.banner = "QUIZ DROP!"; t.bannerT = 1.4;
+      sfx("open");
+      if (!ui) {
+        // the demo answers by itself after a moment
+        t.aiT = 1.4;
+        return;
+      }
+      t.q = deck.next();
+      renderPanel();
+      onPad = (i) => { answerQuiz(i); return true; };
+    }
+
+    function answerQuiz(i) {
+      if (t.phase !== "quiz") return;
+      const q = t.q;
+      const right = ui ? i === q.answerIndex : Math.random() < 0.8;
+      t.phase = "result";
+      if (right) {
+        const coins = q?.difficulty === "hard" ? 10 : 5;
+        t.right++;
+        t.coins += coins;
+        if (ui) earn(coins);
+        blastRows(2);
+        t.flash = 1; t.flashColor = "31,157,85";
+        t.banner = "BLAST! -2 ROWS"; t.bannerT = 1.3;
+        sfx("right");
+        setTimeout(() => sfx("coindrop"), 200);
+      } else {
+        t.wrong++;
+        if (ui) deck.again(q);
+        addJunk();
+        t.flash = 1; t.flashColor = "217,58,58"; t.shake = 0.5;
+        t.banner = "JUNK ROW!"; t.bannerT = 1.3;
+        sfx("wrong");
+      }
+      if (t.phase === "over") return;
+      if (ui) {
+        $("t-quiz").textContent = `${t.right}/${t.right + t.wrong}`;
+        $("k-coins").textContent = `+${t.coins}`;
+        renderPanel({ right, picked: i });
+        if (right) setTimeout(resume, 1100);
+        else wireButtons({ 0: resume });
+      } else {
+        t.aiT = 1.1;
+      }
+    }
+
+    function resume() {
+      if (!t.alive || t.phase !== "result") return;
+      t.phase = "play";
+      t.q = null;
+      renderPanel();
+      playPads();
+      spawn();
+    }
+
+    // A-D move, rotate, move, drop while the blocks fall
+    function playPads() {
+      onPad = (i) => {
+        if (t.phase === "play") [() => move(-1), rotate, () => move(1), hardDrop][i]?.();
+        return true;
+      };
+    }
+
+    function renderPanel(result) {
+      if (!ui) return;
+      const q = t.q;
+      if (!q) {
+        $("k-q").innerHTML = `<p class="t-controls"><span class="key ka">A</span> LEFT <span class="key kb">B</span> ROTATE
+          <span class="key kc">C</span> RIGHT <span class="key kd">D</span> DROP</p>`;
+        return;
+      }
+      $("k-q").innerHTML = `
+        <p class="t-label">QUIZ DROP! Right: blast 2 rows. Wrong: a junk row.</p>
+        <p class="k-qtext">${escapeHTML(q.question)}</p>
+        <div class="k-choices">${q.choices.map((c, i) => {
+          const cls = !result ? "" : i === q.answerIndex ? " right" : i === result.picked ? " wrong" : " dim";
+          return `<button class="k-choice${cls}" data-i="${i}" ${result ? "disabled" : ""}><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(c)}</span></button>`;
+        }).join("")}</div>
+        ${result && !result.right ? `${q.explanation ? `<p class="k-why">${escapeHTML(q.explanation)}</p>` : ""}
+          <button class="btn-next t-go" data-pad="0">KEEP PLAYING<span class="hint" aria-hidden="true">A</span></button>` : ""}`;
+      $("k-q").querySelectorAll(".k-choice").forEach((b) => b.addEventListener("click", () => answerQuiz(Number(b.dataset.i))));
+    }
+
+    // ---- start, game over ----
+
+    const card = (html, buttons) => {
+      $("k-card").innerHTML = html;
+      $("k-card").hidden = false;
+      wireButtons(buttons);
+    };
+
+    function intro() {
+      t.phase = "intro";
+      t.board = emptyBoard();
+      card(`<div class="card message">
+        <h2>QUIZ BLOCKS</h2>
+        <p>Stack the falling blocks and clear lines. Every ${QUIZ_EVERY} pieces there's a QUIZ DROP:
+        a right answer blasts away your bottom 2 rows, a wrong one pushes up a junk row.
+        Buttons: <b>A</b> left, <b>B</b> rotate, <b>C</b> right, <b>D</b> drop (or the arrow keys and Space).</p>
+        <button class="btn-next" data-pad="0">START<span class="hint" aria-hidden="true">A</span></button>
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: begin, 1: openMenu });
+    }
+
+    function begin() {
+      if (ui) $("k-card").hidden = true;
+      Object.assign(t, { phase: "play", board: emptyBoard(), bag: [], next: null, lines: 0, coins: 0, right: 0, wrong: 0, untilQuiz: QUIZ_EVERY, fall: 0, q: null });
+      if (ui) {
+        $("k-gates").textContent = "0";
+        $("t-quiz").textContent = "0/0";
+        $("k-coins").textContent = "+0";
+        renderPanel();
+        playPads();
+      }
+      sfx("go");
+      spawn();
+    }
+
+    function gameOver() {
+      t.phase = "over";
+      t.piece = null;
+      if (!ui) { t.aiT = 1.5; return; } // the demo starts over
+      const record = t.lines > (best().blocks || 0);
+      if (record) best().blocks = t.lines;
+      persistGame();
+      t.q = null;
+      renderPanel();
+      sfx("lose");
+      const tries = t.right + t.wrong;
+      card(`<div class="card message">
+        <h2>${record && t.lines ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <div class="stats">
+          <div><b>${t.lines}</b><span>lines cleared</span></div>
+          <div><b>${tries ? Math.round((100 * t.right) / tries) : 0}%</b><span>quiz accuracy</span></div>
+          <div><b>+${t.coins}</b><span>coins won</span></div>
+          <div><b>${best().blocks || 0}</b><span>best</span></div>
+        </div>
+        <button class="btn-next" data-pad="0">PLAY AGAIN<span class="hint" aria-hidden="true">A</span></button>
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: begin, 1: openMenu });
+    }
+
+    // ---- the demo player: tries every rotation and column, keeps the tidiest result ----
+
+    function bestMove(piece) {
+      let bestScore = -Infinity, choice = { rot: 0, x: piece.x };
+      let p = piece;
+      for (let rot = 0; rot < 4; rot++) {
+        for (let x = -2; x < COLS; x++) {
+          let q = { ...p, x, y: piece.y };
+          if (!fits(q)) continue;
+          while (fits({ ...q, y: q.y + 1 })) q = { ...q, y: q.y + 1 };
+          const board = t.board.map((row) => [...row]);
+          let above = false;
+          for (const [cx, cy] of cellsOf(q)) { if (cy < 0) above = true; else board[cy][cx] = q.type; }
+          if (above) continue;
+          const lines = board.filter((row) => row.every(Boolean)).length;
+          const heights = Array.from({ length: COLS }, (_, c) => { const r = board.findIndex((row) => row[c]); return r < 0 ? 0 : ROWS - r; });
+          let holes = 0;
+          for (let c = 0; c < COLS; c++) for (let r = ROWS - heights[c] + 1; r < ROWS; r++) if (!board[r][c]) holes++;
+          const bump = heights.slice(1).reduce((s, h, i) => s + Math.abs(h - heights[i]), 0);
+          const score = -0.51 * heights.reduce((s, h) => s + h, 0) + 0.76 * lines - 0.36 * holes - 0.18 * bump;
+          if (score > bestScore) { bestScore = score; choice = { rot, x }; }
+        }
+        p = rotated(p);
+      }
+      return choice;
+    }
+
+    function demoStep(dt) {
+      t.aiT -= dt;
+      if (t.aiT > 0) return;
+      if (t.phase === "over") { begin(); return; }
+      if (t.phase === "quiz") return answerQuiz(0);
+      if (t.phase === "result") { t.phase = "play"; spawn(); return; }
+      if (t.phase !== "play" || !t.piece || !t.ai) return;
+      t.aiT = 0.09;
+      if (t.ai.rot > 0) { t.ai.rot--; return rotate(); }
+      if (t.piece.x < t.ai.x) return move(1);
+      if (t.piece.x > t.ai.x) return move(-1);
+      t.aiT = 0.25;
+      hardDrop();
+    }
+
+    // ---- the loop ----
+
+    function update(dt) {
+      t.flash = Math.max(0, t.flash - dt * 2.5);
+      t.shake = Math.max(0, t.shake - dt);
+      t.bannerT = Math.max(0, t.bannerT - dt);
+      if (!ui) demoStep(dt);
+      if (t.phase !== "play" || !t.piece) return;
+      const level = Math.floor(t.lines / 5);
+      const interval = Math.max(0.12, 0.8 - level * 0.07);
+      t.fall += dt;
+      if (ui && t.fall >= interval) { t.fall = 0; stepDown(); }
+    }
+
+    function drawCell(x, y, type, alpha = 1) {
+      const px0 = wellX() + x * CELL, py0 = wellTop() + y * CELL;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = INK; ctx.fillRect(px0, py0, CELL, CELL);
+      ctx.fillStyle = BLOCK_COLORS[type]; ctx.fillRect(px0 + 1, py0 + 1, CELL - 2, CELL - 2);
+      ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillRect(px0 + 1, py0 + 1, CELL - 2, 2);
+      ctx.globalAlpha = 1;
+    }
+
+    function text(str, x, y, color = "#fff", size = 8, align = "left") {
+      ctx.font = `${size}px "Press Start 2P", monospace`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "top";
+      ctx.fillStyle = INK; ctx.fillText(str, x + 1, y + 1);
+      ctx.fillStyle = color; ctx.fillText(str, x, y);
+    }
+
+    function draw() {
+      const { W, H } = t;
+      const wx = wellX();
+      ctx.save();
+      if (t.shake) ctx.translate(Math.round((Math.random() - 0.5) * 6 * t.shake), 0);
+      // backdrop: a dark arcade grid
+      ctx.fillStyle = "#1c2027"; ctx.fillRect(-8, -8, W + 16, H + 16);
+      ctx.fillStyle = "#262b34";
+      for (let x = (W / 2) % 20; x < W; x += 20) ctx.fillRect(Math.round(x), 0, 1, H);
+      for (let y = 0; y < H; y += 20) ctx.fillRect(0, y, W, 1);
+      // the well
+      ctx.fillStyle = "#5b6577"; ctx.fillRect(wx - 3, wellTop() - 3, COLS * CELL + 6, ROWS * CELL + 6);
+      ctx.fillStyle = "#0f1217"; ctx.fillRect(wx, wellTop(), COLS * CELL, ROWS * CELL);
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (t.board[y]?.[x]) drawCell(x, y, t.board[y][x]);
+      if (t.piece && t.phase === "play") {
+        // where it will land, faintly
+        let ghost = t.piece;
+        while (fits({ ...ghost, y: ghost.y + 1 })) ghost = { ...ghost, y: ghost.y + 1 };
+        for (const [x, y] of cellsOf(ghost)) if (y >= 0) drawCell(x, y, ghost.type, 0.22);
+        for (const [x, y] of cellsOf(t.piece)) if (y >= 0) drawCell(x, y, t.piece.type);
+      }
+      // side panel
+      const sx = wx + COLS * CELL + 12;
+      text("NEXT", sx, wellTop());
+      ctx.fillStyle = "#0f1217"; ctx.fillRect(sx, wellTop() + 12, 46, 30);
+      if (t.next) for (const [x, y] of SHAPES[t.next]) {
+        const px0 = sx + 4 + x * 9, py0 = wellTop() + 17 + y * 9;
+        ctx.fillStyle = INK; ctx.fillRect(px0, py0, 9, 9);
+        ctx.fillStyle = BLOCK_COLORS[t.next]; ctx.fillRect(px0 + 1, py0 + 1, 7, 7);
+      }
+      text("QUIZ IN", sx, wellTop() + 54);
+      for (let i = 0; i < QUIZ_EVERY; i++) {
+        ctx.fillStyle = i < QUIZ_EVERY - t.untilQuiz ? "#ffc94d" : "#3a4252";
+        ctx.fillRect(sx + i * 7, wellTop() + 66, 5, 8);
+      }
+      text("LINES", sx, wellTop() + 86);
+      text(String(t.lines), sx, wellTop() + 98, "#ffc94d");
+      text("LEVEL", sx, wellTop() + 118);
+      text(String(Math.floor(t.lines / 5) + 1), sx, wellTop() + 130, "#ffc94d");
+      // the quiz dims the well
+      if (t.phase === "quiz" || t.phase === "result") {
+        ctx.fillStyle = "rgba(17,20,24,0.55)"; ctx.fillRect(wx, wellTop(), COLS * CELL, ROWS * CELL);
+      }
+      if (t.bannerT) {
+        const by = wellTop() + ROWS * CELL * 0.42;
+        ctx.fillStyle = "rgba(17,20,24,0.85)"; ctx.fillRect(wx - 6, by - 6, COLS * CELL + 12, 22);
+        text(t.banner, wx + (COLS * CELL) / 2, by, t.banner.startsWith("JUNK") ? "#ff8a7a" : "#ffd23f", 8, "center");
+      }
+      ctx.restore();
+      if (t.flash) {
+        ctx.fillStyle = `rgba(${t.flashColor},${(t.flash * 0.3).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    let raf, last = performance.now();
+    const frame = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (!paused) update(dt);
+      draw();
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    if (ui) {
+      intro();
+      onStick = (dir) => move(dir === "left" ? -1 : 1);
+      onKey = (key) => {
+        if (key === "ArrowUp") { rotate(); return true; }
+        if (key === "ArrowDown") { if (t.phase === "play") { stepDown(); t.fall = 0; } return true; }
+        if (key === " ") { hardDrop(); return true; }
+        return false;
+      };
+      // touch: tap the left or right of the well to move, the middle to rotate; swipe down to drop
+      let downAt = null;
+      canvas.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+      canvas.addEventListener("pointerup", (e) => {
+        if (!downAt) return;
+        const dy = e.clientY - downAt.y;
+        downAt = null;
+        if (dy > 40) return hardDrop();
+        const r = canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * t.W;
+        if (x < wellX() + COLS * CELL * 0.33) move(-1);
+        else if (x > wellX() + COLS * CELL * 0.67) move(1);
+        else rotate();
+      });
+    } else {
+      begin();
+    }
+    return () => {
+      t.alive = false;
       cancelAnimationFrame(raf);
       resize.disconnect();
     };

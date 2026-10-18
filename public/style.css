@@ -347,7 +347,6 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .steps li .box { flex: none; width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
 .steps li.active { color: var(--ink); font-weight: 600; }
 .load-live { margin: 16px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); min-height: 2.9em; }
-.load-demo { display: block; margin: 14px auto 0; font-size: 9px; padding: 10px 14px; }
 .steps li.active .box { border-color: var(--ink); animation: blink 0.9s steps(2) infinite; }
 .steps li.done { color: var(--ink); }
 .steps li.done .box { background: var(--good); border-color: var(--good); color: #fff; }
@@ -621,6 +620,12 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .k-choice:disabled, div.k-choice { cursor: default; }
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
+.blocks .k-road { background: #1c2027; touch-action: none; }
+.t-controls { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; font-family: var(--pixel); font-size: 8px; color: var(--muted); }
+.t-controls .key { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink); color: #fff; font-size: 8px; margin-left: 6px; }
+.t-controls .ka { background: var(--a); } .t-controls .kb { background: var(--b); } .t-controls .kc { background: var(--c); } .t-controls .kd { background: var(--d); }
+.t-label { margin: 0 0 6px; font-family: var(--pixel); font-size: 8px; line-height: 1.6; color: var(--accent); }
+.t-go { margin-top: 10px; }
 .k-dist { height: 6px; margin-top: 8px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .k-dist i { display: block; width: 0; height: 100%; background: var(--accent); }
 .k-why { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }

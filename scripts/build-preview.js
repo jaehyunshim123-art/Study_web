@@ -64,7 +64,7 @@ function cleanTrail(t) {
   return { courseTitle: String(t.courseTitle || "Your course"), theme: THEMES.includes(t.theme) ? t.theme : "frontier", units };
 }
 
-// signal: lets the loading screen's "play the demo instead" button cancel the call.
+// signal: cancels the call (leaving the machine while it loads).
 async function handle(path, req, signal) {
   const sample = await samplePromise;
   // The two calls the player waits on use the fast model and stream progress; the background
@@ -72,7 +72,7 @@ async function handle(path, req, signal) {
   const waiting = { modelTier: "quick", signal, onText: ({ text }) => progress(text.length) };
 
   if (path.endsWith("/api/trail")) {
-    if (!sample || req.demo) return DEMO_TRAIL;
+    if (!sample) return DEMO_TRAIL;
     let syllabus = String(req.syllabus || "").trim();
     if (req.pdf) {
       const fromPdf = await pdfToText(req.pdf).catch(() => "");
