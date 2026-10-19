@@ -21,6 +21,7 @@ const Arcade = (() => {
   let onStick = null;  // what the current screen does with the joystick ("left" | "right")
   let onKey = null;    // other keys the current screen uses (returns true if handled)
   let pick = 0;        // the game showing on the menu
+  let loadSeq = 0;     // bumped whenever the screen changes, so a slow load can't take over later
 
   // trailer(el) plays a demo of the game in el and returns a function that stops it.
   const GAMES = [
@@ -29,6 +30,9 @@ const Arcade = (() => {
     { id: "kart", name: "QUIZ KART", desc: "Steer into the lane with the right answer before you reach the gate. 5 lives.", trailer: (el) => startKart(null, el), start: startKart },
     { id: "fight", name: "SYLLABUS FIGHTER", desc: "Right answers land hits. Miss, or run out of time, and the boss hits back.", trailer: fightTrailer, start: startFight },
     { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
+    { id: "snake", name: "SNAKE SMARTS", desc: "Classic snake. Four snacks marked A-D: eat the one with the right answer. 3 lives.", trailer: (el) => startSnake(null, el), start: startSnake },
+    { id: "invaders", name: "QUIZ INVADERS", desc: "Space-invaders style. Shoot the invader with the right answer before they land. 3 lives.", trailer: (el) => startInvaders(null, el), start: startInvaders },
+    { id: "breakout", name: "BRICK BREAKER", desc: "Bounce the ball into the brick with the right answer. Don't drop it! 3 lives.", trailer: (el) => startBreakout(null, el), start: startBreakout },
   ];
 
   const best = () => (game.best ||= {});
@@ -69,6 +73,7 @@ const Arcade = (() => {
   // ---------- the menu ----------
 
   function openMenu() {
+    loadSeq++;
     if (shopIsOpen) resetScreens();
     if (view !== "play") showView("play");
     answering = false;
@@ -91,6 +96,9 @@ const Arcade = (() => {
       fight: b.fight ? `BEST: ${plural(b.fight, "KNOCKOUT")}` : "NEW!",
       flap: b.flap ? `BEST: ${plural(b.flap, "WALL")}` : "NEW!",
       blocks: b.blocks ? `BEST: ${plural(b.blocks, "LINE")}` : "NEW!",
+      snake: b.snake ? `BEST: ${plural(b.snake, "SNACK")}` : "NEW!",
+      invaders: b.invaders ? `BEST: ${plural(b.invaders, "HIT")}` : "NEW!",
+      breakout: b.breakout ? `BEST: ${plural(b.breakout, "BRICK")}` : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -171,6 +179,7 @@ const Arcade = (() => {
   // Make sure the chosen unit has questions (the AI writes them the first time), then start.
   async function loadThen(start, id) {
     const u = unit;
+    const token = ++loadSeq;
     if (!game.banks[u]?.length) {
       mode = id;
       show(`<div class="arc-center"><div class="card message">
@@ -179,14 +188,14 @@ const Arcade = (() => {
       try {
         await questionsFor(u);
       } catch (err) {
-        if (mode !== id) return;
+        if (token !== loadSeq || mode !== id) return;
         show(`<div class="arc-center"><div class="card message">
           <h2>SOMETHING WENT WRONG</h2><p>${escapeHTML(err.message || "Couldn't load this unit.")}</p>
           <button class="btn-next" data-pad="0">TRY AGAIN</button><button class="btn-ghost" data-pad="1">MENU</button></div></div>`);
         wireButtons({ 0: () => loadThen(start, id), 1: openMenu });
         return;
       }
-      if (mode !== id) return; // left while loading
+      if (token !== loadSeq || mode !== id) return; // left (or started something else) while loading
     }
     fillBank(u);
     mode = id;
@@ -194,16 +203,18 @@ const Arcade = (() => {
   }
 
   // Buttons marked data-pad="i" are pressed by arcade button i too.
+  // Only visible buttons count, so a hidden card's buttons can't be pressed by accident.
   function wireButtons(actions) {
-    for (const [i, fn] of Object.entries(actions)) root().querySelector(`[data-pad="${i}"]`)?.addEventListener("click", fn);
+    const button = (i) => [...root().querySelectorAll(`[data-pad="${i}"]`)].find((b) => b.offsetParent && !b.disabled);
+    for (const [i, fn] of Object.entries(actions)) button(i)?.addEventListener("click", fn);
     onPad = (i) => {
-      const b = root().querySelector(`[data-pad="${i}"]`);
-      if (b && !b.disabled) b.click();
+      button(i)?.click();
       return true;
     };
   }
 
   function close() {
+    loadSeq++;
     if (stop) stop();
     stop = onPad = onStick = onKey = null;
     mode = null;
@@ -228,7 +239,8 @@ const Arcade = (() => {
   // demo: an element to play a silent, self-driving demo in (for the menu). Returns a stop function.
   function startKart(u, demo = null) {
     const ui = !demo;
-    const sfx = (name) => { if (ui) Sound.play(name); };
+    let alive = true;
+    const sfx = (name) => { if (ui && alive) Sound.play(name); };
     const deck = ui ? makeDeck(u) : null;
     const look = themeLook(game.trail.theme);
     const paint = (PAINTS.find((p) => p.id === game.paint) || PAINTS[0]).color;
@@ -629,6 +641,7 @@ const Arcade = (() => {
       spawnGate();
     }
     return () => {
+      alive = false;
       cancelAnimationFrame(raf);
       resize.disconnect();
     };
@@ -766,8 +779,8 @@ const Arcade = (() => {
     };
     bars();
 
-    const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
-    const timers = [];
+    const timers = new Set();
+    const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
 
     const act = (who, move) => fighterMove(who, move, who === "me" ? PLAYER : boss, later);
     const fx = (text, x, kind) => hitFx(text, x, kind, later);
@@ -927,7 +940,8 @@ const Arcade = (() => {
   // demo: an element to play a silent, self-flying demo in (for the menu). Returns a stop function.
   function startFlap(u, demo = null) {
     const ui = !demo;
-    const sfx = (name) => { if (ui) Sound.play(name); };
+    let alive = true;
+    const sfx = (name) => { if (ui && alive) Sound.play(name); };
     const deck = ui ? makeDeck(u) : null;
     const look = themeLook(game.trail.theme);
     const b = {
@@ -1321,6 +1335,7 @@ const Arcade = (() => {
       spawnWall();
     }
     return () => {
+      alive = false;
       cancelAnimationFrame(raf);
       resize.disconnect();
     };
@@ -1341,7 +1356,7 @@ const Arcade = (() => {
   // demo: an element to play a silent, self-playing demo in (for the menu). Returns a stop function.
   function startBlocks(u, demo = null) {
     const ui = !demo;
-    const sfx = (name) => { if (ui) Sound.play(name); };
+    const sfx = (name) => { if (ui && t.alive) Sound.play(name); };
     const deck = ui ? makeDeck(u) : null;
     const t = {
       phase: "intro", board: [], piece: null, next: null, bag: [], lines: 0, coins: 0, right: 0, wrong: 0,
@@ -1407,18 +1422,23 @@ const Arcade = (() => {
       if (!fits(t.piece)) return gameOver();
       if (!ui) t.ai = bestMove(t.piece);
     }
+    // both return false when blocked
     function move(dx) {
-      if (t.phase !== "play") return;
+      if (t.phase !== "play") return false;
       const p = { ...t.piece, x: t.piece.x + dx };
-      if (fits(p)) { t.piece = p; sfx("step"); }
+      if (!fits(p)) return false;
+      t.piece = p;
+      sfx("step");
+      return true;
     }
     function rotate() {
-      if (t.phase !== "play") return;
+      if (t.phase !== "play") return false;
       const r = rotated(t.piece);
       for (const kick of [0, -1, 1, -2, 2]) {
         const p = { ...r, x: r.x + kick };
-        if (fits(p)) { t.piece = p; sfx("blip"); return; }
+        if (fits(p)) { t.piece = p; sfx("blip"); return true; }
       }
+      return false;
     }
     // One row down; locks the piece when it can't go further. Returns false once locked.
     function stepDown() {
@@ -1573,7 +1593,7 @@ const Arcade = (() => {
     }
 
     function begin() {
-      if (ui) $("k-card").hidden = true;
+      if (ui) { $("k-card").hidden = true; $("k-card").innerHTML = ""; }
       Object.assign(t, { phase: "play", board: emptyBoard(), bag: [], next: null, lines: 0, coins: 0, right: 0, wrong: 0, untilQuiz: QUIZ_EVERY, fall: 0, q: null });
       if (ui) {
         $("k-gates").textContent = "0";
@@ -1644,9 +1664,8 @@ const Arcade = (() => {
       if (t.phase === "result") { t.phase = "play"; spawn(); return; }
       if (t.phase !== "play" || !t.piece || !t.ai) return;
       t.aiT = 0.09;
-      if (t.ai.rot > 0) { t.ai.rot--; return rotate(); }
-      if (t.piece.x < t.ai.x) return move(1);
-      if (t.piece.x > t.ai.x) return move(-1);
+      if (t.ai.rot > 0) { t.ai.rot--; if (!rotate()) hardDrop(); return; }
+      if (t.piece.x !== t.ai.x) { if (!move(Math.sign(t.ai.x - t.piece.x))) hardDrop(); return; }
       t.aiT = 0.25;
       hardDrop();
     }
@@ -1780,6 +1799,696 @@ const Arcade = (() => {
     };
   }
 
+  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Breakout) ----------
+  // Builds the top bar, the question panel and the canvas; handles lives, coins, pop-up text,
+  // the intro and game-over cards and the game loop. demo: an element to play a silent demo in.
+
+  function cabinet({ u, demo, cls, stat, lives, minW, minH, intro: introHTML, bestKey, bestWord }) {
+    const ui = !demo;
+    const deck = ui ? makeDeck(u) : null;
+    const c = {
+      ui, deck, lives, score: 0, misses: 0, coins: 0, flash: 0, flashColor: "", shake: 0, W: minW, H: minH,
+      alive: true, q: null, sfx: (name) => { if (ui) Sound.play(name); },
+    };
+    if (demo) demo.innerHTML = "<canvas></canvas>";
+    else show(`
+      <div class="kart ${cls}">
+        <div class="arc-bar">
+          <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
+          <div class="lives" id="k-lives"></div>
+          <div class="hud-stat"><span class="k">${stat}</span><span class="v" id="k-gates">0</span></div>
+          <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
+        </div>
+        <div class="k-q" id="k-q"></div>
+        <div class="k-road" id="k-road"><canvas></canvas><div class="k-card" id="k-card" hidden></div></div>
+      </div>`);
+    if (ui) root().querySelector("[data-act=menu]").addEventListener("click", openMenu);
+    const box = demo || $("k-road");
+    const canvas = box.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+    Object.assign(c, { box, canvas, ctx });
+
+    // at least minW x minH canvas pixels, keeping the screen's shape (never stretched)
+    const fit = () => {
+      const r = box.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const ratio = r.width / r.height;
+      c.H = Math.max(minH, Math.round(minW / ratio));
+      c.W = Math.min(760, Math.round(c.H * ratio));
+      canvas.width = c.W;
+      canvas.height = c.H;
+      ctx.imageSmoothingEnabled = false;
+    };
+    const resize = new ResizeObserver(fit);
+    resize.observe(box);
+    fit();
+
+    c.renderLives = () => {
+      if (!ui) return;
+      $("k-lives").innerHTML = heartsHTML(c.lives, lives);
+      $("k-lives").setAttribute("aria-label", `${c.lives} of ${lives} lives left`);
+    };
+    c.stats = () => {
+      if (!ui) return;
+      $("k-gates").textContent = c.score;
+      $("k-coins").textContent = `+${c.coins}`;
+    };
+    // the question and its four answers; result = {right, picked} once answered
+    c.renderQuestion = (result, why = "") => {
+      if (!ui) return;
+      const q = c.q;
+      if (!q) { $("k-q").innerHTML = ""; return; }
+      $("k-q").innerHTML = `
+        <p class="k-qtext">${escapeHTML(q.question)}</p>
+        <div class="k-choices">${q.choices.map((ch, i) => {
+          const k = !result ? "" : i === q.answerIndex ? " right" : i === result.picked ? " wrong" : " dim";
+          return `<div class="k-choice${k}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(ch)}</span></div>`;
+        }).join("")}</div>
+        ${result && !result.right ? `<p class="k-why">${why}${escapeHTML(q.explanation || "")}</p>` : ""}`;
+    };
+    c.nextQuestion = (demoQ) => {
+      c.q = ui ? deck.next() : demoQ || { answerIndex: Math.floor(Math.random() * 4) };
+      c.renderQuestion();
+      return c.q;
+    };
+    c.pop = (text, kind) => {
+      const pop = document.createElement("div");
+      pop.className = `k-pop ${kind}`;
+      pop.textContent = text;
+      box.append(pop);
+      setTimeout(() => pop.remove(), 1100);
+    };
+    c.card = (html, buttons) => {
+      $("k-card").innerHTML = html;
+      $("k-card").hidden = false;
+      wireButtons(buttons);
+    };
+    c.hideCard = () => { if (ui) { $("k-card").hidden = true; $("k-card").innerHTML = ""; } };
+    c.intro = (start) => c.card(`<div class="card message">${introHTML}
+      <button class="btn-next" data-pad="0">START<span class="hint" aria-hidden="true">A</span></button>
+      <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: start, 1: openMenu });
+    c.reset = () => {
+      Object.assign(c, { lives, score: 0, misses: 0, coins: 0, q: null });
+      c.renderLives();
+      c.stats();
+      c.renderQuestion();
+    };
+    // a right answer: coins, a green flash, a pop-up
+    c.right = (picked) => {
+      const coins = c.q?.difficulty === "hard" ? 10 : 5;
+      c.score++;
+      c.coins += coins;
+      if (ui) earn(coins);
+      c.flash = 1; c.flashColor = "31,157,85";
+      c.pop(`+${coins} COINS`, "good");
+      c.sfx("right");
+      setTimeout(() => c.alive && c.sfx("coindrop"), 200);
+      c.renderQuestion({ right: true, picked });
+      c.stats();
+    };
+    // a miss: a life gone (not in the demo); the question comes back later. Returns lives left.
+    c.wrong = (picked, label, why = "") => {
+      if (ui) c.lives--;
+      c.misses++;
+      c.flash = 1; c.flashColor = "217,58,58"; c.shake = 0.5;
+      if (ui && c.q) deck.again(c.q);
+      c.pop(label, "bad");
+      c.sfx(picked >= 0 ? "wrong" : "crash");
+      c.renderQuestion({ right: false, picked }, why);
+      c.renderLives();
+      c.stats();
+      return c.lives;
+    };
+    c.gameOver = (again) => {
+      const record = c.score > (best()[bestKey] || 0);
+      if (record) best()[bestKey] = c.score;
+      persistGame();
+      c.sfx("lose");
+      const tries = c.score + c.misses;
+      c.card(`<div class="card message">
+        <h2>${record && c.score ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <div class="stats">
+          <div><b>${c.score}</b><span>${bestWord}</span></div>
+          <div><b>${tries ? Math.round((100 * c.score) / tries) : 0}%</b><span>accuracy</span></div>
+          <div><b>+${c.coins}</b><span>coins won</span></div>
+          <div><b>${best()[bestKey] || 0}</b><span>best</span></div>
+        </div>
+        <button class="btn-next" data-pad="0">PLAY AGAIN<span class="hint" aria-hidden="true">A</span></button>
+        <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: again, 1: openMenu });
+    };
+    c.text = (str, x, y, color = "#fff", size = 8, align = "center") => {
+      ctx.font = `${size}px "Press Start 2P", monospace`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = INK; ctx.fillText(str, x + 1, y + 1);
+      ctx.fillStyle = color; ctx.fillText(str, x, y);
+    };
+    c.rect = (x, y, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+    let raf, last = performance.now();
+    c.run = (update, draw) => {
+      const frame = (now) => {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        if (!paused) {
+          c.flash = Math.max(0, c.flash - dt * 2.4);
+          c.shake = Math.max(0, c.shake - dt);
+          update(dt);
+        }
+        ctx.save();
+        if (c.shake) ctx.translate(Math.round((Math.random() - 0.5) * 8 * c.shake), Math.round((Math.random() - 0.5) * 5 * c.shake));
+        draw();
+        ctx.restore();
+        if (c.flash) { ctx.fillStyle = `rgba(${c.flashColor},${(c.flash * 0.3).toFixed(3)})`; ctx.fillRect(0, 0, c.W, c.H); }
+        raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+    };
+    c.stop = () => {
+      c.alive = false;
+      cancelAnimationFrame(raf);
+      resize.disconnect();
+    };
+    c.renderLives();
+    return c;
+  }
+
+  // ---------- SNAKE SMARTS ----------
+  // Four snacks on the grid, marked A-D. Eat the one with the right answer. Walls and your own
+  // tail cost a life too. 3 lives.
+
+  function startSnake(u, demo = null) {
+    const GW = 24, GH = 16, CS = 10;
+    const c = cabinet({
+      u, demo, cls: "snake", stat: "SNACKS", lives: 3, minW: 260, minH: 190, bestKey: "snake", bestWord: "right snacks",
+      intro: `<h2>SNAKE SMARTS</h2><p>Four snacks are on the board, marked A, B, C and D. Steer the snake to the one with the right answer.
+        A wrong snack, a wall or your own tail costs a life. You have 3.
+        Steer with the arrow keys, or the buttons: <b>A</b> left, <b>B</b> up, <b>C</b> down, <b>D</b> right (swipe on a phone).</p>`,
+    });
+    const s = { phase: "intro", body: [], dir: [1, 0], turns: [], foods: [], grow: 0, step: 0, wait: 0, blink: 0 };
+    const ox = () => Math.round((c.W - GW * CS) / 2);
+    const oy = () => Math.round((c.H - GH * CS) / 2);
+    const DIRS = { left: [-1, 0], up: [0, -1], down: [0, 1], right: [1, 0] };
+
+    function placeSnake() {
+      s.body = [[8, 8], [7, 8], [6, 8], [5, 8]];
+      s.dir = [1, 0];
+      s.turns = [];
+    }
+    const occupied = (x, y) => s.body.some(([bx, by]) => bx === x && by === y) || s.foods.some((f) => f.x === x && f.y === y);
+    function placeFoods() {
+      s.foods = [];
+      const [hx, hy] = s.body[0];
+      for (let i = 0; i < 4; i++) {
+        let x, y, tries = 0;
+        do {
+          x = 1 + Math.floor(Math.random() * (GW - 2));
+          y = 1 + Math.floor(Math.random() * (GH - 2));
+          tries++;
+        } while (tries < 200 && (occupied(x, y) || Math.abs(x - hx) + Math.abs(y - hy) < 5 || s.foods.some((f) => Math.abs(f.x - x) + Math.abs(f.y - y) < 4)));
+        s.foods.push({ x, y, i });
+      }
+    }
+    function newRound() {
+      if (s.crashed) { placeSnake(); s.crashed = false; }
+      c.nextQuestion();
+      placeFoods();
+      s.phase = "play";
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function turn(name) {
+      if (s.phase !== "play") return;
+      const d = DIRS[name];
+      const lastDir = s.turns.length ? s.turns[s.turns.length - 1] : s.dir;
+      if (d[0] === -lastDir[0] && d[1] === -lastDir[1]) return; // no reversing into yourself
+      if (d[0] === lastDir[0] && d[1] === lastDir[1]) return;
+      if (s.turns.length < 2) s.turns.push(d);
+    }
+    // walls and your tail: a life gone, and the question counts as missed
+    function crash(label) {
+      const left = c.wrong(-1, label, "Crashed! ");
+      s.foods = [];
+      s.crashed = true;
+      s.phase = left ? "pause" : "dead";
+      s.wait = left ? 2.4 : 1.4;
+      s.blink = 1.5;
+    }
+    function tick() {
+      if (s.turns.length) s.dir = s.turns.shift();
+      const [hx, hy] = s.body[0];
+      const nx = hx + s.dir[0], ny = hy + s.dir[1];
+      if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) return crash("WALL! -1 LIFE");
+      const solid = s.grow > 0 ? s.body : s.body.slice(0, -1); // a growing tail doesn't move out of the way
+      if (solid.some(([bx, by]) => bx === nx && by === ny)) return crash("OUCH! -1 LIFE");
+      s.body.unshift([nx, ny]);
+      const food = s.foods.find((f) => f.x === nx && f.y === ny);
+      if (food) {
+        if (food.i === c.q.answerIndex) {
+          c.right(food.i);
+          s.grow += 2;
+          s.foods = [];
+          s.phase = "pause";
+          s.wait = 1.1;
+        } else {
+          const left = c.wrong(food.i, "WRONG SNACK! -1 LIFE");
+          s.foods = [];
+          s.phase = left ? "pause" : "dead";
+          s.wait = left ? 2.4 : 1.4;
+        }
+      }
+      if (s.grow > 0) s.grow--;
+      else s.body.pop();
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      placeSnake();
+      Object.assign(s, { grow: 0, step: 0, crashed: false, blink: 0 });
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { turn(["left", "up", "down", "right"][i]); return true; };
+    }
+
+    // demo: head for the target snack, avoiding walls and the tail
+    function demoSteer() {
+      const target = s.foods.find((f) => f.i === s.aim) || s.foods[0];
+      if (!target) return;
+      const [hx, hy] = s.body[0];
+      const safe = (d) => {
+        const nx = hx + d[0], ny = hy + d[1];
+        return nx >= 0 && ny >= 0 && nx < GW && ny < GH && !s.body.slice(0, -1).some(([bx, by]) => bx === nx && by === ny) &&
+          !s.foods.some((f) => f !== target && f.x === nx && f.y === ny);
+      };
+      const options = Object.values(DIRS).filter((d) => !(d[0] === -s.dir[0] && d[1] === -s.dir[1]) && safe(d));
+      options.sort((a, b) => (Math.abs(hx + a[0] - target.x) + Math.abs(hy + a[1] - target.y)) - (Math.abs(hx + b[0] - target.x) + Math.abs(hy + b[1] - target.y)));
+      if (options[0]) s.turns = [options[0]];
+    }
+
+    function update(dt) {
+      s.blink = Math.max(0, s.blink - dt);
+      if (s.phase === "pause" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.step += dt;
+      const interval = Math.max(0.09, 0.16 - c.score * 0.004);
+      if (s.step >= interval) {
+        s.step = 0;
+        if (!c.ui) demoSteer();
+        tick();
+      }
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#1c2027");
+      const x0 = ox(), y0 = oy();
+      rect(x0 - 3, y0 - 3, GW * CS + 6, GH * CS + 6, "#5b6577");
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) rect(x0 + x * CS, y0 + y * CS, CS, CS, (x + y) % 2 ? "#a9d39a" : "#9fca8f");
+      for (const f of s.foods) {
+        const fx = x0 + f.x * CS, fy = y0 + f.y * CS;
+        rect(fx - 1, fy - 1, CS + 2, CS + 2, INK);
+        rect(fx, fy, CS, CS, LANE_COLORS[f.i]);
+        text("ABCD"[f.i], fx + CS / 2, fy + CS / 2 + 1, "#fff", 8);
+      }
+      if (!(s.blink && Math.floor(s.blink * 10) % 2)) s.body.forEach(([bx, by], i) => {
+        const px0 = x0 + bx * CS, py0 = y0 + by * CS;
+        rect(px0, py0, CS, CS, INK);
+        rect(px0 + 1, py0 + 1, CS - 2, CS - 2, i === 0 ? "#3b6fe0" : i % 2 ? "#6b9cf0" : "#5a8de8");
+        if (i === 0) { // eyes, looking where it's going
+          const ex = s.dir[0], ey = s.dir[1];
+          if (ex) { rect(px0 + 4 + ex * 2, py0 + 2, 2, 2, "#fff"); rect(px0 + 4 + ex * 2, py0 + 6, 2, 2, "#fff"); }
+          else { rect(px0 + 2, py0 + 4 + ey * 2, 2, 2, "#fff"); rect(px0 + 6, py0 + 4 + ey * 2, 2, 2, "#fff"); }
+        }
+      });
+      if (s.phase === "pause" && s.crashed) text("GET READY", c.W / 2, c.H / 2);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onStick = (dir) => turn(dir);
+      onKey = (key) => {
+        if (key === "ArrowUp" || key === "ArrowDown") { turn(key === "ArrowUp" ? "up" : "down"); return true; }
+        return false;
+      };
+      let downAt = null;
+      c.canvas.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+      c.canvas.addEventListener("pointerup", (e) => {
+        if (!downAt) return;
+        const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y;
+        downAt = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
+        turn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down");
+      });
+    } else {
+      placeSnake();
+      newRound();
+    }
+    return c.stop;
+  }
+
+  // ---------- QUIZ INVADERS ----------
+  // Four invaders, marked A-D, march back and forth and creep down. Shoot the one with the
+  // right answer. Hitting a wrong one, or letting them land, costs a life. 3 lives.
+
+  function startInvaders(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "invaders", stat: "HITS", lives: 3, minW: 240, minH: 220, bestKey: "invaders", bestWord: "right hits",
+      intro: `<h2>QUIZ INVADERS</h2><p>Four invaders, marked A, B, C and D, are marching down. Shoot the one with the right answer.
+        Hitting a wrong one, or letting them reach you, costs a life. You have 3.
+        Buttons: <b>A</b> left, <b>B</b> or <b>C</b> fire, <b>D</b> right (or the arrow keys and Space; tap the screen to move and fire).</p>`,
+    });
+    const v = { phase: "intro", x: 0, shot: null, inv: [], dirX: 1, speed: 14, drop: 0, wait: 0, target: null, stars: [], t: 0, booms: [] };
+    for (let i = 0; i < 40; i++) v.stars.push([Math.random(), Math.random(), Math.random() < 0.3]);
+    const ground = () => c.H - 18;
+    const IW = 22, IH = 16;
+
+    function wave() {
+      c.nextQuestion();
+      const gap = Math.min(54, (c.W - 40) / 4);
+      const left = c.W / 2 - gap * 1.5;
+      v.inv = [0, 1, 2, 3].map((i) => ({ i, x: left + gap * i, y: 34, alive: true }));
+      v.dirX = Math.random() < 0.5 ? 1 : -1;
+      const sweep = Math.max(2.6, 4.5 - c.score * 0.15); // seconds to cross the screen once
+      v.speed = Math.max(10, (c.W - 28 - gap * 3 - IW) / sweep);
+      v.shot = null;
+      v.phase = "play";
+      if (!c.ui) v.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function move(dx) {
+      if (v.phase !== "play" && v.phase !== "pause") return;
+      v.x = Math.max(12, Math.min(c.W - 12, v.x + dx));
+    }
+    function fire() {
+      if (v.phase !== "play" || v.shot) return;
+      v.shot = { x: v.x, y: ground() - 10 };
+      c.sfx("blip");
+    }
+    function boom(x, y, color) { v.booms.push({ x, y, t: 0.5, color }); }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      v.x = c.W / 2;
+      v.booms = [];
+      c.sfx("go");
+      wave();
+      if (c.ui) onPad = (i) => { [() => move(-10), fire, fire, () => move(10)][i](); return true; };
+    }
+    function finish(left) {
+      v.phase = left ? "pause" : "dead";
+      v.wait = left ? 2.4 : 1.4;
+    }
+
+    function update(dt) {
+      v.t += dt;
+      v.booms.forEach((b) => (b.t -= dt));
+      v.booms = v.booms.filter((b) => b.t > 0);
+      if (v.phase === "pause" || v.phase === "dead") {
+        v.wait -= dt;
+        if (v.wait > 0) return;
+        if (v.phase === "dead") { v.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return wave();
+      }
+      if (v.phase !== "play") return;
+      // the formation marches; at an edge it steps down and turns around
+      const alive = v.inv.filter((n) => n.alive);
+      const minX = Math.min(...alive.map((n) => n.x)), maxX = Math.max(...alive.map((n) => n.x));
+      let dx = v.dirX * v.speed * dt;
+      if (minX + dx < 14 || maxX + dx > c.W - 14) { v.dirX *= -1; dx = 0; for (const n of v.inv) n.y += 14; }
+      for (const n of v.inv) n.x += dx;
+      if (alive.some((n) => n.y + IH / 2 >= ground() - 14)) {
+        for (const n of alive) boom(n.x, n.y, "#ff8a7a");
+        v.inv.forEach((n) => (n.alive = false));
+        return finish(c.wrong(-1, "THEY LANDED! -1 LIFE", "Too slow! "));
+      }
+      // the demo lines up under its target and fires
+      if (!c.ui) {
+        const t = v.inv[v.aim];
+        if (t?.alive) {
+          const lead = t.x + v.dirX * v.speed * 0.4;
+          if (Math.abs(lead - v.x) > 3) move(Math.sign(lead - v.x) * 90 * dt);
+          else fire();
+        }
+      }
+      if (v.shot) {
+        v.shot.y -= 190 * dt;
+        if (v.shot.y < 0) v.shot = null;
+        else {
+          const hit = v.inv.find((n) => n.alive && Math.abs(n.x - v.shot.x) < IW / 2 + 1 && Math.abs(n.y - v.shot.y) < IH / 2 + 2);
+          if (hit) {
+            v.shot = null;
+            hit.alive = false;
+            if (hit.i === c.q.answerIndex) {
+              boom(hit.x, hit.y, "#7dffa8");
+              c.right(hit.i);
+              v.inv.forEach((n) => { if (n.alive) boom(n.x, n.y, "#9aa3b2"); n.alive = false; });
+              v.phase = "pause";
+              v.wait = 1.1;
+            } else {
+              boom(hit.x, hit.y, "#ff8a7a");
+              finish(c.wrong(hit.i, "WRONG ONE! -1 LIFE"));
+              v.inv.forEach((n) => (n.alive = false));
+            }
+          }
+        }
+      }
+    }
+
+    function invader(x, y, color, frame) {
+      const { rect } = c;
+      const L = x - IW / 2, T = y - IH / 2;
+      rect(L + 4, T, 14, 2, color);
+      rect(L + 2, T + 2, 18, 8, color);
+      rect(L, T + 4, 22, 6, color);
+      rect(L + 6, T + 4, 3, 3, INK); rect(L + 13, T + 4, 3, 3, INK); // eyes
+      if (frame) { rect(L, T + 10, 4, 4, color); rect(L + 18, T + 10, 4, 4, color); rect(L + 7, T + 10, 3, 2, color); rect(L + 12, T + 10, 3, 2, color); }
+      else { rect(L + 3, T + 10, 4, 4, color); rect(L + 15, T + 10, 4, 4, color); rect(L + 9, T + 12, 4, 2, color); }
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#0f1217");
+      for (const [sx, sy, big] of v.stars) rect(sx * c.W, ((sy * c.H + v.t * (big ? 8 : 4)) % c.H), big ? 2 : 1, big ? 2 : 1, big ? "#c9cdd4" : "#5b6577");
+      const frame = Math.floor(v.t * 2.5) % 2;
+      for (const n of v.inv) if (n.alive) {
+        invader(n.x, n.y, LANE_COLORS[n.i], frame);
+        text("ABCD"[n.i], n.x, n.y - IH / 2 - 7, LANE_COLORS[n.i], 8);
+      }
+      for (const b of v.booms) {
+        const r = (0.5 - b.t) * 30;
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2;
+          rect(b.x + Math.cos(a) * r - 1, b.y + Math.sin(a) * r - 1, 3, 3, b.color);
+        }
+      }
+      if (v.shot) rect(v.shot.x - 1, v.shot.y - 5, 2, 7, "#ffd23f");
+      // the cannon and the ground
+      rect(0, ground() + 6, c.W, 2, "#3ce070");
+      const gx = v.x, gy = ground();
+      rect(gx - 11, gy - 2, 22, 7, "#3ce070");
+      rect(gx - 7, gy - 6, 14, 4, "#3ce070");
+      rect(gx - 2, gy - 10, 4, 4, "#3ce070");
+      if (v.phase === "play" && !v.inv.some((n) => n.alive)) text("...", c.W / 2, c.H / 2);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      v.x = c.W / 2;
+      onStick = (dir) => move(dir === "left" ? -10 : 10);
+      onKey = (key) => {
+        if (key === " " || key === "ArrowUp") { fire(); return true; }
+        return false;
+      };
+      // tap: slide toward the tap and fire when there
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * c.W;
+        if (Math.abs(x - v.x) < 14) return fire();
+        v.target = Math.max(12, Math.min(c.W - 12, x));
+      });
+      const glide = setInterval(() => {
+        if (!c.alive) return clearInterval(glide);
+        if (v.target == null || paused) return;
+        if (Math.abs(v.target - v.x) <= 4) { v.target = null; fire(); }
+        else move(Math.sign(v.target - v.x) * 4);
+      }, 16);
+    } else {
+      v.x = c.W / 2;
+      wave();
+    }
+    return c.stop;
+  }
+
+  // ---------- BRICK BREAKER ----------
+  // Four big bricks, marked A-D. Bounce the ball into the one with the right answer.
+  // A wrong brick, or dropping the ball, costs a life. 3 lives.
+
+  function startBreakout(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "breakout", stat: "BRICKS", lives: 3, minW: 240, minH: 230, bestKey: "breakout", bestWord: "right bricks",
+      intro: `<h2>BRICK BREAKER</h2><p>Four bricks at the top are marked A, B, C and D. Bounce the ball into the one with the right answer.
+        A wrong brick, or letting the ball fall, costs a life. You have 3.
+        Move the paddle with <b>A</b>/<b>B</b> (left) and <b>C</b>/<b>D</b> (right), the arrow keys, or by dragging on the screen.</p>`,
+    });
+    const k = { phase: "intro", px: 0, ball: null, bricks: [], wait: 0, held: true, holdT: 0, t: 0, trail: [] };
+    const PW = 44, BR = 3;
+    const paddleY = () => c.H - 16;
+
+    function layBricks() {
+      const w = Math.min(130, (c.W - 30) / 4);
+      const left = c.W / 2 - w * 2;
+      k.bricks = [0, 1, 2, 3].map((i) => ({ i, x: left + i * w + 2, y: 30, w: w - 4, h: 22, alive: true }));
+    }
+    function serve() {
+      k.held = true;
+      k.holdT = c.ui ? 1.2 : 0.6;
+      k.ball = { x: k.px, y: paddleY() - BR - 2, vx: 0, vy: 0 };
+      k.trail = [];
+    }
+    function launch() {
+      if (!k.held || k.phase !== "play") return;
+      k.held = false;
+      const speed = 150 + Math.min(70, c.score * 6);
+      const a = (-Math.PI / 2) + (Math.random() - 0.5) * 0.9;
+      k.ball.vx = Math.cos(a) * speed;
+      k.ball.vy = Math.sin(a) * speed;
+      c.sfx("press");
+    }
+    function round() {
+      c.nextQuestion();
+      layBricks();
+      k.phase = "play";
+      serve();
+      if (!c.ui) k.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1) % 4;
+    }
+    function move(dx) {
+      if (k.phase === "intro" || k.phase === "over") return;
+      k.px = Math.max(PW / 2, Math.min(c.W - PW / 2, k.px + dx));
+      if (k.held && k.ball) k.ball.x = k.px;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      k.px = c.W / 2;
+      c.sfx("go");
+      round();
+      if (c.ui) onPad = (i) => { move(i < 2 ? -14 : 14); if (k.held) launch(); return true; };
+    }
+    function after(left) {
+      k.phase = left ? "pause" : "dead";
+      k.wait = left ? 2.4 : 1.4;
+      k.ball = null;
+    }
+
+    function update(dt) {
+      k.t += dt;
+      if (k.phase === "pause" || k.phase === "dead") {
+        k.wait -= dt;
+        if (k.wait > 0) return;
+        if (k.phase === "dead") { k.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return round();
+      }
+      if (k.phase !== "play" || !k.ball) return;
+      if (k.held) {
+        k.holdT -= dt;
+        if (k.holdT <= 0) launch();
+        k.ball.x = k.px;
+        return;
+      }
+      // the demo keeps the paddle under the ball, nudged so it sends it toward its target brick
+      if (!c.ui) {
+        const t = k.bricks[k.aim];
+        const offset = t ? Math.max(-14, Math.min(14, (k.ball.x - (t.x + t.w / 2)) * 0.25)) : 0;
+        const want = k.ball.vy > 0 ? k.ball.x + offset : c.W / 2;
+        move(Math.max(-200 * dt, Math.min(200 * dt, want - k.px)));
+      }
+      const b = k.ball;
+      // move in small steps so the ball can't pass through a brick
+      const steps = Math.ceil((Math.hypot(b.vx, b.vy) * dt) / 3);
+      for (let s = 0; s < steps; s++) {
+        b.x += (b.vx * dt) / steps;
+        b.y += (b.vy * dt) / steps;
+        if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); c.sfx("step"); }
+        if (b.x > c.W - BR) { b.x = c.W - BR; b.vx = -Math.abs(b.vx); c.sfx("step"); }
+        if (b.y < BR) { b.y = BR; b.vy = Math.abs(b.vy); c.sfx("step"); }
+        // the paddle: where it hits sets the angle
+        if (b.vy > 0 && b.y + BR >= paddleY() && b.y + BR <= paddleY() + 6 && Math.abs(b.x - k.px) <= PW / 2 + BR) {
+          const speed = Math.hypot(b.vx, b.vy);
+          const hitAt = (b.x - k.px) / (PW / 2);
+          const a = -Math.PI / 2 + hitAt * 1.05;
+          b.vx = Math.cos(a) * speed;
+          b.vy = Math.sin(a) * speed;
+          b.y = paddleY() - BR;
+          c.sfx("blip");
+        }
+        const brick = k.bricks.find((r) => r.alive && b.x + BR > r.x && b.x - BR < r.x + r.w && b.y + BR > r.y && b.y - BR < r.y + r.h);
+        if (brick) {
+          brick.alive = false;
+          if (brick.i === c.q.answerIndex) {
+            c.right(brick.i);
+            k.bricks.forEach((r) => (r.alive = false));
+            k.phase = "pause";
+            k.wait = 1.1;
+            k.ball = null;
+          } else {
+            after(c.wrong(brick.i, "WRONG BRICK! -1 LIFE"));
+          }
+          return;
+        }
+        if (b.y > c.H + 6) return after(c.wrong(-1, "DROPPED IT! -1 LIFE", "The ball fell! "));
+      }
+      k.trail.push([b.x, b.y]);
+      if (k.trail.length > 6) k.trail.shift();
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#1c2027");
+      for (let x = 0; x < c.W; x += 16) rect(x, 0, 1, c.H, "#232832");
+      rect(0, 0, c.W, 3, "#5b6577");
+      for (const r of k.bricks) if (r.alive) {
+        rect(r.x - 1, r.y - 1, r.w + 2, r.h + 2, INK);
+        rect(r.x, r.y, r.w, r.h, LANE_COLORS[r.i]);
+        rect(r.x, r.y, r.w, 3, "rgba(255,255,255,0.35)");
+        text("ABCD"[r.i], r.x + r.w / 2, r.y + r.h / 2 + 1, "#fff", 16);
+      }
+      if (k.ball) {
+        k.trail.forEach(([tx, ty], i) => rect(tx - 1, ty - 1, 2, 2, `rgba(255,210,63,${(i / k.trail.length) * 0.5})`));
+        rect(k.ball.x - BR, k.ball.y - BR, BR * 2, BR * 2, "#ffd23f");
+      }
+      rect(k.px - PW / 2, paddleY(), PW, 6, "#fbfaf6");
+      rect(k.px - PW / 2, paddleY() + 4, PW, 2, "#9aa3b2");
+      if (k.held && k.phase === "play" && c.ui) text("PRESS ANY BUTTON TO SERVE", c.W / 2, c.H * 0.6, "#c9cdd4", 8);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      k.px = c.W / 2;
+      onStick = (dir) => move(dir === "left" ? -14 : 14);
+      onKey = (key) => {
+        if (key === " " || key === "ArrowUp") { launch(); return true; }
+        return false;
+      };
+      // drag (or tap) to move the paddle there; a tap also serves
+      const follow = (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        move(((e.clientX - r.left) / r.width) * c.W - k.px);
+      };
+      c.canvas.addEventListener("pointerdown", (e) => { follow(e); launch(); });
+      c.canvas.addEventListener("pointermove", (e) => { if (e.buttons || e.pointerType === "mouse") follow(e); });
+    } else {
+      k.px = c.W / 2;
+      round();
+    }
+    return c.stop;
+  }
+
   // ---------- the menu's demos for Trail Quest and Syllabus Fighter ----------
 
   // The wagon rolling along the trail toward the first landmark, over and over.
@@ -1808,8 +2517,8 @@ const Arcade = (() => {
   // You and the boss trading blows until someone is knocked out, then a rematch.
   function fightTrailer(el) {
     const boss = BOSSES[game.trail.theme] || BOSSES.frontier;
-    const timers = [];
-    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    const timers = new Set();
+    const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
     let hp = { me: 100, them: 100 };
     let rest = 0;
     const draw = () => {

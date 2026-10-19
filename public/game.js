@@ -334,7 +334,7 @@ function answer(picked) {
 
   const next = arrived ? arrive : showNext;
   if (right) {
-    setTimeout(() => { if (!$("game").hidden && !answering) next(); }, 1300);
+    setTimeout(() => { if (!$("game").hidden && !answering && !Arcade.isOpen() && !Arcade.isPaused()) next(); }, 1300);
   } else {
     const b = document.createElement("button");
     b.className = "btn-next";
