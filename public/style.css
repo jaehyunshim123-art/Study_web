@@ -618,7 +618,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .k-choice:disabled, div.k-choice { cursor: default; }
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
-.blocks .k-road, .snake .k-road, .breakout .k-road { background: #1c2027; touch-action: none; }
+.blocks .k-road, .snake .k-road { background: #1c2027; touch-action: none; }
+.penalty .k-road { background: #3ca55c; touch-action: none; }
+.moles .k-road { background: #7cc46a; touch-action: none; }
 .invaders .k-road { background: #0f1217; touch-action: none; }
 .t-controls { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; font-family: var(--pixel); font-size: 8px; color: var(--muted); }
 .t-controls .key { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink); color: #fff; font-size: 8px; margin-left: 6px; }

@@ -4,7 +4,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 
 ## How it plays
 
-- **Eight games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
+- **Nine games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
   - **Trail Quest:** the wagon journey below, a lesson then questions for each unit.
   - **Quiz Kart:** a pixel racer. A gate with four lanes (A-D) comes down the road while the question shows above it; steer into the lane with the right answer (A-D buttons, arrow keys, or tap an answer) before you reach the gate. A wrong lane costs one of 5 lives, and the gates come faster as you go.
   - **Syllabus Fighter:** a one-on-one fight against a boss that fits the subject (The Judge for law, Dr. Entropy for science...). Right answers land hits (hard questions hit harder, three in a row is a combo); a wrong answer or running out the clock lets the boss hit you. Knock out a boss to face the next one.
@@ -12,7 +12,8 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
   - **Quiz Blocks:** a Tetris-style falling-block puzzle (2nd on the menu). The arcade buttons are A left, B rotate, C right, D drop (or the arrow keys and Space; on a phone, tap the left, middle or right of the well, or swipe down). Every 6 pieces a QUIZ DROP pauses the game: a right answer blasts away your bottom 2 rows, a wrong one pushes up a junk row.
   - **Snake Smarts:** classic snake. Four snacks on the board are marked A-D; eat the one with the right answer. Arrow keys, swipes, or the buttons (A left, B up, C down, D right). 3 lives.
   - **Quiz Invaders:** space-invaders style. Four invaders marked A-D march down; shoot the one with the right answer before they land. 3 lives.
-  - **Brick Breaker:** breakout style. Bounce the ball into the brick marked with the right answer; don't drop it. 3 lives.
+  - **Penalty Shootout:** a penalty kick. The goal's corners are A (top-left), B (top-right), C (bottom-left) and D (bottom-right); shoot at the corner with the right answer before the shot clock runs out. A wrong corner is saved or hits the post. 3 lives.
+  - **Whack-a-Fact:** whack-a-mole. Moles pop out of holes A-D; whack the one in the right answer's hole while it's up. A wrong mole or running out of time costs a life. 3 lives.
   - Pick which unit the quiz games quiz you on from the menu (up/down arrow keys work too). Coins from every game go into the same wallet, and each game keeps a best score.
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
@@ -58,7 +59,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 | `public/sprites.js` | All the pixel art: themed scenery and landmarks, the wagon, BYTE, the shopkeeper, the store and item icons. |
 | `public/sound.js` | Arcade sound effects, synthesized with the Web Audio API. |
 | `public/timer.js` | The study timer: focus and break sessions, saved in the browser. |
-| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders and Brick Breaker (canvas; the last three share a `cabinet()` helper for the panel, lives and game loop). |
+| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders, Penalty Shootout and Whack-a-Fact (canvas; the last four share a `cabinet()` helper for the panel, lives and game loop). |
 | `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |

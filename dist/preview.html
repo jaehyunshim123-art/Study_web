@@ -627,7 +627,9 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .k-choice:disabled, div.k-choice { cursor: default; }
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
-.blocks .k-road, .snake .k-road, .breakout .k-road { background: #1c2027; touch-action: none; }
+.blocks .k-road, .snake .k-road { background: #1c2027; touch-action: none; }
+.penalty .k-road { background: #3ca55c; touch-action: none; }
+.moles .k-road { background: #7cc46a; touch-action: none; }
 .invaders .k-road { background: #0f1217; touch-action: none; }
 .t-controls { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; font-family: var(--pixel); font-size: 8px; color: var(--muted); }
 .t-controls .key { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink); color: #fff; font-size: 8px; margin-left: 6px; }
@@ -726,7 +728,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classic Snake, Invaders and Brick Breaker, all built on your questions.</p>
+        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classic Snake, Invaders, a Penalty Shootout and Whack-a-Fact, all built on your questions.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -2461,7 +2463,8 @@ const Arcade = (() => {
     { id: "flap", name: "FLAPPY FACTS", desc: "Flap through the gap in the wall with the right answer. 3 lives.", trailer: (el) => startFlap(null, el), start: startFlap },
     { id: "snake", name: "SNAKE SMARTS", desc: "Classic snake. Four snacks marked A-D: eat the one with the right answer. 3 lives.", trailer: (el) => startSnake(null, el), start: startSnake },
     { id: "invaders", name: "QUIZ INVADERS", desc: "Space-invaders style. Shoot the invader with the right answer before they land. 3 lives.", trailer: (el) => startInvaders(null, el), start: startInvaders },
-    { id: "breakout", name: "BRICK BREAKER", desc: "Bounce the ball into the brick with the right answer. Don't drop it! 3 lives.", trailer: (el) => startBreakout(null, el), start: startBreakout },
+    { id: "penalty", name: "PENALTY SHOOTOUT", desc: "Shoot at the goal corner with the right answer before the clock runs out. 3 lives.", trailer: (el) => startPenalty(null, el), start: startPenalty },
+    { id: "moles", name: "WHACK-A-FACT", desc: "Whack-a-mole: whack the mole in the right answer's hole while it's up. 3 lives.", trailer: (el) => startMoles(null, el), start: startMoles },
   ];
 
   const best = () => (game.best ||= {});
@@ -2527,7 +2530,8 @@ const Arcade = (() => {
       blocks: b.blocks ? `BEST: ${plural(b.blocks, "LINE")}` : "NEW!",
       snake: b.snake ? `BEST: ${plural(b.snake, "SNACK")}` : "NEW!",
       invaders: b.invaders ? `BEST: ${plural(b.invaders, "HIT")}` : "NEW!",
-      breakout: b.breakout ? `BEST: ${plural(b.breakout, "BRICK")}` : "NEW!",
+      penalty: b.penalty ? `BEST: ${plural(b.penalty, "GOAL")}` : "NEW!",
+      moles: b.moles ? `BEST: ${plural(b.moles, "WHACK")}` : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -4228,7 +4232,7 @@ const Arcade = (() => {
     };
   }
 
-  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Breakout) ----------
+  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Penalty, Whack-a-Fact) ----------
   // Builds the top bar, the question panel and the canvas; handles lives, coins, pop-up text,
   // the intro and game-over cards and the game loop. demo: an element to play a silent demo in.
 
@@ -4753,167 +4757,349 @@ const Arcade = (() => {
     return c.stop;
   }
 
-  // ---------- BRICK BREAKER ----------
-  // Four big bricks, marked A-D. Bounce the ball into the one with the right answer.
-  // A wrong brick, or dropping the ball, costs a life. 3 lives.
+  // A shot clock in the top corner of a cabinet game: seconds left, red near the end.
+  function drawClock(c, secs) {
+    const n = Math.max(0, Math.ceil(secs));
+    c.rect(c.W - 34, 6, 28, 18, INK);
+    c.text(String(n), c.W - 20, 16, n <= 3 ? "#ff6b5a" : "#ffd23f", 8);
+  }
+  const clockFor = (q) => (q?.difficulty === "hard" ? 20 : 15);
 
-  function startBreakout(u, demo = null) {
+  // ---------- PENALTY SHOOTOUT ----------
+  // A goal with four corners: A top-left, B top-right, C bottom-left, D bottom-right. Shoot at the
+  // corner with the right answer before the shot clock runs out. 3 lives.
+
+  function startPenalty(u, demo = null) {
     const c = cabinet({
-      u, demo, cls: "breakout", stat: "BRICKS", lives: 3, minW: 240, minH: 230, bestKey: "breakout", bestWord: "right bricks",
-      intro: `<h2>BRICK BREAKER</h2><p>Four bricks at the top are marked A, B, C and D. Bounce the ball into the one with the right answer.
-        A wrong brick, or letting the ball fall, costs a life. You have 3.
-        Move the paddle with <b>A</b>/<b>B</b> (left) and <b>C</b>/<b>D</b> (right), the arrow keys, or by dragging on the screen.</p>`,
+      u, demo, cls: "penalty", stat: "GOALS", lives: 3, minW: 260, minH: 230, bestKey: "penalty", bestWord: "goals",
+      intro: `<h2>PENALTY SHOOTOUT</h2><p>The goal has four corners: <b>A</b> top-left, <b>B</b> top-right, <b>C</b> bottom-left, <b>D</b> bottom-right.
+        Shoot at the corner with the right answer before the shot clock runs out. A wrong corner gets saved (or hits the post) and costs a life. You have 3.
+        Press A-D, or tap a corner.</p>`,
     });
-    const k = { phase: "intro", px: 0, ball: null, bricks: [], wait: 0, held: true, holdT: 0, t: 0, trail: [] };
-    const PW = 44, BR = 3;
-    const paddleY = () => c.H - 16;
+    const s = { phase: "intro", clock: 15, t: 0, kick: 0, target: -1, dive: null, outcome: "", banner: "", bannerT: 0, wait: 0, keeperX: 0, demoT: 0 };
+    const goal = () => {
+      const gw = Math.min(c.W * 0.72, 320), gh = gw * 0.4;
+      return { x: c.W / 2 - gw / 2, y: Math.round(c.H * 0.17), w: gw, h: gh };
+    };
+    const corner = (i) => {
+      const g = goal();
+      return { x: g.x + g.w * (i % 2 ? 0.84 : 0.16), y: g.y + g.h * (i < 2 ? 0.26 : 0.74) };
+    };
+    const spot = () => ({ x: c.W / 2, y: c.H * 0.8 });
 
-    function layBricks() {
-      const w = Math.min(130, (c.W - 30) / 4);
-      const left = c.W / 2 - w * 2;
-      k.bricks = [0, 1, 2, 3].map((i) => ({ i, x: left + i * w + 2, y: 30, w: w - 4, h: 22, alive: true }));
+    function nextKick() {
+      c.nextQuestion();
+      Object.assign(s, { phase: "aim", clock: clockFor(c.q), kick: 0, target: -1, dive: null, outcome: "", demoT: 1 + Math.random() * 1.2 });
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
-    function serve() {
-      k.held = true;
-      k.holdT = c.ui ? 1.2 : 0.6;
-      k.ball = { x: k.px, y: paddleY() - BR - 2, vx: 0, vy: 0 };
-      k.trail = [];
-    }
-    function launch() {
-      if (!k.held || k.phase !== "play") return;
-      k.held = false;
-      const speed = 150 + Math.min(70, c.score * 6);
-      const a = (-Math.PI / 2) + (Math.random() - 0.5) * 0.9;
-      k.ball.vx = Math.cos(a) * speed;
-      k.ball.vy = Math.sin(a) * speed;
+    function shoot(i) {
+      if (s.phase !== "aim") return;
+      const right = i === c.q.answerIndex;
+      s.phase = "kick";
+      s.kick = 0;
+      s.target = i;
+      // the keeper guesses wrong on a right answer; on a wrong one he saves it, or it hits the post
+      const others = [0, 1, 2, 3].filter((k) => k !== i);
+      s.outcome = right ? "goal" : Math.random() < 0.7 ? "saved" : "post";
+      s.dive = s.outcome === "saved" ? i : others[Math.floor(Math.random() * 3)];
       c.sfx("press");
     }
-    function round() {
-      c.nextQuestion();
-      layBricks();
-      k.phase = "play";
-      serve();
-      if (!c.ui) k.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1) % 4;
-    }
-    function move(dx) {
-      if (k.phase === "intro" || k.phase === "over") return;
-      k.px = Math.max(PW / 2, Math.min(c.W - PW / 2, k.px + dx));
-      if (k.held && k.ball) k.ball.x = k.px;
+    function resolve() {
+      const i = s.target;
+      if (s.outcome === "goal") {
+        c.right(i);
+        c.sfx("win");
+        s.banner = "GOAL!";
+        s.wait = 1.6;
+        s.phase = "result";
+      } else {
+        const left = c.wrong(i, s.outcome === "saved" ? "SAVED! -1 LIFE" : "OFF THE POST! -1 LIFE");
+        s.banner = s.outcome === "saved" ? "SAVED!" : "OFF THE POST!";
+        s.wait = left ? 2.6 : 1.6;
+        s.phase = left ? "result" : "dead";
+      }
+      s.bannerT = 1.6;
     }
     function begin() {
       c.hideCard();
       c.reset();
-      k.px = c.W / 2;
       c.sfx("go");
-      round();
-      if (c.ui) onPad = (i) => { move(i < 2 ? -14 : 14); if (k.held) launch(); return true; };
-    }
-    function after(left) {
-      k.phase = left ? "pause" : "dead";
-      k.wait = left ? 2.4 : 1.4;
-      k.ball = null;
+      nextKick();
+      if (c.ui) onPad = (i) => { shoot(i); return true; };
     }
 
     function update(dt) {
-      k.t += dt;
-      if (k.phase === "pause" || k.phase === "dead") {
-        k.wait -= dt;
-        if (k.wait > 0) return;
-        if (k.phase === "dead") { k.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
-        return round();
-      }
-      if (k.phase !== "play" || !k.ball) return;
-      if (k.held) {
-        k.holdT -= dt;
-        if (k.holdT <= 0) launch();
-        k.ball.x = k.px;
-        return;
-      }
-      // the demo keeps the paddle under the ball, nudged so it sends it toward its target brick
-      if (!c.ui) {
-        const t = k.bricks[k.aim];
-        const offset = t ? Math.max(-14, Math.min(14, (k.ball.x - (t.x + t.w / 2)) * 0.25)) : 0;
-        const want = k.ball.vy > 0 ? k.ball.x + offset : c.W / 2;
-        move(Math.max(-200 * dt, Math.min(200 * dt, want - k.px)));
-      }
-      const b = k.ball;
-      // move in small steps so the ball can't pass through a brick
-      const steps = Math.ceil((Math.hypot(b.vx, b.vy) * dt) / 3);
-      for (let s = 0; s < steps; s++) {
-        b.x += (b.vx * dt) / steps;
-        b.y += (b.vy * dt) / steps;
-        if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx); c.sfx("step"); }
-        if (b.x > c.W - BR) { b.x = c.W - BR; b.vx = -Math.abs(b.vx); c.sfx("step"); }
-        if (b.y < BR) { b.y = BR; b.vy = Math.abs(b.vy); c.sfx("step"); }
-        // the paddle: where it hits sets the angle
-        if (b.vy > 0 && b.y + BR >= paddleY() && b.y + BR <= paddleY() + 6 && Math.abs(b.x - k.px) <= PW / 2 + BR) {
-          const speed = Math.hypot(b.vx, b.vy);
-          const hitAt = (b.x - k.px) / (PW / 2);
-          const a = -Math.PI / 2 + hitAt * 1.05;
-          b.vx = Math.cos(a) * speed;
-          b.vy = Math.sin(a) * speed;
-          b.y = paddleY() - BR;
-          c.sfx("blip");
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      if (s.phase === "aim") {
+        s.clock -= dt;
+        s.keeperX = Math.sin(s.t * 2.2) * 10; // the keeper shuffles on his line
+        if (!c.ui && (s.demoT -= dt) <= 0) return shoot(s.aim);
+        if (s.clock <= 0) {
+          s.target = -1;
+          const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+          s.banner = "TOO SLOW!"; s.bannerT = 1.6;
+          s.wait = left ? 2.6 : 1.6;
+          s.phase = left ? "result" : "dead";
         }
-        const brick = k.bricks.find((r) => r.alive && b.x + BR > r.x && b.x - BR < r.x + r.w && b.y + BR > r.y && b.y - BR < r.y + r.h);
-        if (brick) {
-          brick.alive = false;
-          if (brick.i === c.q.answerIndex) {
-            c.right(brick.i);
-            k.bricks.forEach((r) => (r.alive = false));
-            k.phase = "pause";
-            k.wait = 1.1;
-            k.ball = null;
-          } else {
-            after(c.wrong(brick.i, "WRONG BRICK! -1 LIFE"));
-          }
-          return;
-        }
-        if (b.y > c.H + 6) return after(c.wrong(-1, "DROPPED IT! -1 LIFE", "The ball fell! "));
+      } else if (s.phase === "kick") {
+        s.kick += dt;
+        if (s.kick >= 0.85) resolve();
+      } else if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        nextKick();
       }
-      k.trail.push([b.x, b.y]);
-      if (k.trail.length > 6) k.trail.shift();
+    }
+
+    function player(x, y, shirt, kickPose) {
+      const { rect } = c;
+      rect(x - 5, y - 26, 10, 9, "#f1c27d");            // head (from behind)
+      rect(x - 5, y - 27, 10, 4, "#3a2a1a");            // hair
+      rect(x - 7, y - 17, 14, 11, shirt);              // shirt
+      rect(x - 2, y - 15, 4, 6, "#fbfaf6");             // number
+      rect(x - 6, y - 6, 12, 4, "#fbfaf6");             // shorts
+      if (kickPose) { rect(x - 5, y - 2, 4, 8, "#f1c27d"); rect(x + 2, y - 4, 4, 5, "#f1c27d"); rect(x + 4, y - 6, 5, 3, INK); }
+      else { rect(x - 5, y - 2, 4, 8, "#f1c27d"); rect(x + 1, y - 2, 4, 8, "#f1c27d"); }
+      rect(x - 6, y + 5, 5, 2, INK); if (!kickPose) rect(x + 1, y + 5, 5, 2, INK);
     }
 
     function draw() {
       const { rect, text } = c;
-      rect(-8, -8, c.W + 16, c.H + 16, "#1c2027");
-      for (let x = 0; x < c.W; x += 16) rect(x, 0, 1, c.H, "#232832");
-      rect(0, 0, c.W, 3, "#5b6577");
-      for (const r of k.bricks) if (r.alive) {
-        rect(r.x - 1, r.y - 1, r.w + 2, r.h + 2, INK);
-        rect(r.x, r.y, r.w, r.h, LANE_COLORS[r.i]);
-        rect(r.x, r.y, r.w, 3, "rgba(255,255,255,0.35)");
-        text("ABCD"[r.i], r.x + r.w / 2, r.y + r.h / 2 + 1, "#fff", 16);
+      const g = goal();
+      // crowd, then grass
+      rect(-8, -8, c.W + 16, g.y + 2 + 8, "#2e3f5c");
+      for (let y = 4; y < g.y - 4; y += 5) for (let x = (y % 10) / 2; x < c.W; x += 6) {
+        rect(x, y + (Math.sin(s.t * 6 + x) > 0.85 && s.bannerT && s.banner === "GOAL!" ? -2 : 0), 3, 3, ["#ffc94d", "#e5484d", "#fbfaf6", "#6b9cf0"][(x * 7 + y) % 4]);
       }
-      if (k.ball) {
-        k.trail.forEach(([tx, ty], i) => rect(tx - 1, ty - 1, 2, 2, `rgba(255,210,63,${(i / k.trail.length) * 0.5})`));
-        rect(k.ball.x - BR, k.ball.y - BR, BR * 2, BR * 2, "#ffd23f");
+      for (let y = g.y; y < c.H + 8; y += 12) rect(-8, y, c.W + 16, 12, Math.floor((y - g.y) / 12) % 2 ? "#3ca55c" : "#46b265");
+      // penalty box lines and the spot
+      const box = { x: g.x - g.w * 0.18, w: g.w * 1.36 };
+      rect(box.x, g.y + g.h, box.w, 2, "#fbfaf6");
+      rect(box.x, g.y + g.h, 2, c.H * 0.42, "#fbfaf6");
+      rect(box.x + box.w - 2, g.y + g.h, 2, c.H * 0.42, "#fbfaf6");
+      rect(spot().x - 2, spot().y + 4, 4, 2, "#fbfaf6");
+      // the goal: net, posts, and the four corner targets
+      rect(g.x, g.y, g.w, g.h, "rgba(255,255,255,0.12)");
+      for (let x = g.x; x <= g.x + g.w; x += 8) rect(x, g.y, 1, g.h, "rgba(255,255,255,0.35)");
+      for (let y = g.y; y <= g.y + g.h; y += 8) rect(g.x, y, g.w, 1, "rgba(255,255,255,0.35)");
+      if (s.phase === "aim" || s.phase === "kick") for (let i = 0; i < 4; i++) {
+        const p = corner(i);
+        rect(p.x - 12, p.y - 9, 24, 18, "rgba(17,20,24,0.45)");
+        rect(p.x - 12, p.y - 9, 24, 2, LANE_COLORS[i]);
+        text("ABCD"[i], p.x, p.y + 1, LANE_COLORS[i], 16);
       }
-      rect(k.px - PW / 2, paddleY(), PW, 6, "#fbfaf6");
-      rect(k.px - PW / 2, paddleY() + 4, PW, 2, "#9aa3b2");
-      if (k.held && k.phase === "play" && c.ui) text("PRESS ANY BUTTON TO SERVE", c.W / 2, c.H * 0.6, "#c9cdd4", 8);
+      rect(g.x - 4, g.y - 4, g.w + 8, 4, "#fbfaf6");
+      rect(g.x - 4, g.y - 4, 4, g.h + 4, "#fbfaf6");
+      rect(g.x + g.w, g.y - 4, 4, g.h + 4, "#fbfaf6");
+      // the keeper: shuffles, then dives
+      let kx = c.W / 2 + s.keeperX, ky = g.y + g.h, tilt = 0;
+      if (s.dive != null && s.kick > 0.3) {
+        const p = corner(s.dive), f = Math.min(1, (s.kick - 0.3) / 0.35);
+        kx += (p.x - kx) * f; ky += (p.y + 12 - ky) * f;
+        tilt = (s.dive % 2 ? 1 : -1) * f * 1.2;
+      }
+      c.ctx.save();
+      c.ctx.translate(Math.round(kx), Math.round(ky));
+      c.ctx.rotate(tilt);
+      rect(-6, -30, 12, 10, "#f1c27d");
+      rect(-8, -20, 16, 13, "#ffc94d");
+      rect(-13, -22, 5, 4, "#ffc94d"); rect(8, -22, 5, 4, "#ffc94d");
+      rect(-15, -25, 5, 5, "#fbfaf6"); rect(10, -25, 5, 5, "#fbfaf6"); // gloves
+      rect(-6, -7, 12, 4, INK);
+      rect(-6, -3, 4, 6, "#f1c27d"); rect(2, -3, 4, 6, "#f1c27d");
+      c.ctx.restore();
+      // the ball: on the spot, then flying to its corner (shrinking with distance)
+      let bx = spot().x, by = spot().y, br = 5;
+      if (s.target >= 0 && s.kick > 0.3) {
+        const p = corner(s.target), f = Math.min(1, (s.kick - 0.3) / 0.45);
+        const miss = s.outcome === "post" ? (s.target % 2 ? 14 : -14) : 0;
+        bx += (p.x + miss * f - bx) * f; by += (p.y - by) * f - Math.sin(f * Math.PI) * 18; br = 5 - 2 * f;
+      }
+      rect(bx - br, by - br, br * 2, br * 2, "#fbfaf6");
+      rect(bx - br / 2, by - br / 2, br, br, INK);
+      // the kicker runs up from behind the ball
+      const run = s.phase === "kick" ? Math.min(1, s.kick / 0.3) : 0;
+      player(spot().x - 16 + run * 10, spot().y + 22 - run * 8, "#e5484d", run >= 1);
+      if (s.phase === "aim") drawClock(c, s.clock);
+      if (s.bannerT) {
+        rect(0, c.H * 0.5 - 14, c.W, 26, "rgba(17,20,24,0.8)");
+        text(s.banner, c.W / 2, c.H * 0.5, s.banner === "GOAL!" ? "#7dffa8" : "#ff8a7a", 16);
+      }
     }
 
     c.run(update, draw);
     if (c.ui) {
       c.intro(begin);
-      k.px = c.W / 2;
-      onStick = (dir) => move(dir === "left" ? -14 : 14);
-      onKey = (key) => {
-        if (key === " " || key === "ArrowUp") { launch(); return true; }
-        return false;
-      };
-      // drag (or tap) to move the paddle there; a tap also serves
-      const follow = (e) => {
+      c.canvas.addEventListener("pointerdown", (e) => {
         const r = c.canvas.getBoundingClientRect();
-        move(((e.clientX - r.left) / r.width) * c.W - k.px);
-      };
-      c.canvas.addEventListener("pointerdown", (e) => { follow(e); launch(); });
-      c.canvas.addEventListener("pointermove", (e) => { if (e.buttons || e.pointerType === "mouse") follow(e); });
+        const x = ((e.clientX - r.left) / r.width) * c.W, y = ((e.clientY - r.top) / r.height) * c.H;
+        let bestI = -1, bestD = 50;
+        for (let i = 0; i < 4; i++) { const p = corner(i), d = Math.hypot(p.x - x, p.y - y); if (d < bestD) { bestD = d; bestI = i; } }
+        if (bestI >= 0) shoot(bestI);
+      });
     } else {
-      k.px = c.W / 2;
-      round();
+      nextKick();
+    }
+    return c.stop;
+  }
+
+  // ---------- WHACK-A-FACT ----------
+  // Moles pop out of four holes, A-D. Whack the mole in the right answer's hole while it's up.
+  // Whacking a wrong mole, or running out of time, costs a life. 3 lives.
+
+  function startMoles(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "moles", stat: "WHACKS", lives: 3, minW: 260, minH: 210, bestKey: "moles", bestWord: "right whacks",
+      intro: `<h2>WHACK-A-FACT</h2><p>Moles pop out of four holes, <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>.
+        Whack the mole in the hole with the right answer while it's up: press its button, or tap it.
+        Whacking a wrong mole, or running out of time, costs a life. You have 3.</p>`,
+    });
+    const s = { phase: "intro", clock: 15, t: 0, holes: [], pop: 0, wait: 0, hammer: null, cool: 0, banner: "", bannerT: 0, react: 0 };
+    const resetHoles = () => { s.holes = [0, 1, 2, 3].map((i) => ({ i, up: false, rise: 0, life: 0, bonk: 0 })); };
+    resetHoles();
+    const holePos = (i) => {
+      const sp = Math.min(c.W / 4.4, 84);
+      return { x: c.W / 2 + (i - 1.5) * sp, y: c.H * 0.6 };
+    };
+
+    function nextRound() {
+      c.nextQuestion();
+      resetHoles();
+      Object.assign(s, { phase: "play", clock: clockFor(c.q), pop: 0.4, cool: 0, react: 0 });
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function after(left, wait) {
+      s.wait = left ? wait : 1.6;
+      s.phase = left ? "result" : "dead";
+    }
+    function whack(i) {
+      if (s.phase !== "play" || s.cool > 0) return;
+      s.hammer = { i, t: 0.25 };
+      const h = s.holes[i];
+      if (!h.up || h.rise < 0.5) {
+        s.cool = 0.35;
+        c.sfx("step");
+        return;
+      }
+      h.bonk = 0.5;
+      c.sfx("punch");
+      if (i === c.q.answerIndex) {
+        c.right(i);
+        s.banner = "WHACK!"; s.bannerT = 1.2;
+        s.holes.forEach((o) => { if (o !== h) o.up = false; });
+        after(true, 1.3);
+      } else {
+        const left = c.wrong(i, "WRONG MOLE! -1 LIFE");
+        s.banner = "WRONG MOLE!"; s.bannerT = 1.4;
+        after(left, 2.6);
+      }
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      nextRound();
+      if (c.ui) onPad = (i) => { whack(i); return true; };
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      s.cool = Math.max(0, s.cool - dt);
+      if (s.hammer && (s.hammer.t -= dt) <= 0) s.hammer = null;
+      for (const h of s.holes) {
+        h.bonk = Math.max(0, h.bonk - dt);
+        h.rise += ((h.up ? 1 : 0) - h.rise) * Math.min(1, dt * 12);
+      }
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return nextRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        s.holes.forEach((h) => (h.up = false));
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return after(left, 2.6);
+      }
+      // moles pop up for a moment; the right one turns up often enough to catch
+      const upTime = Math.max(0.85, 1.5 - c.score * 0.04);
+      for (const h of s.holes) if (h.up && (h.life -= dt) <= 0) h.up = false;
+      s.pop -= dt;
+      if (s.pop <= 0) {
+        const down = s.holes.filter((h) => !h.up);
+        const rightHole = s.holes[c.q.answerIndex];
+        const h = !rightHole.up && Math.random() < 0.4 ? rightHole : down[Math.floor(Math.random() * down.length)];
+        if (h) { h.up = true; h.life = upTime; }
+        s.pop = 0.45 + Math.random() * 0.4;
+      }
+      // the demo whacks its target when it's up, after a human-ish pause
+      if (!c.ui) {
+        const h = s.holes[s.aim];
+        if (h.up && h.rise > 0.6) { s.react += dt; if (s.react > 0.25) { s.react = 0; whack(s.aim); } }
+      }
+    }
+
+    function draw() {
+      const { rect, text, ctx } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#9fd3e6");
+      rect(-8, c.H * 0.32, c.W + 16, c.H, "#7cc46a");
+      for (let x = -8; x < c.W; x += 14) rect(x, c.H * 0.32, 7, 3, "#6ab35a");
+      rect(c.W * 0.08, c.H * 0.12, 18, 5, "#fff"); rect(c.W * 0.08 + 4, c.H * 0.12 - 4, 10, 4, "#fff");
+      rect(c.W * 0.7, c.H * 0.18, 22, 5, "#fff"); rect(c.W * 0.7 + 5, c.H * 0.18 - 4, 12, 4, "#fff");
+      for (const h of s.holes) {
+        const p = holePos(h.i);
+        // the mole, rising out of its hole (clipped at the hole's rim)
+        ctx.save();
+        ctx.beginPath(); ctx.rect(p.x - 30, p.y - 60, 60, 60); ctx.clip();
+        const my = p.y + 4 - h.rise * 34;
+        const squash = h.bonk ? 4 : 0;
+        rect(p.x - 13, my + squash, 26, 30 - squash, "#8a5a32");
+        rect(p.x - 10, my + 3 + squash, 20, 10, "#a8754a");
+        if (h.bonk) { rect(p.x - 7, my + 6, 5, 1, INK); rect(p.x + 2, my + 6, 5, 1, INK); rect(p.x - 1, my - 10, 2, 6, "#ffd23f"); rect(p.x - 3, my - 8, 6, 2, "#ffd23f"); }
+        else { rect(p.x - 6, my + 5, 3, 3, INK); rect(p.x + 3, my + 5, 3, 3, INK); }
+        rect(p.x - 2, my + 9 + squash, 4, 3, "#e57a9a");
+        rect(p.x - 3, my + 13 + squash, 6, 2, "#fbfaf6");
+        ctx.restore();
+        // the hole's rim and its letter
+        rect(p.x - 26, p.y, 52, 8, "#3a2a1a");
+        rect(p.x - 22, p.y + 8, 44, 4, "#5a3a1a");
+        rect(p.x - 11, p.y + 16, 22, 16, INK);
+        rect(p.x - 10, p.y + 17, 20, 14, LANE_COLORS[h.i]);
+        text("ABCD"[h.i], p.x, p.y + 25, "#fff", 8);
+      }
+      if (s.hammer) {
+        const p = holePos(s.hammer.i);
+        const a = (s.hammer.t / 0.25) * 0.9;
+        ctx.save();
+        ctx.translate(Math.round(p.x + 16), Math.round(p.y - 46));
+        ctx.rotate(-a);
+        rect(-2, 0, 4, 22, "#8a5a32");
+        rect(-10, 18, 20, 10, "#5b6577");
+        rect(-10, 18, 20, 2, "#8f98a8");
+        ctx.restore();
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.2, s.banner === "WHACK!" ? "#1f9d55" : "#d93a3a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * c.W;
+        let bestI = 0, bestD = Infinity;
+        for (let i = 0; i < 4; i++) { const d = Math.abs(holePos(i).x - x); if (d < bestD) { bestD = d; bestI = i; } }
+        whack(bestI);
+      });
+    } else {
+      nextRound();
     }
     return c.stop;
   }
