@@ -627,9 +627,13 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .k-choice:disabled, div.k-choice { cursor: default; }
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
+/* the cabinet games draw their own big banner mid-screen, so the coin/life pop-up goes up top */
+.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop { top: 8%; }
 .blocks .k-road, .snake .k-road { background: #1c2027; touch-action: none; }
 .penalty .k-road { background: #3ca55c; touch-action: none; }
 .moles .k-road { background: #7cc46a; touch-action: none; }
+.crossy .k-road { background: #2f7d4f; touch-action: none; }
+.maze .k-road, .asteroids .k-road { background: #0b0d12; touch-action: none; }
 .invaders .k-road { background: #0f1217; touch-action: none; }
 .t-controls { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; font-family: var(--pixel); font-size: 8px; color: var(--muted); }
 .t-controls .key { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink); color: #fff; font-size: 8px; margin-left: 6px; }
@@ -728,7 +732,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classic Snake, Invaders, a Penalty Shootout and Whack-a-Fact, all built on your questions.</p>
+        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classics like Snake, Invaders, a Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher and Asteroids, all built on your questions.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -2465,6 +2469,9 @@ const Arcade = (() => {
     { id: "invaders", name: "QUIZ INVADERS", desc: "Space-invaders style. Shoot the invader with the right answer before they land. 3 lives.", trailer: (el) => startInvaders(null, el), start: startInvaders },
     { id: "penalty", name: "PENALTY SHOOTOUT", desc: "Shoot at the goal corner with the right answer before the clock runs out. 3 lives.", trailer: (el) => startPenalty(null, el), start: startPenalty },
     { id: "moles", name: "WHACK-A-FACT", desc: "Whack-a-mole: whack the mole in the right answer's hole while it's up. 3 lives.", trailer: (el) => startMoles(null, el), start: startMoles },
+    { id: "crossy", name: "CROSSY QUIZ", desc: "Frogger style. Hop across the traffic to the lily pad with the right answer. 3 lives.", trailer: (el) => startCrossy(null, el), start: startCrossy },
+    { id: "maze", name: "MAZE MUNCHER", desc: "Maze-chase style. Munch the fruit with the right answer and dodge the ghosts. 3 lives.", trailer: (el) => startMaze(null, el), start: startMaze },
+    { id: "asteroids", name: "ASTEROID ANSWERS", desc: "Asteroids style. Turn, thrust and shoot the asteroid with the right answer. 3 lives.", trailer: (el) => startAsteroids(null, el), start: startAsteroids },
   ];
 
   const best = () => (game.best ||= {});
@@ -2532,6 +2539,9 @@ const Arcade = (() => {
       invaders: b.invaders ? `BEST: ${plural(b.invaders, "HIT")}` : "NEW!",
       penalty: b.penalty ? `BEST: ${plural(b.penalty, "GOAL")}` : "NEW!",
       moles: b.moles ? `BEST: ${plural(b.moles, "WHACK")}` : "NEW!",
+      crossy: b.crossy ? `BEST: ${plural(b.crossy, "CROSSING")}` : "NEW!",
+      maze: b.maze ? `BEST: ${plural(b.maze, "FRUIT")}`.replace("FRUITS", "FRUIT") : "NEW!",
+      asteroids: b.asteroids ? `BEST: ${plural(b.asteroids, "HIT")}` : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -4232,7 +4242,7 @@ const Arcade = (() => {
     };
   }
 
-  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Penalty, Whack-a-Fact) ----------
+  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Penalty, Whack-a-Fact, Crossy, Maze, Asteroids) ----------
   // Builds the top bar, the question panel and the canvas; handles lives, coins, pop-up text,
   // the intro and game-over cards and the game loop. demo: an element to play a silent demo in.
 
@@ -4326,10 +4336,11 @@ const Arcade = (() => {
       c.stats();
       c.renderQuestion();
     };
-    // a right answer: coins, a green flash, a pop-up
-    c.right = (picked) => {
-      const coins = c.q?.difficulty === "hard" ? 10 : 5;
-      c.score++;
+    // a right answer: coins, a green flash, a pop-up. pay: a set number of coins instead;
+    // scored: false when it doesn't count toward the score (a goal the keeper luckily saved)
+    c.right = (picked, pay = null, scored = true) => {
+      const coins = pay ?? (c.q?.difficulty === "hard" ? 10 : 5);
+      if (scored) c.score++;
       c.coins += coins;
       if (ui) earn(coins);
       c.flash = 1; c.flashColor = "31,157,85";
@@ -4774,9 +4785,10 @@ const Arcade = (() => {
       u, demo, cls: "penalty", stat: "GOALS", lives: 3, minW: 260, minH: 230, bestKey: "penalty", bestWord: "goals",
       intro: `<h2>PENALTY SHOOTOUT</h2><p>The goal has four corners: <b>A</b> top-left, <b>B</b> top-right, <b>C</b> bottom-left, <b>D</b> bottom-right.
         Shoot at the corner with the right answer before the shot clock runs out. A wrong corner gets saved (or hits the post) and costs a life. You have 3.
+        Watch the keeper: once in a while he saves even a right answer (you still get 2 coins).
         Press A-D, or tap a corner.</p>`,
     });
-    const s = { phase: "intro", clock: 15, t: 0, kick: 0, target: -1, dive: null, outcome: "", banner: "", bannerT: 0, wait: 0, keeperX: 0, demoT: 0 };
+    const s = { phase: "intro", clock: 15, t: 0, kick: 0, target: -1, dive: null, outcome: "", banner: "", bannerT: 0, wait: 0, keeperX: 0, keeperY: 0, arms: 0, demoT: 0 };
     const goal = () => {
       const gw = Math.min(c.W * 0.72, 320), gh = gw * 0.4;
       return { x: c.W / 2 - gw / 2, y: Math.round(c.H * 0.17), w: gw, h: gh };
@@ -4798,10 +4810,11 @@ const Arcade = (() => {
       s.phase = "kick";
       s.kick = 0;
       s.target = i;
-      // the keeper guesses wrong on a right answer; on a wrong one he saves it, or it hits the post
+      // the keeper guesses wrong on a right answer (except for a lucky 1-in-50 save);
+      // on a wrong one he saves it, or it hits the post
       const others = [0, 1, 2, 3].filter((k) => k !== i);
-      s.outcome = right ? "goal" : Math.random() < 0.7 ? "saved" : "post";
-      s.dive = s.outcome === "saved" ? i : others[Math.floor(Math.random() * 3)];
+      s.outcome = right ? (Math.random() < 1 / 50 ? "lucky" : "goal") : Math.random() < 0.7 ? "saved" : "post";
+      s.dive = s.outcome === "saved" || s.outcome === "lucky" ? i : others[Math.floor(Math.random() * 3)];
       c.sfx("press");
     }
     function resolve() {
@@ -4811,6 +4824,12 @@ const Arcade = (() => {
         c.sfx("win");
         s.banner = "GOAL!";
         s.wait = 1.6;
+        s.phase = "result";
+      } else if (s.outcome === "lucky") {
+        // the right answer, but the keeper got a hand to it: a consolation 2 coins, no life lost
+        c.right(i, 2, false);
+        s.banner = "WHAT A SAVE!";
+        s.wait = 1.8;
         s.phase = "result";
       } else {
         const left = c.wrong(i, s.outcome === "saved" ? "SAVED! -1 LIFE" : "OFF THE POST! -1 LIFE");
@@ -4833,7 +4852,12 @@ const Arcade = (() => {
       s.bannerT = Math.max(0, s.bannerT - dt);
       if (s.phase === "aim") {
         s.clock -= dt;
-        s.keeperX = Math.sin(s.t * 2.2) * 10; // the keeper shuffles on his line
+        // the keeper won't stand still: he shuffles across the goal and hops, arms up
+        const g = goal();
+        s.keeperX = Math.sin(s.t * 1.7) * g.w * 0.28 + Math.sin(s.t * 4.6) * g.w * 0.06;
+        const hop = (s.t * 1.3) % 1;
+        s.keeperY = hop < 0.3 ? -Math.sin((hop / 0.3) * Math.PI) * 14 : 0;
+        s.arms = s.keeperY < -2 ? 1 : 0;
         if (!c.ui && (s.demoT -= dt) <= 0) return shoot(s.aim);
         if (s.clock <= 0) {
           s.target = -1;
@@ -4894,19 +4918,20 @@ const Arcade = (() => {
       rect(g.x - 4, g.y - 4, 4, g.h + 4, "#fbfaf6");
       rect(g.x + g.w, g.y - 4, 4, g.h + 4, "#fbfaf6");
       // the keeper: shuffles, then dives
-      let kx = c.W / 2 + s.keeperX, ky = g.y + g.h, tilt = 0;
+      let kx = c.W / 2 + s.keeperX, ky = g.y + g.h + s.keeperY, tilt = 0;
       if (s.dive != null && s.kick > 0.3) {
         const p = corner(s.dive), f = Math.min(1, (s.kick - 0.3) / 0.35);
         kx += (p.x - kx) * f; ky += (p.y + 12 - ky) * f;
-        tilt = (s.dive % 2 ? 1 : -1) * f * 1.2;
+        tilt = (p.x < kx + 0.01 ? -1 : 1) * f * 1.2;
       }
+      const armsUp = s.arms || (s.dive != null && s.kick > 0.3);
       c.ctx.save();
       c.ctx.translate(Math.round(kx), Math.round(ky));
       c.ctx.rotate(tilt);
       rect(-6, -30, 12, 10, "#f1c27d");
       rect(-8, -20, 16, 13, "#ffc94d");
-      rect(-13, -22, 5, 4, "#ffc94d"); rect(8, -22, 5, 4, "#ffc94d");
-      rect(-15, -25, 5, 5, "#fbfaf6"); rect(10, -25, 5, 5, "#fbfaf6"); // gloves
+      if (armsUp) { rect(-13, -30, 5, 10, "#ffc94d"); rect(8, -30, 5, 10, "#ffc94d"); rect(-14, -35, 6, 5, "#fbfaf6"); rect(8, -35, 6, 5, "#fbfaf6"); }
+      else { rect(-13, -22, 5, 4, "#ffc94d"); rect(8, -22, 5, 4, "#ffc94d"); rect(-15, -25, 5, 5, "#fbfaf6"); rect(10, -25, 5, 5, "#fbfaf6"); } // gloves
       rect(-6, -7, 12, 4, INK);
       rect(-6, -3, 4, 6, "#f1c27d"); rect(2, -3, 4, 6, "#f1c27d");
       c.ctx.restore();
@@ -4925,7 +4950,7 @@ const Arcade = (() => {
       if (s.phase === "aim") drawClock(c, s.clock);
       if (s.bannerT) {
         rect(0, c.H * 0.5 - 14, c.W, 26, "rgba(17,20,24,0.8)");
-        text(s.banner, c.W / 2, c.H * 0.5, s.banner === "GOAL!" ? "#7dffa8" : "#ff8a7a", 16);
+        text(s.banner, c.W / 2, c.H * 0.5, s.banner === "GOAL!" ? "#7dffa8" : s.banner === "WHAT A SAVE!" ? "#ffd23f" : "#ff8a7a", 16);
       }
     }
 
@@ -5101,6 +5126,575 @@ const Arcade = (() => {
     } else {
       nextRound();
     }
+    return c.stop;
+  }
+
+  // Four-way controls for the grid games: buttons A left, B up, C down, D right; arrow keys; swipes.
+  function fourWay(c, go) {
+    onStick = (dir) => go(dir);
+    onKey = (key) => {
+      if (key === "ArrowUp" || key === "ArrowDown") { go(key === "ArrowUp" ? "up" : "down"); return true; }
+      return false;
+    };
+    let downAt = null;
+    c.canvas.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+    c.canvas.addEventListener("pointerup", (e) => {
+      if (!downAt) return;
+      const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y;
+      downAt = null;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
+      go(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down");
+    });
+  }
+  const PAD_DIRS = ["left", "up", "down", "right"];
+  const STEP = { left: [-1, 0], up: [0, -1], down: [0, 1], right: [1, 0] };
+
+  // ---------- CROSSY QUIZ ----------
+  // Hop across the traffic to the lily pad marked with the right answer. Cars and wrong pads cost
+  // a life. 3 lives.
+
+  function startCrossy(u, demo = null) {
+    const COLS = 13, ROWS = 8, CS = 16;
+    const PAD_COLS = [1, 4, 8, 11];               // where the four pads sit on the top row
+    const LANES = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 }; // road rows and their direction (row 4 is the median)
+    const c = cabinet({
+      u, demo, cls: "crossy", stat: "CROSSINGS", lives: 3, minW: 240, minH: 170, bestKey: "crossy", bestWord: "right pads",
+      intro: `<h2>CROSSY QUIZ</h2><p>Hop across the road to the lily pad with the right answer: pads <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b> along the top.
+        Cars, a wrong pad, or running out of time cost a life. You have 3.
+        Hop with the arrow keys, a swipe, or the buttons: <b>A</b> left, <b>B</b> up, <b>C</b> down, <b>D</b> right.</p>`,
+    });
+    const s = { phase: "intro", x: 6, y: 7, hop: 0, cars: {}, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, splat: null, demoT: 0 };
+    const ox = () => Math.round((c.W - COLS * CS) / 2);
+    const oy = () => Math.round((c.H - ROWS * CS) / 2) + 4;
+
+    function makeTraffic() {
+      s.cars = {};
+      const level = Math.min(10, c.score);
+      for (const [row, dir] of Object.entries(LANES)) {
+        const speed = (22 + Number(row) * 4 + level * 3) * dir;
+        const cars = [];
+        const count = 2; // two cars a lane leaves real gaps to hop through
+        for (let k = 0; k < count; k++) cars.push({ x: (k * COLS * CS) / count + Math.random() * 20, len: Number(row) === 3 ? 3 : 2, color: ["#e5484d", "#3b6fe0", "#ffc94d", "#8e5bd6", "#ff8a3d"][(Number(row) + k) % 5] });
+        s.cars[row] = { speed, cars };
+      }
+    }
+    function newRound() {
+      c.nextQuestion();
+      Object.assign(s, { x: 6, y: 7, hop: 0, clock: (c.q?.difficulty === "hard" ? 30 : 25), phase: "play", splat: null, demoT: 0.4 });
+      makeTraffic();
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function hopTo(dir) {
+      if (s.phase !== "play" || s.hop > 0) return;
+      const [dx, dy] = STEP[dir];
+      const nx = s.x + dx, ny = s.y + dy;
+      if (nx < 0 || nx >= COLS || ny > 7) return;
+      if (ny === 0 && !PAD_COLS.includes(nx)) return; // hedges between the pads
+      s.x = nx; s.y = ny; s.hop = 0.12;
+      c.sfx("step");
+      if (ny === 0) land(PAD_COLS.indexOf(nx));
+    }
+    function land(i) {
+      if (i === c.q.answerIndex) {
+        c.right(i);
+        s.banner = "SAFE!"; s.bannerT = 1.3;
+        end(true, 1.3);
+      } else {
+        const left = c.wrong(i, "WRONG PAD! -1 LIFE");
+        s.banner = "WRONG PAD!"; s.bannerT = 1.4;
+        end(left, 2.6);
+      }
+    }
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function carAt(row, px0, px1) {
+      const lane = s.cars[row];
+      if (!lane) return false;
+      const span = COLS * CS;
+      return lane.cars.some((car) => {
+        const a = ((car.x % span) + span) % span, b = a + car.len * CS;
+        return (px1 > a + 2 && px0 < b - 2) || (px1 > a - span + 2 && px0 < b - span - 2);
+      });
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { hopTo(PAD_DIRS[i]); return true; };
+    }
+
+    // Is the frog's cell in this row free of cars for the next few seconds?
+    function clearFor(row, secs) {
+      const lane = s.cars[row];
+      if (!lane) return true;
+      const x0 = s.x * CS, ahead = lane.speed * secs;
+      return !carAt(row, Math.min(x0, x0 - ahead), Math.max(x0 + CS, x0 + CS - ahead));
+    }
+    // the demo frog: line up with its pad on the safe rows; only step into a lane that stays clear
+    // long enough to step out of again, and back off if a car is coming
+    function demoMove() {
+      const want = PAD_COLS[s.aim];
+      if ((s.y === 7 || s.y === 4) && s.x !== want) return hopTo(s.x < want ? "right" : "left");
+      const inLane = Boolean(LANES[s.y]);
+      if (inLane && !clearFor(s.y, 0.4)) return hopTo(clearFor(s.y - 1, 0.4) ? "up" : "down");
+      if (clearFor(s.y - 1, 0.9)) hopTo("up");
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.hop = Math.max(0, s.hop - dt);
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      for (const lane of Object.values(s.cars)) for (const car of lane.cars) car.x += lane.speed * dt;
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      if (carAt(s.y, s.x * CS + 3, s.x * CS + CS - 3)) {
+        s.splat = { x: s.x, y: s.y };
+        const left = c.wrong(-1, "SPLAT! -1 LIFE", "Hit by a car! ");
+        s.banner = "SPLAT!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      if (!c.ui && (s.demoT -= dt) <= 0) { s.demoT = 0.18; demoMove(); }
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      const x0 = ox(), y0 = oy();
+      rect(-8, -8, c.W + 16, c.H + 16, "#2f7d4f");
+      for (let row = 0; row < ROWS; row++) {
+        const y = y0 + row * CS;
+        if (row === 0) {
+          rect(x0, y, COLS * CS, CS, "#2f6fa8");                                        // the pond
+          for (let x = 0; x < COLS; x++) if (!PAD_COLS.includes(x)) rect(x0 + x * CS, y, CS, CS, "#1f6e3a"); // hedges
+        } else if (LANES[row]) {
+          rect(x0, y, COLS * CS, CS, "#4a5060");
+          if (row !== 3 && row !== 6) for (let x = 0; x < COLS * CS; x += 12) rect(x0 + x, y + CS - 1, 6, 1, "#c9cdd4");
+        } else rect(x0, y, COLS * CS, CS, "#7cc46a");                                   // grass median and start
+      }
+      PAD_COLS.forEach((col, i) => {
+        const px0 = x0 + col * CS, py0 = y0;
+        rect(px0 + 1, py0 + 2, CS - 2, CS - 4, "#3ca55c");
+        rect(px0 + 3, py0 + 3, CS - 6, CS - 6, LANE_COLORS[i]);
+        text("ABCD"[i], px0 + CS / 2, py0 + CS / 2 + 1, "#fff", 8);
+      });
+      // cars
+      const span = COLS * CS;
+      c.ctx.save();
+      c.ctx.beginPath(); c.ctx.rect(x0, y0, span, ROWS * CS); c.ctx.clip();
+      for (const [row, lane] of Object.entries(s.cars)) for (const car of lane.cars) {
+        const a = ((car.x % span) + span) % span;
+        for (const off of [0, -span]) {
+          const cx = x0 + a + off, cy = y0 + Number(row) * CS;
+          rect(cx + 1, cy + 2, car.len * CS - 2, CS - 4, car.color);
+          rect(cx + (lane.speed > 0 ? car.len * CS - 6 : 3), cy + 4, 3, CS - 8, "#cfe8f2");
+          rect(cx + 3, cy + CS - 3, 4, 2, INK); rect(cx + car.len * CS - 7, cy + CS - 3, 4, 2, INK);
+        }
+      }
+      c.ctx.restore();
+      // the frog
+      const fx = x0 + s.x * CS, fy = y0 + s.y * CS - (s.hop ? 3 : 0);
+      if (s.splat) { rect(fx + 1, fy + 5, CS - 2, 6, "#3ca55c"); rect(fx + 4, fy + 3, CS - 8, 2, "#3ca55c"); }
+      else if (s.phase !== "over") {
+        rect(fx + 3, fy + 3, CS - 6, CS - 5, "#3ce070");
+        rect(fx + 2, fy + 10, 3, 4, "#3ca55c"); rect(fx + CS - 5, fy + 10, 3, 4, "#3ca55c");
+        rect(fx + 4, fy + 2, 3, 3, "#fff"); rect(fx + CS - 7, fy + 2, 3, 3, "#fff");
+        rect(fx + 5, fy + 3, 1, 1, INK); rect(fx + CS - 6, fy + 3, 1, 1, INK);
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, y0 + 4 * CS + CS / 2, s.banner === "SAFE!" ? "#7dffa8" : "#ff8a7a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      fourWay(c, hopTo);
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- MAZE MUNCHER ----------
+  // Munch the fruit marked with the right answer. Ghosts, wrong fruit and the clock cost a life.
+
+  const MAZE = [
+    "###############",
+    "#.............#",
+    "#.##.#####.##.#",
+    "#.#.........#.#",
+    "#.#.##.#.##.#.#",
+    "#......#......#",
+    "#.#.##.#.##.#.#",
+    "#.#.........#.#",
+    "#.##.#####.##.#",
+    "#.............#",
+    "###############",
+  ];
+
+  function startMaze(u, demo = null) {
+    const MW = MAZE[0].length, MH = MAZE.length, CS = 14;
+    const c = cabinet({
+      u, demo, cls: "maze", stat: "FRUIT", lives: 3, minW: 230, minH: 180, bestKey: "maze", bestWord: "right fruit",
+      intro: `<h2>MAZE MUNCHER</h2><p>Four fruits in the maze are marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Munch the one with the right answer
+        and keep away from the ghosts. A ghost, a wrong fruit, or running out of time costs a life. You have 3.
+        Steer with the arrow keys, a swipe, or the buttons: <b>A</b> left, <b>B</b> up, <b>C</b> down, <b>D</b> right.</p>`,
+    });
+    const open = (x, y) => MAZE[y]?.[x] === ".";
+    const s = { phase: "intro", me: null, ghosts: [], fruits: [], dots: new Set(), clock: 25, wait: 0, banner: "", bannerT: 0, t: 0 };
+    const ox = () => Math.round((c.W - MW * CS) / 2);
+    const oy = () => Math.round((c.H - MH * CS) / 2);
+
+    const mover = (x, y, speed) => ({ x, y, fx: x, fy: y, dir: [0, 0], want: null, speed, prog: 0 });
+    function newRound() {
+      c.nextQuestion();
+      s.me = mover(7, 5, 5.2);
+      const level = Math.min(8, c.score);
+      const ghostSpeed = (2.8 + level * 0.15) * (c.ui ? 1 : 0.75); // a little slower in the menu's demo
+      s.ghosts = [mover(1, 1, ghostSpeed), mover(13, 9, ghostSpeed)];
+      s.ghosts.forEach((g, i) => (g.color = ["#e5484d", "#ff8ad0"][i]));
+      s.dots = new Set();
+      for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (open(x, y)) s.dots.add(`${x},${y}`);
+      // fruit in four spread-out spots, away from you
+      const spots = shuffle([[1, 9], [13, 1], [4, 3], [10, 7], [1, 5], [13, 5], [7, 9], [7, 1], [3, 9], [11, 1]]);
+      s.fruits = spots.slice(0, 4).map(([x, y], i) => ({ x, y, i }));
+      Object.assign(s, { phase: "play", clock: c.q?.difficulty === "hard" ? 30 : 25 });
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function steer(dir) { if (s.phase === "play") s.me.want = STEP[dir]; }
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    // move along the grid: pick a direction at each cell, then slide to the next one
+    function advance(m, dt, choose) {
+      m.prog += m.speed * dt;
+      while (m.prog >= 1 || (m.dir[0] === 0 && m.dir[1] === 0)) {
+        if (m.dir[0] || m.dir[1]) { m.x += m.dir[0]; m.y += m.dir[1]; m.prog -= 1; arrive(m); if (s.phase !== "play") return; }
+        const d = choose(m);
+        if (!d) { m.dir = [0, 0]; m.prog = 0; break; }
+        m.dir = d;
+      }
+      m.fx = m.x + m.dir[0] * m.prog;
+      m.fy = m.y + m.dir[1] * m.prog;
+    }
+    function arrive(m) {
+      if (m !== s.me) return;
+      s.dots.delete(`${m.x},${m.y}`);
+      const f = s.fruits.find((f) => f.x === m.x && f.y === m.y);
+      if (!f) return;
+      if (f.i === c.q.answerIndex) {
+        c.right(f.i);
+        s.banner = "YUM!"; s.bannerT = 1.3;
+        end(true, 1.3);
+      } else {
+        const left = c.wrong(f.i, "WRONG FRUIT! -1 LIFE");
+        s.banner = "WRONG FRUIT!"; s.bannerT = 1.4;
+        end(left, 2.6);
+      }
+    }
+    const meChoose = (m) => {
+      if (!c.ui) demoWant(); // the demo plans each turn as it reaches a cell
+      if (m.want && open(m.x + m.want[0], m.y + m.want[1])) return m.want;
+      if (open(m.x + m.dir[0], m.y + m.dir[1]) && (m.dir[0] || m.dir[1])) return m.dir;
+      return null;
+    };
+    const ghostChoose = (g) => {
+      const options = Object.values(STEP).filter((d) => open(g.x + d[0], g.y + d[1]) && !(d[0] === -g.dir[0] && d[1] === -g.dir[1]));
+      if (!options.length) return [-g.dir[0], -g.dir[1]];
+      if (Math.random() < 0.5) options.sort((a, b) => Math.hypot(g.x + a[0] - s.me.x, g.y + a[1] - s.me.y) - Math.hypot(g.x + b[0] - s.me.x, g.y + b[1] - s.me.y));
+      else options.sort(() => Math.random() - 0.5);
+      return options[0];
+    };
+    // the demo muncher: the shortest path to its fruit, steering clear of ghosts
+    function demoWant() {
+      const target = s.fruits[s.aim];
+      if (!target) return;
+      const danger = new Set();
+      for (const g of s.ghosts) for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) if (Math.abs(dx) + Math.abs(dy) <= 2) danger.add(`${g.x + dx},${g.y + dy}`);
+      danger.delete(`${s.me.x},${s.me.y}`);
+      for (const f of s.fruits) if (f !== target) danger.add(`${f.x},${f.y}`); // don't munch the wrong fruit on the way
+      const prev = new Map([[`${s.me.x},${s.me.y}`, null]]);
+      const queue = [[s.me.x, s.me.y]];
+      while (queue.length) {
+        const [x, y] = queue.shift();
+        if (x === target.x && y === target.y) break;
+        for (const d of Object.values(STEP)) {
+          const k = `${x + d[0]},${y + d[1]}`;
+          if (!open(x + d[0], y + d[1]) || prev.has(k) || danger.has(k)) continue;
+          prev.set(k, [x, y]);
+          queue.push([x + d[0], y + d[1]]);
+        }
+      }
+      let k = `${target.x},${target.y}`, step = null;
+      if (!prev.has(k)) {
+        // no safe way there right now: move away from the nearest ghost
+        const away = Object.values(STEP).filter((d) => open(s.me.x + d[0], s.me.y + d[1]) &&
+            !s.fruits.some((f) => f !== target && f.x === s.me.x + d[0] && f.y === s.me.y + d[1]))
+          .sort((a, b) => Math.min(...s.ghosts.map((g) => Math.hypot(g.x - s.me.x - b[0], g.y - s.me.y - b[1])))
+            - Math.min(...s.ghosts.map((g) => Math.hypot(g.x - s.me.x - a[0], g.y - s.me.y - a[1]))));
+        if (away[0]) s.me.want = away[0];
+        return;
+      }
+      while (prev.get(k) && prev.get(k).join(",") !== `${s.me.x},${s.me.y}`) { step = prev.get(k); k = step.join(","); }
+      const [nx, ny] = k.split(",").map(Number);
+      s.me.want = [nx - s.me.x, ny - s.me.y];
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { steer(PAD_DIRS[i]); return true; };
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      advance(s.me, dt, meChoose);
+      if (s.phase !== "play") return;
+      for (const g of s.ghosts) advance(g, dt, ghostChoose);
+      if (s.ghosts.some((g) => Math.hypot(g.fx - s.me.fx, g.fy - s.me.fy) < 0.6)) {
+        const left = c.wrong(-1, "CAUGHT! -1 LIFE", "A ghost got you! ");
+        s.banner = "CAUGHT!"; s.bannerT = 1.4;
+        end(left, 2.6);
+      }
+    }
+
+    function draw() {
+      const { rect, text, ctx } = c;
+      const x0 = ox(), y0 = oy();
+      rect(-8, -8, c.W + 16, c.H + 16, "#0f1217");
+      for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+        if (MAZE[y][x] === "#") {
+          rect(x0 + x * CS, y0 + y * CS, CS, CS, "#1c2a6b");
+          rect(x0 + x * CS + 2, y0 + y * CS + 2, CS - 4, CS - 4, "#2c45b8");
+        } else if (s.dots.has(`${x},${y}`)) rect(x0 + x * CS + CS / 2 - 1, y0 + y * CS + CS / 2 - 1, 2, 2, "#f5ebcc");
+      }
+      for (const f of s.fruits) {
+        const px0 = x0 + f.x * CS, py0 = y0 + f.y * CS;
+        rect(px0 + 1, py0 + 1, CS - 2, CS - 2, LANE_COLORS[f.i]);
+        rect(px0 + CS / 2 - 1, py0 - 1, 2, 3, "#3ca55c");
+        text("ABCD"[f.i], px0 + CS / 2, py0 + CS / 2 + 1, "#fff", 8);
+      }
+      for (const g of s.ghosts) {
+        const gx = x0 + g.fx * CS, gy = y0 + g.fy * CS;
+        rect(gx + 2, gy + 2, CS - 4, CS - 4, g.color);
+        rect(gx + 2, gy + CS - 4, 3, 2, "#0f1217"); rect(gx + CS - 5, gy + CS - 4, 3, 2, "#0f1217");
+        rect(gx + 4, gy + 4, 2, 3, "#fff"); rect(gx + CS - 6, gy + 4, 2, 3, "#fff");
+      }
+      if (s.me && s.phase !== "over") {
+        const mx = x0 + s.me.fx * CS + CS / 2, my = y0 + s.me.fy * CS + CS / 2;
+        const open = Math.abs(Math.sin(s.t * 12)) * 0.7 + 0.05;
+        const facing = Math.atan2(s.me.dir[1], s.me.dir[0] || (s.me.dir[1] ? 0 : 1));
+        ctx.fillStyle = "#ffd23f";
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.arc(mx, my, CS / 2 - 1, facing + open, facing + Math.PI * 2 - open);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, c.H / 2, s.banner === "YUM!" ? "#7dffa8" : "#ff8a7a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      fourWay(c, steer);
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- ASTEROID ANSWERS ----------
+  // Four asteroids drift by, marked A-D. Shoot the one with the right answer. Shooting a wrong one,
+  // crashing into one, or running out of time costs a life. 3 lives.
+
+  function startAsteroids(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "asteroids", stat: "HITS", lives: 3, minW: 250, minH: 210, bestKey: "asteroids", bestWord: "right hits",
+      intro: `<h2>ASTEROID ANSWERS</h2><p>Four asteroids drift by, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Shoot the one with the right answer.
+        Hitting a wrong one, crashing into one, or running out of time costs a life. You have 3.
+        Buttons: <b>A</b> turn left, <b>B</b> thrust, <b>C</b> fire, <b>D</b> turn right (or the arrow keys and Space). On a phone, tap where to shoot.</p>`,
+    });
+    const s = { phase: "intro", ship: null, rocks: [], shots: [], clock: 20, wait: 0, banner: "", bannerT: 0, t: 0, booms: [], stars: [], flame: 0, aimAt: null };
+    for (let i = 0; i < 50; i++) s.stars.push([Math.random(), Math.random()]);
+    const wrap = (o) => { o.x = (o.x + c.W) % c.W; o.y = (o.y + c.H) % c.H; };
+
+    function newRound() {
+      c.nextQuestion();
+      s.ship = { x: c.W / 2, y: c.H / 2, a: -Math.PI / 2, vx: 0, vy: 0 };
+      s.shots = [];
+      s.rocks = [0, 1, 2, 3].map((i) => {
+        const ang = (i / 4) * Math.PI * 2 + Math.random() * 0.8;
+        const dist = Math.min(c.W, c.H) * 0.38;
+        const sp = 10 + Math.random() * 10 + Math.min(14, c.score * 1.2);
+        const dir = Math.random() * Math.PI * 2;
+        return { i, x: c.W / 2 + Math.cos(ang) * dist * 1.2, y: c.H / 2 + Math.sin(ang) * dist, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp, r: 13, spin: Math.random() * 6, alive: true,
+          shape: Array.from({ length: 9 }, () => 0.75 + Math.random() * 0.35) };
+      });
+      Object.assign(s, { phase: "play", clock: c.q?.difficulty === "hard" ? 25 : 20 });
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    const turn = (d) => { if (s.phase === "play") s.ship.a += d * 0.32; };
+    function thrust() {
+      if (s.phase !== "play") return;
+      s.ship.vx += Math.cos(s.ship.a) * 22;
+      s.ship.vy += Math.sin(s.ship.a) * 22;
+      s.flame = 0.15;
+    }
+    function fire() {
+      if (s.phase !== "play" || s.shots.length >= 3) return;
+      const { x, y, a } = s.ship;
+      s.shots.push({ x: x + Math.cos(a) * 8, y: y + Math.sin(a) * 8, vx: Math.cos(a) * 200, vy: Math.sin(a) * 200, life: 1.1 });
+      c.sfx("blip");
+    }
+    const boom = (x, y, color) => s.booms.push({ x, y, t: 0.6, color });
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { [() => turn(-1), thrust, fire, () => turn(1)][i](); return true; };
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      s.flame = Math.max(0, s.flame - dt);
+      s.booms.forEach((b) => (b.t -= dt));
+      s.booms = s.booms.filter((b) => b.t > 0);
+      for (const r of s.rocks) if (r.alive) { r.x += r.vx * dt; r.y += r.vy * dt; r.spin += dt; wrap(r); }
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      const ship = s.ship;
+      // tap-to-aim (and the demo): turn toward the target, then fire
+      const aimRock = !c.ui ? s.rocks[s.aim] : null;
+      const aimAt = aimRock?.alive ? { x: aimRock.x, y: aimRock.y } : s.aimAt;
+      if (aimAt) {
+        const want = Math.atan2(aimAt.y - ship.y, aimAt.x - ship.x);
+        let diff = ((want - ship.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        ship.a += Math.max(-4 * dt, Math.min(4 * dt, diff));
+        if (Math.abs(diff) < 0.08) { fire(); s.aimAt = null; }
+      }
+      ship.x += ship.vx * dt; ship.y += ship.vy * dt;
+      ship.vx *= 1 - 0.8 * dt; ship.vy *= 1 - 0.8 * dt;
+      wrap(ship);
+      for (const sh of s.shots) { sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.life -= dt; wrap(sh); }
+      s.shots = s.shots.filter((sh) => sh.life > 0);
+      for (const sh of s.shots) {
+        const rock = s.rocks.find((r) => r.alive && Math.hypot(r.x - sh.x, r.y - sh.y) < r.r);
+        if (!rock) continue;
+        sh.life = 0;
+        rock.alive = false;
+        if (rock.i === c.q.answerIndex) {
+          boom(rock.x, rock.y, "#7dffa8");
+          c.right(rock.i);
+          s.banner = "BULLSEYE!"; s.bannerT = 1.3;
+          s.rocks.forEach((r) => { if (r.alive) boom(r.x, r.y, "#9aa3b2"); r.alive = false; });
+          return end(true, 1.3);
+        }
+        boom(rock.x, rock.y, "#ff8a7a");
+        const left = c.wrong(rock.i, "WRONG ROCK! -1 LIFE");
+        s.banner = "WRONG ROCK!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      if (s.rocks.some((r) => r.alive && Math.hypot(r.x - ship.x, r.y - ship.y) < r.r + 5)) {
+        boom(ship.x, ship.y, "#ffd23f");
+        const left = c.wrong(-1, "CRASH! -1 LIFE", "You hit an asteroid! ");
+        s.banner = "CRASH!"; s.bannerT = 1.4;
+        end(left, 2.6);
+      }
+    }
+
+    function draw() {
+      const { rect, text, ctx } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#0b0d12");
+      for (const [sx, sy] of s.stars) rect(sx * c.W, sy * c.H, 1, 1, "#5b6577");
+      ctx.lineWidth = 1.5;
+      for (const r of s.rocks) if (r.alive) {
+        ctx.strokeStyle = LANE_COLORS[r.i];
+        ctx.beginPath();
+        r.shape.forEach((k, j) => {
+          const a = (j / r.shape.length) * Math.PI * 2 + r.spin * 0.6;
+          const px0 = r.x + Math.cos(a) * r.r * k, py0 = r.y + Math.sin(a) * r.r * k;
+          j ? ctx.lineTo(px0, py0) : ctx.moveTo(px0, py0);
+        });
+        ctx.closePath();
+        ctx.stroke();
+        text("ABCD"[r.i], r.x, r.y + 1, LANE_COLORS[r.i], 8);
+      }
+      for (const sh of s.shots) rect(sh.x - 1, sh.y - 1, 2, 2, "#ffd23f");
+      for (const b of s.booms) {
+        const rr = (0.6 - b.t) * 40;
+        for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; rect(b.x + Math.cos(a) * rr - 1, b.y + Math.sin(a) * rr - 1, 2, 2, b.color); }
+      }
+      if (s.ship && s.phase !== "over" && !(s.banner === "CRASH!" && s.bannerT)) {
+        const { x, y, a } = s.ship;
+        const pt = (d, ang) => [x + Math.cos(a + ang) * d, y + Math.sin(a + ang) * d];
+        ctx.strokeStyle = "#fbfaf6";
+        ctx.beginPath();
+        ctx.moveTo(...pt(9, 0)); ctx.lineTo(...pt(7, 2.5)); ctx.lineTo(...pt(3, Math.PI)); ctx.lineTo(...pt(7, -2.5)); ctx.closePath();
+        ctx.stroke();
+        if (s.flame) { ctx.strokeStyle = "#ff8a3d"; ctx.beginPath(); ctx.moveTo(...pt(5, Math.PI - 0.4)); ctx.lineTo(...pt(11, Math.PI)); ctx.lineTo(...pt(5, Math.PI + 0.4)); ctx.stroke(); }
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.22, s.banner === "BULLSEYE!" ? "#7dffa8" : "#ff8a7a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onStick = (dir) => turn(dir === "left" ? -1 : 1);
+      onKey = (key) => {
+        if (key === "ArrowUp") { thrust(); return true; }
+        if (key === " ") { fire(); return true; }
+        return false;
+      };
+      c.canvas.addEventListener("pointerdown", (e) => {
+        if (s.phase !== "play") return;
+        const r = c.canvas.getBoundingClientRect();
+        s.aimAt = { x: ((e.clientX - r.left) / r.width) * c.W, y: ((e.clientY - r.top) / r.height) * c.H };
+      });
+    } else newRound();
     return c.stop;
   }
 
