@@ -625,7 +625,10 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
 /* the cabinet games draw their own big banner mid-screen, so the coin/life pop-up goes up top */
-.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop, .hunt .k-pop, .bump .k-pop, .cannon .k-pop { top: 8%; }
+.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop, .hunt .k-pop, .bump .k-pop, .cannon .k-pop, .lander .k-pop, .golf .k-pop, .fishing .k-pop { top: 8%; }
+.lander .k-road { background: #07090f; touch-action: none; }
+.golf .k-road { background: #2f6b3a; touch-action: none; }
+.fishing .k-road { background: #1e6eaa; touch-action: none; }
 .hunt .k-road { background: #8fd0f0; touch-action: none; cursor: crosshair; }
 .bump .k-road { background: #7ec8f0; touch-action: none; }
 .cannon .k-road { background: #f5d9a8; touch-action: none; }

@@ -634,7 +634,10 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
 /* the cabinet games draw their own big banner mid-screen, so the coin/life pop-up goes up top */
-.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop, .hunt .k-pop, .bump .k-pop, .cannon .k-pop { top: 8%; }
+.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop, .hunt .k-pop, .bump .k-pop, .cannon .k-pop, .lander .k-pop, .golf .k-pop, .fishing .k-pop { top: 8%; }
+.lander .k-road { background: #07090f; touch-action: none; }
+.golf .k-road { background: #2f6b3a; touch-action: none; }
+.fishing .k-road { background: #1e6eaa; touch-action: none; }
 .hunt .k-road { background: #8fd0f0; touch-action: none; cursor: crosshair; }
 .bump .k-road { background: #7ec8f0; touch-action: none; }
 .cannon .k-road { background: #f5d9a8; touch-action: none; }
@@ -741,7 +744,7 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
       <div class="hero-copy">
         <p class="eyebrow">Insert syllabus · Press start</p>
         <h1>Turn your syllabus into a game.</h1>
-        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classics like Snake, Invaders, a Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher, Asteroids, Quiz Hunt, Block Bump and Cannon Clash, all built on your questions.</p>
+        <p class="lede">Upload your course syllabus. The AI writes a short lesson and questions for each unit, then you pick a game: take a wagon trail to the final exam, race Quiz Kart, battle in Syllabus Fighter, fly through Flappy Facts, stack Quiz Blocks, or play classics like Snake, Invaders, a Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher, Asteroids, Quiz Hunt, Block Bump, Cannon Clash, Moon Lander, Mini Golf and Gone Fishing, all built on your questions.</p>
 
         <div class="upload-card">
           <label class="drop" id="drop">
@@ -2494,7 +2497,10 @@ const Arcade = (() => {
     { id: "asteroids", name: "ASTEROID ANSWERS", desc: "Asteroids style. Turn, thrust and shoot the asteroid with the right answer. 3 lives.", trailer: (el) => startAsteroids(null, el), start: startAsteroids },
     { id: "hunt", name: "QUIZ HUNT", desc: "Duck-hunt style. Aim the crosshair and shoot the duck with the right answer. 3 lives.", trailer: (el) => startHunt(null, el), start: startHunt },
     { id: "bump", name: "BLOCK BUMP", desc: "Platformer style. Run, jump and bump the ? block with the right answer. 3 lives.", trailer: (el) => startBump(null, el), start: startBump },
-    { id: "cannon", name: "CANNON CLASH", desc: "Artillery style. Aim, time the power and lob a shell onto the right target. 3 lives.", trailer: (el) => startCannon(null, el), start: startCannon },
+    { id: "cannon", name: "CANNON CLASH", desc: "Artillery style. Set the angle and power, then lob a shell onto the right target. 3 lives.", trailer: (el) => startCannon(null, el), start: startCannon },
+    { id: "lander", name: "MOON LANDER", desc: "Lunar-lander style. Fire the engines and touch down gently on the right pad. 3 lives.", trailer: (el) => startLander(null, el), start: startLander },
+    { id: "golf", name: "MINI GOLF", desc: "Aim and putt the ball into the hole with the right answer. 3 strokes a round, 3 lives.", trailer: (el) => startGolf(null, el), start: startGolf },
+    { id: "fishing", name: "GONE FISHING", desc: "Steer the boat, drop the hook and catch the fish with the right answer. 3 lives.", trailer: (el) => startFishing(null, el), start: startFishing },
   ];
 
   // Direction keys being held down right now: "up" | "down" | "left" | "right" (WASD or arrows).
@@ -2576,6 +2582,9 @@ const Arcade = (() => {
       hunt: b.hunt ? `BEST: ${plural(b.hunt, "DUCK")}` : "NEW!",
       bump: b.bump ? `BEST: ${plural(b.bump, "BUMP")}` : "NEW!",
       cannon: b.cannon ? `BEST: ${plural(b.cannon, "HIT")}` : "NEW!",
+      lander: b.lander ? `BEST: ${plural(b.lander, "LANDING")}` : "NEW!",
+      golf: b.golf ? `BEST: ${plural(b.golf, "HOLE")}` : "NEW!",
+      fishing: b.fishing ? `BEST: ${plural(b.fishing, "CATCH")}`.replace("CATCHS", "CATCHES") : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -4342,6 +4351,7 @@ const Arcade = (() => {
           return `<div class="k-choice${k}"><span class="key">${"ABCD"[i]}</span><span>${escapeHTML(ch)}</span></div>`;
         }).join("")}</div>
         ${result && !result.right ? `<p class="k-why">${why}${escapeHTML(q.explanation || "")}</p>` : ""}`;
+      fit(); // the panel's new height changes the play area; measure now, before a round is laid out
     };
     c.nextQuestion = (demoQ) => {
       c.q = ui ? deck.next() : demoQ || { answerIndex: Math.floor(Math.random() * 4) };
@@ -4779,7 +4789,7 @@ const Arcade = (() => {
     if (c.ui) {
       c.intro(begin);
       v.x = c.W / 2;
-      onStick = () => {}; // held keys move the cannon smoothly (see update)
+      onStick = (dir) => { if (!holding(dir)) move(dir === "left" ? -5 : 5); }; // a tap nudges; holding glides (see update)
       onKey = (key) => {
         if (key === " " || key === "ArrowUp") { fire(); return true; }
         return false;
@@ -5725,9 +5735,9 @@ const Arcade = (() => {
     c.run(update, draw);
     if (c.ui) {
       c.intro(begin);
-      onStick = () => {}; // held keys turn and thrust smoothly (see update)
+      onStick = (dir) => { if (!holding(dir)) turn(dir === "left" ? -0.35 : 0.35); }; // a tap turns a little; holding keeps turning (see update)
       onKey = (key) => {
-        if (key === "ArrowUp") return true;
+        if (key === "ArrowUp") { if (!holding("up")) thrust(); return true; }
         if (key === " " || key === "ArrowDown") { fire(); return true; }
         return false;
       };
@@ -5889,9 +5899,9 @@ const Arcade = (() => {
     c.run(update, draw);
     if (c.ui) {
       c.intro(begin);
-      onStick = () => {}; // held keys aim smoothly (see update)
+      onStick = (dir) => { if (!holding(dir)) nudge(dir === "left" ? -5 : 5, 0); }; // a tap nudges; holding glides (see update)
       onKey = (key) => {
-        if (key === "ArrowUp" || key === "ArrowDown") return true;
+        if (key === "ArrowUp" || key === "ArrowDown") { const d = key === "ArrowUp" ? "up" : "down"; if (!holding(d)) nudge(0, d === "up" ? -5 : 5); return true; }
         if (key === " ") { shoot(); return true; }
         return false;
       };
@@ -6068,7 +6078,7 @@ const Arcade = (() => {
     c.run(update, draw);
     if (c.ui) {
       c.intro(begin);
-      onStick = () => {}; // held keys run (see update)
+      onStick = (dir) => { if (!holding(dir) && !s.push) s.push = dir === "left" ? -0.08 : 0.08; }; // a tap steps; holding runs (see update)
       onKey = (key) => {
         if (key === " " || key === "ArrowUp") { jump(); return true; }
         if (key === "ArrowDown") return true;
@@ -6085,19 +6095,20 @@ const Arcade = (() => {
   }
 
   // ---------- CANNON CLASH ----------
-  // Four targets stand on the far hills, marked A-D. Set your cannon's angle, time the power meter
-  // and lob a shell onto the one with the right answer. 4 shells a round. 3 lives.
+  // Four targets stand on the far hills, marked A-D. Set your cannon's angle and power, then lob a
+  // shell onto the one with the right answer (a dotted line previews the shot). 4 shells a round.
+  // 3 lives. Every target can be hit from any screen size and wind (angles 10-85 degrees).
 
   function startCannon(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "cannon", stat: "HITS", lives: 3, minW: 280, minH: 200, bestKey: "cannon", bestWord: "right hits",
       intro: `<h2>CANNON CLASH</h2><p>Four targets stand across the field, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Lob a shell onto the one with the right answer.
-        Aim with <b>W</b>/<b>S</b> (or the arrows); the power meter swings up and down, so fire with <b>Space</b> when it's where you want it. Watch the wind!
-        You get 4 shells a round. Hitting a wrong target, running out of shells, or running out of time costs a life. You have 3.
-        Buttons: A aim up, C aim down, B or D fire.</p>`,
+        <b>W</b>/<b>S</b> raise and lower the barrel, <b>A</b>/<b>D</b> set the power, <b>Space</b> (or the joystick's ball) fires. The dotted line shows where the shot starts heading; mind the wind!
+        On a phone, tap the field to aim there and tap FIRE. Buttons: A up, C down, D less power, B more power.
+        You get 4 shells a round. Hitting a wrong target, running out of shells, or running out of time costs a life. You have 3.</p>`,
     });
     const G = 160;
-    const s = { phase: "intro", angle: 45, power: 0.5, pdir: 1, shell: null, shells: 4, targets: [], wind: 0, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, puffs: [], demoPlan: null };
+    const s = { phase: "intro", angle: 45, power: 0.6, shell: null, shells: 4, targets: [], wind: 0, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, puffs: [], demoPlan: null };
     const base = () => ({ x: 26, y: c.H - 30 });
     const groundAt = (x) => c.H - 30 + Math.sin(x / 37) * 4 - (x > c.W * 0.4 ? Math.sin((x - c.W * 0.4) / 60) * 10 : 0);
     const maxSpeed = () => Math.sqrt(G * (c.W - 30)) * 1.08;
@@ -6107,14 +6118,17 @@ const Arcade = (() => {
       const span = c.W - 30 - c.W * 0.32;
       const xs = shuffle([0, 1, 2, 3]).map((k) => c.W * 0.32 + (span * (k + 0.5)) / 4);
       s.targets = [0, 1, 2, 3].map((i) => ({ i, x: xs[i], hit: false }));
-      Object.assign(s, { phase: "play", shells: 4, shell: null, angle: 45, power: 0, pdir: 1, clock: c.q?.difficulty === "hard" ? 30 : 25, wind: Math.round((Math.random() - 0.5) * 30), demoPlan: null });
+      Object.assign(s, { phase: "play", shells: 4, shell: null, angle: 45, power: 0.6, clock: c.q?.difficulty === "hard" ? 30 : 25, wind: Math.round((Math.random() - 0.5) * 30), demoPlan: null });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     function end(left, wait) {
       s.phase = left ? "result" : "dead";
       s.wait = left ? wait : 1.6;
     }
-    const tilt = (d) => { if (s.phase === "play") s.angle = Math.max(15, Math.min(80, s.angle + d)); };
+    const tilt = (d) => { if (s.phase === "play") s.angle = Math.max(10, Math.min(85, s.angle + d)); };
+    const pow = (d) => { if (s.phase === "play") s.power = Math.max(0, Math.min(1, s.power + d)); };
+    // the FIRE button drawn in the corner of the field (for touch)
+    const fireBtn = () => ({ x: c.W - 66, y: c.H - 30, w: 60, h: 24 });
     function fire(power = s.power) {
       if (s.phase !== "play" || s.shell || s.shells <= 0) return;
       s.shells--;
@@ -6127,12 +6141,12 @@ const Arcade = (() => {
       c.reset();
       c.sfx("go");
       newRound();
-      if (c.ui) onPad = (i) => { [() => tilt(4), fire, () => tilt(-4), fire][i](); return true; };
+      if (c.ui) onPad = (i) => { [() => tilt(3), () => pow(0.04), () => tilt(-3), () => pow(-0.04)][i](); return true; }; // A up, B more, C down, D less
     }
     // where a shot lands (for the demo gunner)
     function landing(angle, power) {
       const sp = maxSpeed() * (0.35 + 0.65 * power), a = (angle * Math.PI) / 180, b = base();
-      let x = b.x, y = b.y - 8, vx = Math.cos(a) * sp, vy = -Math.sin(a) * sp;
+      let x = b.x + Math.cos(a) * 14, y = b.y - 8 - Math.sin(a) * 14, vx = Math.cos(a) * sp, vy = -Math.sin(a) * sp; // from the muzzle, like fire()
       for (let k = 0; k < 600; k++) { vx += s.wind * 0.02; vy += G * 0.02; x += vx * 0.02; y += vy * 0.02; if (y >= groundAt(x) || x > c.W + 40) break; }
       return x;
     }
@@ -6158,21 +6172,21 @@ const Arcade = (() => {
       if (c.ui) {
         if (holding("up")) tilt(40 * dt);
         if (holding("down")) tilt(-40 * dt);
+        if (holding("right")) pow(0.35 * dt);
+        if (holding("left")) pow(-0.35 * dt);
       }
-      // the power meter swings while no shell is in the air
       if (!s.shell) {
-        s.power += s.pdir * dt * 0.8;
-        if (s.power >= 1) { s.power = 1; s.pdir = -1; }
-        if (s.power <= 0) { s.power = 0; s.pdir = 1; }
         if (!c.ui) {
-          // the demo works out a shot, then waits for the meter to come round to it
+          // the demo works out a shot, dials the power in, then fires
           if (!s.demoPlan) {
             const t = s.targets[s.aim];
             let bestP = 0.5, bestD = Infinity;
-            for (let p = 0; p <= 1; p += 0.02) { const d = Math.abs(landing(s.angle, p) - t.x); if (d < bestD) { bestD = d; bestP = p; } }
-            s.demoPlan = { p: bestP + (Math.random() - 0.5) * 0.04 };
+            for (let p = 0; p <= 1; p += 0.01) { const d = Math.abs(landing(s.angle, p) - t.x); if (d < bestD) { bestD = d; bestP = p; } }
+            s.demoPlan = { p: bestP };
           }
-          if (Math.abs(s.power - s.demoPlan.p) < 0.02) { fire(s.demoPlan.p); s.demoPlan = null; }
+          const dp = s.demoPlan.p - s.power;
+          if (Math.abs(dp) > 0.01) s.power += Math.sign(dp) * Math.min(Math.abs(dp), 0.5 * dt);
+          else { fire(); s.demoPlan = null; }
         }
       } else {
         const sh = s.shell;
@@ -6227,8 +6241,16 @@ const Arcade = (() => {
       ctx.restore();
       rect(b.x - 8, b.y - 10, 16, 8, "#5a3a1a");
       rect(b.x - 7, b.y - 3, 5, 5, INK); rect(b.x + 2, b.y - 3, 5, 5, INK);
-      // the aim line, while there's no shell in the air
-      if (s.phase === "play" && !s.shell) for (let k = 1; k <= 5; k++) rect(b.x + Math.cos(a) * (14 + k * 7), b.y - 8 - Math.sin(a) * (14 + k * 7), 2, 2, "rgba(17,20,24,0.4)");
+      // the first part of the shot's path, while there's no shell in the air
+      if (s.phase === "play" && !s.shell) {
+        const sp = maxSpeed() * (0.35 + 0.65 * s.power);
+        let x = b.x + Math.cos(a) * 14, y = b.y - 8 - Math.sin(a) * 14, vx = Math.cos(a) * sp, vy = -Math.sin(a) * sp;
+        for (let k = 0; k < 14; k++) {
+          for (let j = 0; j < 4; j++) { vx += s.wind * 0.02; vy += G * 0.02; x += vx * 0.02; y += vy * 0.02; }
+          if (y >= groundAt(x)) break;
+          rect(x - 1, y - 1, 2, 2, "rgba(17,20,24,0.45)");
+        }
+      }
       if (s.shell) { rect(s.shell.x - 2, s.shell.y - 2, 4, 4, INK); }
       for (const p of s.puffs) { const r = (0.6 - p.t) * 22; for (let k = 0; k < 8; k++) { const an = (k / 8) * Math.PI; rect(p.x + Math.cos(an) * r - 2, p.y - Math.sin(an) * r - 2, 4, 4, "#c9cdd4"); } }
       if (s.phase === "play") {
@@ -6236,6 +6258,9 @@ const Arcade = (() => {
         rect(8, 8, 10, 52, INK);
         rect(10, 10 + 48 * (1 - s.power), 6, 48 * s.power, s.power > 0.75 ? "#e5484d" : s.power > 0.4 ? "#ffc94d" : "#3ce070");
         text(`${Math.round(s.angle)}°`, 40, 14, "#fff", 8);
+        text(`POWER ${Math.round(s.power * 100)}`, 58, 40, "#fff", 8, "left");
+        const fb = fireBtn();
+        if (!s.shell && s.shells > 0) { rect(fb.x, fb.y, fb.w, fb.h, INK); rect(fb.x + 1, fb.y + 1, fb.w - 2, fb.h - 2, "#e5484d"); text("FIRE", fb.x + fb.w / 2, fb.y + fb.h / 2 + 1, "#fff", 8); }
         text(`WIND ${s.wind < 0 ? "<" : ""}${Math.abs(s.wind)}${s.wind > 0 ? ">" : ""}`, c.W / 2, 14, "#fff", 8);
         for (let k = 0; k < 4; k++) rect(26 + k * 7, 26, 5, 5, k < s.shells ? INK : "rgba(17,20,24,0.2)");
         drawClock(c, s.clock);
@@ -6246,14 +6271,570 @@ const Arcade = (() => {
     c.run(update, draw);
     if (c.ui) {
       c.intro(begin);
-      onStick = () => {};
+      // a tap nudges; holding keeps going (see update)
+      onStick = (dir) => { if (!holding(dir)) pow(dir === "left" ? -0.02 : 0.02); };
       onKey = (key) => {
-        if (key === "ArrowUp") { tilt(3); return true; }
-        if (key === "ArrowDown") { tilt(-3); return true; }
+        if (key === "ArrowUp" || key === "ArrowDown") { const d = key === "ArrowUp" ? "up" : "down"; if (!holding(d)) tilt(d === "up" ? 1 : -1); return true; }
         if (key === " ") { fire(); return true; }
         return false;
       };
-      c.canvas.addEventListener("pointerdown", () => fire());
+      // tap FIRE to fire; tap anywhere else to aim there (angle toward the tap, power by distance)
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * c.W, y = ((e.clientY - r.top) / r.height) * c.H;
+        const fb = fireBtn();
+        if (x >= fb.x && x <= fb.x + fb.w && y >= fb.y && y <= fb.y + fb.h) return fire();
+        if (s.phase !== "play") return;
+        const b = base();
+        s.angle = Math.max(10, Math.min(85, (Math.atan2(b.y - 8 - y, x - b.x) * 180) / Math.PI));
+        s.power = Math.max(0, Math.min(1, Math.hypot(x - b.x, b.y - y) / (c.W * 0.8)));
+      });
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- MOON LANDER ----------
+  // Four landing pads on the moon, marked A-D. Land gently on the one with the right answer.
+  // Crashing, landing on a wrong pad, or running out of time costs a life. 3 lives.
+
+  function startLander(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "lander", stat: "LANDINGS", lives: 3, minW: 280, minH: 220, bestKey: "lander", bestWord: "right landings",
+      intro: `<h2>MOON LANDER</h2><p>Four landing pads, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>, sit on the moon below. Touch down gently on the one with the right answer.
+        <b>W</b> (or Space) fires the main engine, <b>A</b>/<b>D</b> fire the side jets. Land slowly: coming down too fast, or anywhere but a pad, is a crash.
+        Fuel runs out, so don't waste it! Buttons: A main engine, D and B side jets. A wrong pad, a crash or running out of time costs a life. You have 3.</p>`,
+    });
+    const GRAV = 26, MAIN = 62, SIDE = 32;
+    const s = { phase: "intro", ship: null, terrain: [], pads: [], fuel: 100, clock: 30, wait: 0, banner: "", bannerT: 0, t: 0, burn: { up: 0, left: 0, right: 0 }, stars: [] };
+    for (let i = 0; i < 50; i++) s.stars.push([Math.random(), Math.random() * 0.6]);
+
+    function makeMoon() {
+      // jagged ground with four flat pads spread across it
+      // stored as fractions of the width and heights above the bottom edge, so the ground stays put
+      // if the play area changes size
+      const n = 24, pts = [];
+      for (let k = 0; k <= n; k++) pts.push({ fx: k / n, up: 18 + Math.random() * c.H * 0.22 });
+      const slots = shuffle([2, 8, 14, 20]);
+      s.pads = [0, 1, 2, 3].map((i) => {
+        const k = slots[i], up = 24 + Math.random() * c.H * 0.18;
+        pts[k].up = up; pts[k + 1].up = up; pts[k + 2].up = up; // two segments wide: room to land
+        return { i, f0: pts[k].fx, f1: pts[k + 2].fx, up };
+      });
+      s.terrain = pts;
+    }
+    const ground = () => s.terrain.map((p) => ({ x: p.fx * c.W, y: c.H - p.up }));
+    const padsNow = () => s.pads.map((p) => ({ i: p.i, x0: p.f0 * c.W, x1: p.f1 * c.W, y: c.H - p.up }));
+    const groundAt = (x) => {
+      const pts = ground();
+      for (let k = 0; k < pts.length - 1; k++) if (x >= pts[k].x && x <= pts[k + 1].x) {
+        const f = (x - pts[k].x) / (pts[k + 1].x - pts[k].x || 1);
+        return pts[k].y + (pts[k + 1].y - pts[k].y) * f;
+      }
+      return c.H;
+    };
+    function newRound() {
+      c.nextQuestion();
+      makeMoon();
+      s.ship = { x: c.W / 2, y: 24, vx: (Math.random() - 0.5) * 20, vy: 0 };
+      Object.assign(s, { phase: "play", fuel: 100, clock: c.q?.difficulty === "hard" ? 35 : 30 });
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      // A main engine, B jet pushing right, D jet pushing left (each press is a short burn)
+      if (c.ui) onPad = (i) => { if (i === 0) s.burn.up = 0.3; if (i === 1) s.burn.right = 0.25; if (i === 3) s.burn.left = 0.25; return true; };
+    }
+    function touchdown() {
+      const sh = s.ship;
+      const pad = padsNow().find((p) => sh.x - 5 >= p.x0 - 2 && sh.x + 5 <= p.x1 + 2);
+      const soft = sh.vy < 42 && Math.abs(sh.vx) < 26;
+      if (!pad || !soft) {
+        const left = c.wrong(-1, "CRASH! -1 LIFE", pad ? "Too fast! " : "Missed the pads! ");
+        s.banner = "CRASH!"; s.bannerT = 1.4;
+        s.crashed = true;
+        return end(left, 2.6);
+      }
+      if (pad.i === c.q.answerIndex) {
+        c.right(pad.i);
+        s.banner = "THE EAGLE HAS LANDED!"; s.bannerT = 1.4;
+        return end(true, 1.6);
+      }
+      const left = c.wrong(pad.i, "WRONG PAD! -1 LIFE");
+      s.banner = "WRONG PAD!"; s.bannerT = 1.4;
+      end(left, 2.6);
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        s.crashed = false;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      const sh = s.ship;
+      let up = 0, side = 0;
+      if (c.ui) {
+        if (holding("up") || s.burn.up > 0) up = 1;
+        if (holding("left") || s.burn.left > 0) side -= 1;
+        if (holding("right") || s.burn.right > 0) side += 1;
+      } else {
+        // the demo pilot: drift over its pad, then come down slowly
+        const p = padsNow()[s.aim], tx = (p.x0 + p.x1) / 2;
+        const wantVx = Math.max(-30, Math.min(30, (tx - sh.x) * 0.6));
+        side = Math.abs(wantVx - sh.vx) > 3 ? Math.sign(wantVx - sh.vx) : 0;
+        const height = p.y - sh.y, wantVy = Math.abs(tx - sh.x) > 10 ? Math.min(10, height * 0.2) : Math.min(28, 8 + height * 0.25);
+        up = sh.vy > wantVy ? 1 : 0;
+      }
+      for (const k of ["up", "left", "right"]) s.burn[k] = Math.max(0, s.burn[k] - dt);
+      if (s.fuel <= 0) { up = 0; side = 0; }
+      s.fuel = Math.max(0, s.fuel - (up * 9 + Math.abs(side) * 4) * dt);
+      s.flame = up; s.side = side;
+      sh.vy += (GRAV - up * MAIN) * dt;
+      sh.vx += side * SIDE * dt;
+      sh.x += sh.vx * dt; sh.y += sh.vy * dt;
+      if (sh.x < 6 || sh.x > c.W - 6) { sh.vx = 0; sh.x = Math.max(6, Math.min(c.W - 6, sh.x)); }
+      if (sh.y < 6) { sh.y = 6; sh.vy = Math.max(0, sh.vy); }
+      if (sh.y + 7 >= groundAt(sh.x) || sh.y + 7 >= groundAt(sh.x - 5) || sh.y + 7 >= groundAt(sh.x + 5)) {
+        sh.y = Math.min(groundAt(sh.x - 5), groundAt(sh.x + 5), groundAt(sh.x)) - 7;
+        touchdown();
+      }
+    }
+
+    function draw() {
+      const { rect, text, ctx } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#07090f");
+      for (const [sx, sy] of s.stars) rect(sx * c.W, sy * c.H, 1, 1, "#8f98a8");
+      rect(c.W * 0.62, c.H * 0.1, 16, 16, "#3b6fe0"); rect(c.W * 0.62 + 3, c.H * 0.1 + 3, 6, 5, "#3ca55c"); // the Earth
+      // the moon's surface
+      const pts = ground();
+      if (pts.length) {
+        ctx.fillStyle = "#5b6577";
+        ctx.beginPath();
+        ctx.moveTo(0, c.H + 8);
+        for (const p of pts) ctx.lineTo(p.x, p.y);
+        ctx.lineTo(c.W, c.H + 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#c9cdd4"; ctx.lineWidth = 1;
+        ctx.beginPath();
+        pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+        ctx.stroke();
+      }
+      for (const p of padsNow()) {
+        rect(p.x0, p.y - 2, p.x1 - p.x0, 3, LANE_COLORS[p.i]);
+        rect(p.x0 + 2, p.y - 6, 2, 4, "#fbfaf6"); rect(p.x1 - 4, p.y - 6, 2, 4, "#fbfaf6");
+        text("ABCD"[p.i], (p.x0 + p.x1) / 2, p.y + 9, LANE_COLORS[p.i], 8);
+      }
+      // the lander
+      const sh = s.ship;
+      if (sh && s.phase !== "over") {
+        if (s.crashed) for (let k = 0; k < 8; k++) rect(sh.x + Math.cos(k) * 8 - 1, sh.y + Math.sin(k) * 5 - 1, 3, 3, k % 2 ? "#ffd23f" : "#e5484d");
+        else {
+          rect(sh.x - 5, sh.y - 6, 10, 8, "#c9cdd4"); rect(sh.x - 3, sh.y - 4, 6, 3, "#3b6fe0");
+          rect(sh.x - 7, sh.y + 2, 2, 5, "#c9cdd4"); rect(sh.x + 5, sh.y + 2, 2, 5, "#c9cdd4");
+          rect(sh.x - 8, sh.y + 6, 4, 1, "#c9cdd4"); rect(sh.x + 4, sh.y + 6, 4, 1, "#c9cdd4");
+          if (s.phase === "play" && s.flame && s.fuel > 0) rect(sh.x - 2, sh.y + 2, 4, 4 + Math.floor(s.t * 20) % 3 * 2, "#ff8a3d");
+          if (s.phase === "play" && s.side && s.fuel > 0) rect(s.side > 0 ? sh.x - 9 : sh.x + 6, sh.y - 3, 3, 2, "#ffd23f");
+        }
+      }
+      if (s.phase === "play") {
+        drawClock(c, s.clock);
+        text("FUEL", 8, 12, "#c9cdd4", 8, "left");
+        rect(44, 8, 50, 7, "#2b2f36"); rect(44, 8, s.fuel / 2, 7, s.fuel > 25 ? "#3ce070" : "#e5484d");
+        const fast = sh.vy >= 42 || Math.abs(sh.vx) >= 26;
+        text(`SPEED ${Math.round(Math.hypot(sh.vx, sh.vy))}`, 8, 26, fast ? "#ff8a7a" : "#7dffa8", 8, "left");
+      }
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.32, s.banner.startsWith("THE EAGLE") ? "#7dffa8" : "#ff8a7a", s.banner.length > 14 ? 8 : 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onStick = (dir) => { if (!holding(dir)) s.burn[dir] = 0.15; }; // a tap is a short burn; holding keeps firing
+      onKey = (key) => {
+        if (key === "ArrowUp" || key === " ") { if (!holding("up")) s.burn.up = 0.2; return true; }
+        if (key === "ArrowDown") return true;
+        return false;
+      };
+      // touch: hold the left or right third for a side jet, the middle for the main engine
+      let touch = null;
+      const press = (e) => {
+        const r = c.canvas.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
+        touch = x < 0.33 ? "left" : x > 0.67 ? "right" : "up";
+      };
+      c.canvas.addEventListener("pointerdown", press);
+      c.canvas.addEventListener("pointermove", (e) => { if (touch) press(e); });
+      for (const ev of ["pointerup", "pointercancel", "pointerleave"]) c.canvas.addEventListener(ev, () => (touch = null));
+      const hold = setInterval(() => { if (!c.alive) return clearInterval(hold); if (touch) s.burn[touch] = 0.06; }, 30);
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- MINI GOLF ----------
+  // Four holes on the green, marked A-D. Putt the ball into the one with the right answer.
+  // 3 strokes a round. A wrong hole, or running out of strokes or time, costs a life. 3 lives.
+
+  function startGolf(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "golf", stat: "PUTTS", lives: 3, minW: 260, minH: 220, bestKey: "golf", bestWord: "right holes",
+      intro: `<h2>MINI GOLF</h2><p>Four holes on the green are marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Putt the ball into the one with the right answer.
+        <b>A</b>/<b>D</b> aim, <b>W</b>/<b>S</b> set the power, <b>Space</b> putts. Or click/tap where to aim: the farther from the ball, the harder the putt.
+        Buttons: D aim left, B aim right, A more power, C putt. You get 3 strokes a round; a wrong hole, or running out of strokes or time, costs a life. You have 3.</p>`,
+    });
+    const s = { phase: "intro", ball: null, aimA: -Math.PI / 2, power: 0.5, holes: [], walls: [], strokes: 3, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, sink: null, demoT: 0 };
+    const green = () => ({ x: 12, y: 10, w: c.W - 24, h: c.H - 20 });
+    const R = 3, HOLE = 6;
+
+    function layout() {
+      const g = green();
+      const spots = shuffle([[0.16, 0.18], [0.84, 0.18], [0.38, 0.12], [0.62, 0.12], [0.12, 0.45], [0.88, 0.45]]).slice(0, 4);
+      s.holes = spots.map(([fx, fy], i) => ({ i, x: g.x + g.w * fx, y: g.y + g.h * fy }));
+      // a couple of bumpers to play around
+      s.walls = [
+        { x: g.x + g.w * 0.3, y: g.y + g.h * 0.42, w: g.w * 0.14, h: 6 },
+        { x: g.x + g.w * 0.56, y: g.y + g.h * 0.58, w: g.w * 0.14, h: 6 },
+      ];
+    }
+    function newRound() {
+      c.nextQuestion();
+      layout();
+      const g = green();
+      s.ball = { x: g.x + g.w / 2, y: g.y + g.h - 18, vx: 0, vy: 0 };
+      Object.assign(s, { phase: "play", strokes: 3, aimA: -Math.PI / 2, power: 0.5, clock: c.q?.difficulty === "hard" ? 30 : 25, sink: null, demoT: 1 });
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    const rolling = () => Math.hypot(s.ball.vx, s.ball.vy) > 2;
+    function putt() {
+      if (s.phase !== "play" || rolling() || s.strokes <= 0 || s.sink) return;
+      s.strokes--;
+      const sp = 40 + s.power * 260;
+      s.ball.vx = Math.cos(s.aimA) * sp;
+      s.ball.vy = Math.sin(s.aimA) * sp;
+      c.sfx("press");
+    }
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { if (i === 0) s.power = Math.min(1, s.power + 0.1); if (i === 1) s.aimA += 0.08; if (i === 2) putt(); if (i === 3) s.aimA -= 0.08; return true; };
+    }
+    function sunk(h) {
+      if (h.i === c.q.answerIndex) {
+        c.right(h.i);
+        s.banner = "IN THE HOLE!"; s.bannerT = 1.4;
+        return end(true, 1.6);
+      }
+      const left = c.wrong(h.i, "WRONG HOLE! -1 LIFE");
+      s.banner = "WRONG HOLE!"; s.bannerT = 1.4;
+      end(left, 2.6);
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      if (s.sink) {
+        s.sink.t -= dt;
+        if (s.sink.t <= 0) sunk(s.sink.h);
+        return;
+      }
+      const b = s.ball;
+      if (!rolling()) {
+        b.vx = b.vy = 0;
+        if (c.ui) {
+          if (holding("left")) s.aimA -= 1.8 * dt;
+          if (holding("right")) s.aimA += 1.8 * dt;
+          if (holding("up")) s.power = Math.min(1, s.power + 0.6 * dt);
+          if (holding("down")) s.power = Math.max(0, s.power - 0.6 * dt);
+          if (s.strokes <= 0) {
+            const left = c.wrong(-1, "OUT OF STROKES! -1 LIFE", "Out of strokes! ");
+            s.banner = "OUT OF STROKES!"; s.bannerT = 1.4;
+            return end(left, 2.6);
+          }
+        } else if ((s.demoT -= dt) <= 0) {
+          // the demo golfer lines up on its hole and putts firmly enough to reach it
+          const h = s.holes[s.aim];
+          s.aimA = Math.atan2(h.y - b.y, h.x - b.x) + (Math.random() - 0.5) * 0.06;
+          s.power = Math.max(0, Math.min(1, (Math.sqrt(Math.hypot(h.x - b.x, h.y - b.y) * 2 * 120) - 40) / 260 + 0.05));
+          if (s.strokes <= 0) { const left = c.wrong(-1, "OUT OF STROKES!", ""); return end(left, 2.6); }
+          putt();
+          s.demoT = 1;
+        }
+        return;
+      }
+      // rolling: friction, bounces off the edges and bumpers, and the holes
+      const steps = Math.ceil((Math.hypot(b.vx, b.vy) * dt) / 2);
+      for (let k = 0; k < steps; k++) {
+        b.x += (b.vx * dt) / steps; b.y += (b.vy * dt) / steps;
+        const g = green();
+        if (b.x < g.x + R) { b.x = g.x + R; b.vx = Math.abs(b.vx) * 0.8; }
+        if (b.x > g.x + g.w - R) { b.x = g.x + g.w - R; b.vx = -Math.abs(b.vx) * 0.8; }
+        if (b.y < g.y + R) { b.y = g.y + R; b.vy = Math.abs(b.vy) * 0.8; }
+        if (b.y > g.y + g.h - R) { b.y = g.y + g.h - R; b.vy = -Math.abs(b.vy) * 0.8; }
+        for (const w of s.walls) if (b.x + R > w.x && b.x - R < w.x + w.w && b.y + R > w.y && b.y - R < w.y + w.h) {
+          const overX = Math.min(b.x + R - w.x, w.x + w.w - (b.x - R)), overY = Math.min(b.y + R - w.y, w.y + w.h - (b.y - R));
+          if (overX < overY) { b.vx = -b.vx * 0.8; b.x += b.vx > 0 ? overX : -overX; } else { b.vy = -b.vy * 0.8; b.y += b.vy > 0 ? overY : -overY; }
+          c.sfx("step");
+        }
+        for (const h of s.holes) {
+          const d = Math.hypot(b.x - h.x, b.y - h.y), sp = Math.hypot(b.vx, b.vy);
+          if (d < HOLE) {
+            if (sp < 150) { s.sink = { h, t: 0.35 }; b.x = h.x; b.y = h.y; b.vx = b.vy = 0; c.sfx("blip"); return; }
+            // too fast: it lips out and wobbles off
+            b.vx += (b.x - h.x) * 4; b.vy += (b.y - h.y) * 4;
+          }
+        }
+      }
+      const f = Math.max(0, 1 - 1.1 * dt);
+      b.vx *= f; b.vy *= f;
+      const sp = Math.hypot(b.vx, b.vy);
+      if (sp > 0 && sp < 40) { const k = Math.max(0, sp - 30 * dt) / sp; b.vx *= k; b.vy *= k; }
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      const g = green();
+      rect(-8, -8, c.W + 16, c.H + 16, "#2f6b3a");
+      rect(g.x - 4, g.y - 4, g.w + 8, g.h + 8, "#8a5a32");
+      for (let y = g.y; y < g.y + g.h; y += 10) rect(g.x, y, g.w, 10, Math.floor((y - g.y) / 10) % 2 ? "#57b05f" : "#62bb69");
+      for (const w of s.walls) { rect(w.x, w.y, w.w, w.h, "#8a5a32"); rect(w.x, w.y, w.w, 2, "#b07a48"); }
+      for (const h of s.holes) {
+        rect(h.x - HOLE, h.y - HOLE + 1, HOLE * 2, HOLE * 2 - 2, "#1c2027");
+        rect(h.x - HOLE + 1, h.y - HOLE, HOLE * 2 - 2, HOLE * 2, "#1c2027");
+        rect(h.x - 1, h.y - 22, 1, 20, "#fbfaf6");
+        rect(h.x, h.y - 22, 9, 6, LANE_COLORS[h.i]);
+        text("ABCD"[h.i], h.x + 4, h.y - 19 + 1, "#fff", 8);
+      }
+      const b = s.ball;
+      if (b && !s.sink) {
+        // the aim line and power, while the ball is still
+        if (s.phase === "play" && !rolling()) for (let k = 1; k <= 3 + Math.round(s.power * 9); k++) rect(b.x + Math.cos(s.aimA) * k * 6 - 1, b.y + Math.sin(s.aimA) * k * 6 - 1, 2, 2, "rgba(255,255,255,0.75)");
+        rect(b.x - R, b.y - R + 1, R * 2, R * 2 - 2, "#fbfaf6"); rect(b.x - R + 1, b.y - R, R * 2 - 2, R * 2, "#fbfaf6");
+      }
+      if (s.phase === "play") {
+        drawClock(c, s.clock);
+        text(`STROKES ${s.strokes}  POWER ${Math.round(s.power * 100)}`, 18, c.H - 18, "#fff", 8, "left");
+      }
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.5, s.banner === "IN THE HOLE!" ? "#fff" : "#ff8a7a", s.banner.length > 12 ? 8 : 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onStick = (dir) => { if (!holding(dir)) s.aimA += dir === "left" ? -0.05 : 0.05; }; // a tap nudges; holding keeps turning
+      onKey = (key) => {
+        if (key === "ArrowUp" || key === "ArrowDown") { const d = key === "ArrowUp" ? "up" : "down"; if (!holding(d)) s.power = Math.max(0, Math.min(1, s.power + (d === "up" ? 0.05 : -0.05))); return true; }
+        if (key === " ") { putt(); return true; }
+        return false;
+      };
+      // click/tap: aim at the spot and putt, harder the farther away
+      c.canvas.addEventListener("pointerdown", (e) => {
+        if (s.phase !== "play" || rolling()) return;
+        const r = c.canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * c.W, y = ((e.clientY - r.top) / r.height) * c.H;
+        s.aimA = Math.atan2(y - s.ball.y, x - s.ball.x);
+        s.power = Math.max(0, Math.min(1, (Math.sqrt(Math.hypot(x - s.ball.x, y - s.ball.y) * 2 * 120) - 40) / 260 + 0.05));
+        putt();
+      });
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- GONE FISHING ----------
+  // Four fish swim below, marked A-D. Steer the boat, lower the hook and catch the one with the
+  // right answer. A wrong fish, the jellyfish's sting, or running out of time costs a life. 3 lives.
+
+  function startFishing(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "fishing", stat: "CATCHES", lives: 3, minW: 260, minH: 220, bestKey: "fishing", bestWord: "right catches",
+      intro: `<h2>GONE FISHING</h2><p>Four fish swim below, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Hook the one with the right answer and it's reeled in.
+        <b>A</b>/<b>D</b> move the boat, <b>S</b> lowers the hook, <b>W</b> raises it. Or tap where to fish. Keep the hook away from the jellyfish!
+        Buttons: D left, B right, C down, A up. A wrong fish, a sting, or running out of time costs a life. You have 3.</p>`,
+    });
+    const s = { phase: "intro", boat: 0, depth: 0, fish: [], jelly: null, hooked: null, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, goal: null, push: { left: 0, right: 0, up: 0, down: 0 } };
+    const water = () => Math.round(c.H * 0.22);
+    const hookY = () => water() + s.depth;
+
+    function newRound() {
+      c.nextQuestion();
+      const depths = shuffle([0.3, 0.48, 0.66, 0.84]);
+      s.fish = [0, 1, 2, 3].map((i) => ({ i, x: 20 + Math.random() * (c.W - 40), y: water() + (c.H - water()) * depths[i], vx: (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 12 + Math.min(16, c.score * 1.5)), hooked: false }));
+      s.jelly = { x: Math.random() * c.W, y: water() + (c.H - water()) * 0.55, t: 0 };
+      Object.assign(s, { phase: "play", boat: c.W / 2, depth: 0, hooked: null, goal: null, clock: c.q?.difficulty === "hard" ? 30 : 25 });
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      // A up, B right, C down, D left (each press is a short move)
+      if (c.ui) onPad = (i) => { s.goal = null; s.push[PAD_DIRS[i]] = 0.25; return true; };
+    }
+    function landed(f) {
+      if (f.i === c.q.answerIndex) {
+        c.right(f.i);
+        s.banner = "WHAT A CATCH!"; s.bannerT = 1.4;
+        return end(true, 1.6);
+      }
+      const left = c.wrong(f.i, "WRONG FISH! -1 LIFE");
+      s.banner = "WRONG FISH!"; s.bannerT = 1.4;
+      end(left, 2.6);
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      for (const f of s.fish) if (!f.hooked) {
+        f.x += f.vx * dt;
+        if (f.x < 12 || f.x > c.W - 12) { f.vx *= -1; f.x = Math.max(12, Math.min(c.W - 12, f.x)); }
+      }
+      if (s.jelly) { s.jelly.t += dt; s.jelly.x = (s.jelly.x + 10 * dt) % (c.W + 20); s.jelly.y += Math.sin(s.jelly.t * 1.5) * 12 * dt; }
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      const maxDepth = c.H - water() - 8;
+      if (s.hooked) {
+        // reeling in
+        s.depth = Math.max(0, s.depth - 90 * dt);
+        s.hooked.x = s.boat; s.hooked.y = hookY() + 6;
+        if (s.depth <= 0) landed(s.hooked);
+        return;
+      }
+      let mx = 0, my = 0;
+      if (c.ui) {
+        for (const k of Object.keys(s.push)) s.push[k] = Math.max(0, s.push[k] - dt);
+        if (holding("left") || s.push.left) mx -= 1;
+        if (holding("right") || s.push.right) mx += 1;
+        if (holding("up") || s.push.up) my -= 1;
+        if (holding("down") || s.push.down) my += 1;
+        if (s.goal) { // tap-to-fish: head for the tapped spot
+          if (Math.abs(s.goal.x - s.boat) > 2) mx = Math.sign(s.goal.x - s.boat);
+          if (Math.abs(s.goal.y - hookY()) > 2) my = Math.sign(s.goal.y - hookY());
+          if (!mx && !my) s.goal = null;
+        }
+      } else {
+        // the demo angler follows its fish and drops the hook on it
+        const f = s.fish[s.aim];
+        const lead = f.x + f.vx * 0.6;
+        if (Math.abs(lead - s.boat) > 3) mx = Math.sign(lead - s.boat);
+        const safe = (!s.jelly || Math.abs(s.jelly.x - s.boat) > 26) &&
+          !s.fish.some((o) => o !== f && o.y < f.y && Math.abs(o.x - s.boat) < 20); // no other fish in the way down
+        if (Math.abs(f.x - s.boat) < 30 && safe) my = Math.sign(f.y - hookY()); else my = s.depth > 10 ? -1 : 0;
+      }
+      s.boat = Math.max(14, Math.min(c.W - 14, s.boat + mx * 70 * dt));
+      s.depth = Math.max(0, Math.min(maxDepth, s.depth + my * 75 * dt));
+      // the hook catches whatever fish it touches; the jellyfish stings
+      const hx = s.boat, hy = hookY();
+      if (s.jelly && Math.abs(s.jelly.x - hx) < 10 && Math.abs(s.jelly.y - hy) < 10) {
+        s.jelly.x = -30;
+        const left = c.wrong(-1, "STUNG! -1 LIFE", "The jellyfish stung you! ");
+        s.banner = "STUNG!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      const f = s.fish.find((f) => Math.abs(f.x - hx) < 11 && Math.abs(f.y - hy) < 7);
+      if (f) { f.hooked = true; s.hooked = f; c.sfx("blip"); }
+    }
+
+    function fishArt(f) {
+      const { rect, text } = c;
+      const dir = f.vx < 0 ? -1 : 1, col = LANE_COLORS[f.i];
+      c.ctx.save();
+      c.ctx.translate(Math.round(f.x), Math.round(f.y));
+      if (f.hooked) c.ctx.rotate(-Math.PI / 2);
+      c.ctx.scale(dir, 1);
+      rect(-8, -4, 14, 8, col); rect(-12, -5, 4, 10, col);     // body, tail
+      rect(3, -2, 2, 2, "#fff"); rect(4, -2, 1, 1, INK);
+      rect(-4, -6, 6, 2, col);
+      c.ctx.restore();
+      if (!f.hooked) text("ABCD"[f.i], f.x, f.y - 11, "#fff", 8);
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      const wy = water();
+      rect(-8, -8, c.W + 16, wy + 8, "#a8dcf2");
+      rect(c.W * 0.78, 10, 14, 14, "#ffc94d");
+      for (let y = wy; y < c.H + 8; y += 8) rect(-8, y, c.W + 16, 8, `rgb(${30 - (y - wy) / 12}, ${110 - (y - wy) / 4}, ${170 - (y - wy) / 5})`);
+      for (let x = -8; x < c.W + 8; x += 12) rect(x + (Math.floor(s.t * 3) % 2) * 3, wy, 6, 2, "#cfeefa");
+      for (let x = 6; x < c.W; x += 34) rect(x, c.H - 6 - (x % 3) * 3, 3, 6 + (x % 3) * 3, "#2f7d4f"); // weeds
+      for (const f of s.fish) fishArt(f);
+      if (s.jelly) {
+        const j = s.jelly;
+        rect(j.x - 6, j.y - 5, 12, 6, "#ff8ad0"); rect(j.x - 4, j.y - 7, 8, 2, "#ff8ad0");
+        for (let k = 0; k < 4; k++) rect(j.x - 5 + k * 3, j.y + 1, 1, 5 + (k % 2) * 2, "#ff8ad0");
+      }
+      // the boat, the line and the hook
+      const bx = s.boat;
+      rect(bx - 16, wy - 6, 32, 6, "#8a5a32"); rect(bx - 12, wy, 24, 3, "#6e4a2b");
+      rect(bx - 2, wy - 16, 4, 10, "#e5484d"); rect(bx - 3, wy - 19, 6, 4, "#f1c27d");
+      rect(bx + 2, wy - 14, 10, 1, "#5a3a1a");
+      rect(bx, wy, 1, s.depth, "#fbfaf6");
+      rect(bx - 1, hookY(), 3, 2, "#c9cdd4"); rect(bx + 1, hookY() - 2, 1, 3, "#c9cdd4");
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, wy * 0.55, s.banner === "WHAT A CATCH!" ? "#1f9d55" : "#d93a3a", s.banner.length > 12 ? 8 : 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onStick = (dir) => { if (!holding(dir)) { s.goal = null; s.push[dir] = 0.12; } };
+      onKey = (key) => {
+        if (key === "ArrowUp" || key === "ArrowDown") { const d = key === "ArrowUp" ? "up" : "down"; if (!holding(d)) { s.goal = null; s.push[d] = 0.12; } return true; }
+        return false;
+      };
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        s.goal = { x: ((e.clientX - r.left) / r.width) * c.W, y: Math.max(water(), ((e.clientY - r.top) / r.height) * c.H) };
+      });
     } else newRound();
     return c.stop;
   }
