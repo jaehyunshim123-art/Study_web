@@ -4,7 +4,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 
 ## How it plays
 
-- **Twelve games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
+- **Fifteen games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
   - **Trail Quest:** the wagon journey below, a lesson then questions for each unit.
   - **Quiz Kart:** a pixel racer. A gate with four lanes (A-D) comes down the road while the question shows above it; steer into the lane with the right answer (A-D buttons, arrow keys, or tap an answer) before you reach the gate. A wrong lane costs one of 5 lives, and the gates come faster as you go.
   - **Syllabus Fighter:** a one-on-one fight against a boss that fits the subject (The Judge for law, Dr. Entropy for science...). Right answers land hits (hard questions hit harder, three in a row is a combo); a wrong answer or running out the clock lets the boss hit you. Knock out a boss to face the next one.
@@ -17,6 +17,9 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
   - **Crossy Quiz:** Frogger style. Hop across the traffic to the lily pad marked with the right answer. 3 lives.
   - **Maze Muncher:** maze-chase style. Munch the fruit marked with the right answer while dodging two ghosts. 3 lives.
   - **Asteroid Answers:** Asteroids style (A turn left, B thrust, C fire, D turn right; tap to aim on a phone). Shoot the asteroid with the right answer. 3 lives.
+  - **Quiz Hunt:** duck-hunt style. Aim the crosshair (WASD, or click/tap) and shoot the duck with the right answer; 5 shells a round. 3 lives.
+  - **Block Bump:** platformer style. Run (A/D), jump (W) and bump the ? block with the right answer; stomp the beetle, don't touch it. 3 lives.
+  - **Cannon Clash:** artillery style. Aim (W/S), time the swinging power meter, mind the wind, and lob a shell onto the right target; 4 shells a round. 3 lives.
   - Pick which unit the quiz games quiz you on from the menu (up/down arrow keys work too). Coins from every game go into the same wallet, and each game keeps a best score.
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
@@ -24,7 +27,7 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
 - **Answer to move:** right answers earn coins and move your wagon toward the unit's landmark; each unit is a 100-mile leg. Reach the last landmark to win.
 - **BYTE, the AI helper:** a Game Boy-style bot under every question. Ask it for a hint (written by the AI from your syllabus; a hint halves the coins for that question), and it explains your mistakes.
 - **Arcade sounds:** chiptune sound effects made in the browser, including a coin dropping into the machine on every right answer. The speaker grille on the control panel (or the landing page button) turns them on and off.
-- **Arcade controls:** the four buttons under the screen answer A-D (keys 1-4 work too) and press the screen's main button on other screens.
+- **Arcade controls:** four face buttons in a diamond, like a game controller: A top, B right, C bottom, D left (keys 1-4 press them). They answer A-D, and in the steering games each one means its direction. **WASD** and the arrow keys work as the joystick everywhere in the arcade (hold them for smooth movement), and Space or the joystick's ball fires. On answer-only screens the A-D letter keys still answer.
 - **Help:** the ? button opens How to Play, which slides in as its own screen. It also opens automatically the first time you play.
 - **A store that matches your subject:** the trail window zooms in and grows into a store built for your course: a law bookshop with a bewigged judge, a lab supply with a scientist in a lab coat, a pharmacy, a parts shop, a counting house, a bookshop, a trading post, or the frontier general store. The shelves, the shopkeeper, the upgrade names (Billable hours, Research grant, Dividends...) and the greetings all fit the subject, and the shopkeeper mentions the unit and key concepts you're studying. Buy three upgrades (more coins per answer, a streak bonus, stronger oxen) and paint jobs for your wagon.
 - **Small, fair penalties:** the AI rates each question EASY or HARD (shown on the question). A wrong answer costs 1 coin on an easy question and 2 on a hard one, and resets your streak.
@@ -62,7 +65,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 | `public/sprites.js` | All the pixel art: themed scenery and landmarks, the wagon, BYTE, the shopkeeper, the store and item icons. |
 | `public/sound.js` | Arcade sound effects, synthesized with the Web Audio API. |
 | `public/timer.js` | The study timer: focus and break sessions, saved in the browser. |
-| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders, Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher and Asteroid Answers (canvas; the last seven share a `cabinet()` helper for the panel, lives and game loop). |
+| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders, Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher, Asteroid Answers, Quiz Hunt, Block Bump and Cannon Clash (canvas; the last ten share a `cabinet()` helper for the panel, lives and game loop). |
 | `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |

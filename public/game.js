@@ -800,6 +800,14 @@ function pressPad(i) {
 
 document.querySelectorAll(".pad").forEach((pad) => pad.addEventListener("click", () => pressPad(Number(pad.dataset.i))));
 
+// The joystick's ball is a button: in the arcade games it fires (like Space).
+$("stick").addEventListener("click", () => {
+  $("stick").classList.add("pushed");
+  setTimeout(() => $("stick").classList.remove("pushed"), 140);
+  Sound.play("press");
+  if (Arcade.isOpen()) Arcade.fire();
+});
+
 // The speaker grille on the deck (and the landing page button) turns sound on and off.
 function syncSound() {
   const on = !Sound.isMuted();

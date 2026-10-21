@@ -191,10 +191,12 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .stick.left .ball { transform: translateX(-9px); }
 .stick.right::after { transform: rotate(18deg); }
 .stick.right .ball { transform: translateX(9px); }
-.pads { display: flex; gap: clamp(10px, 2.4vw, 22px); align-items: center; }
+/* the four face buttons in a diamond, like a game controller: A top, B right, C bottom, D left */
+.pads { --pad: clamp(26px, min(4.8vh, 9.5vw), 40px); position: relative; flex: none; width: calc(var(--pad) * 2.75); height: calc(var(--pad) * 2.75); }
 .pad {
-  width: clamp(38px, min(7vh, 11vw), 56px);
-  height: clamp(38px, min(7vh, 11vw), 56px);
+  position: absolute;
+  width: var(--pad);
+  height: var(--pad);
   border-radius: 50%;
   border: 3px solid var(--ink);
   color: #fff;
@@ -203,7 +205,10 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
   box-shadow: 0 4px 0 var(--ink);
   transition: transform 80ms, box-shadow 80ms;
 }
-.pad:nth-child(even) { margin-bottom: 14px; }
+.pad:nth-child(1) { left: calc(var(--pad) * 0.875); top: 0; }
+.pad:nth-child(2) { left: calc(var(--pad) * 1.75); top: calc(var(--pad) * 0.875); }
+.pad:nth-child(3) { left: calc(var(--pad) * 0.875); top: calc(var(--pad) * 1.75); }
+.pad:nth-child(4) { left: 0; top: calc(var(--pad) * 0.875); }
 .pad:nth-child(1) { background: var(--a); }
 .pad:nth-child(2) { background: var(--b); }
 .pad:nth-child(3) { background: var(--c); }
@@ -212,12 +217,13 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 @media (max-width: 420px) {
   .stick { zoom: 0.78; }
   .deck { padding: 0 12px; }
-  .pads { gap: 8px; }
-  .pad { width: 38px; height: 38px; font-size: 10px; }
-  .pad:nth-child(even) { margin-bottom: 10px; }
+  .pad { font-size: 10px; }
 }
-@media (max-width: 380px) { .pads { gap: 6px; } .pad { width: 36px; height: 36px; } .deck { padding: 0 10px; } }
-@media (max-width: 340px) { .speaker { display: none; } .stick { zoom: 0.62; } .deck { padding: 0 8px; } .pads { gap: 6px; } .pad { width: 34px; height: 34px; } .lcd { padding: 4px 5px; } }
+@media (max-width: 380px) { .deck { padding: 0 10px; } }
+@media (max-width: 340px) { .speaker { display: none; } .stick { zoom: 0.62; } .deck { padding: 0 8px; } .pads { --pad: 28px; } .lcd { padding: 4px 5px; } }
+/* the joystick's ball is a button too: it fires in the arcade games */
+.stick { cursor: pointer; }
+.stick.pushed .ball { transform: translateY(3px) scale(0.94); }
 
 /* ---------- HUD, trail, cards ---------- */
 
@@ -619,7 +625,10 @@ h1 { font-size: clamp(36px, 5.4vw, 60px); line-height: 1.04; letter-spacing: -0.
 .flap .k-road { background: #9fd3e6; touch-action: none; }
 .flap .k-pop, .trailer .k-pop { top: 16%; }
 /* the cabinet games draw their own big banner mid-screen, so the coin/life pop-up goes up top */
-.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop { top: 8%; }
+.snake .k-pop, .invaders .k-pop, .penalty .k-pop, .moles .k-pop, .crossy .k-pop, .maze .k-pop, .asteroids .k-pop, .hunt .k-pop, .bump .k-pop, .cannon .k-pop { top: 8%; }
+.hunt .k-road { background: #8fd0f0; touch-action: none; cursor: crosshair; }
+.bump .k-road { background: #7ec8f0; touch-action: none; }
+.cannon .k-road { background: #f5d9a8; touch-action: none; }
 .blocks .k-road, .snake .k-road { background: #1c2027; touch-action: none; }
 .penalty .k-road { background: #3ca55c; touch-action: none; }
 .moles .k-road { background: #7cc46a; touch-action: none; }
