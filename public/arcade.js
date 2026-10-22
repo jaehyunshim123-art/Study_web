@@ -46,6 +46,9 @@ const Arcade = (() => {
     { id: "lander", name: "MOON LANDER", desc: "Lunar-lander style. Fire the engines and touch down gently on the right pad. 3 lives.", trailer: (el) => startLander(null, el), start: startLander },
     { id: "golf", name: "MINI GOLF", desc: "Aim and putt the ball into the hole with the right answer. 3 strokes a round, 3 lives.", trailer: (el) => startGolf(null, el), start: startGolf },
     { id: "fishing", name: "GONE FISHING", desc: "Steer the boat, drop the hook and catch the fish with the right answer. 3 lives.", trailer: (el) => startFishing(null, el), start: startFishing },
+    { id: "beat", name: "BEAT QUIZ", desc: "Rhythm style. Hit the right answer's lane right as its note crosses the line. 3 lives.", trailer: (el) => startBeat(null, el), start: startBeat },
+    { id: "racer", name: "LIGHT RACER", desc: "Light-cycle style. Dodge the light trails and ride out through the right gate. 3 lives.", trailer: (el) => startRacer(null, el), start: startRacer },
+    { id: "dino", name: "DINO DASH", desc: "Endless-runner style. Jump and duck, and grab the coin with the right answer. 3 lives.", trailer: (el) => startDino(null, el), start: startDino },
   ];
 
   // Direction keys being held down right now: "up" | "down" | "left" | "right" (WASD or arrows).
@@ -130,6 +133,9 @@ const Arcade = (() => {
       lander: b.lander ? `BEST: ${plural(b.lander, "LANDING")}` : "NEW!",
       golf: b.golf ? `BEST: ${plural(b.golf, "HOLE")}` : "NEW!",
       fishing: b.fishing ? `BEST: ${plural(b.fishing, "CATCH")}`.replace("CATCHS", "CATCHES") : "NEW!",
+      beat: b.beat ? `BEST: ${plural(b.beat, "HIT")}` : "NEW!",
+      racer: b.racer ? `BEST: ${plural(b.racer, "GATE")}` : "NEW!",
+      dino: b.dino ? `BEST: ${plural(b.dino, "COIN")}` : "NEW!",
     }[g.id];
     const arrow = `<svg viewBox="0 0 8 12" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v2h2v2h2v4h-2v2h-2v2h-2z" fill="currentColor"/></svg>`;
     show(`
@@ -288,6 +294,7 @@ const Arcade = (() => {
         <div class="arc-bar">
           <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
           <div class="lives" id="k-lives"></div>
+          <div class="hud-stat"><span class="k">LEVEL</span><span class="v" id="k-level">1</span></div>
           <div class="hud-stat"><span class="k">GATES</span><span class="v" id="k-gates">0</span></div>
           <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
         </div>
@@ -378,6 +385,7 @@ const Arcade = (() => {
       hideCard();
       Object.assign(k, { phase: "count", count: 3.2, lives: 5, gates: 0, misses: 0, coins: 0, streak: 0, lane: 1, laneX: 1, gate: null, q: null, spin: 0, slow: 0 });
       renderLives();
+      $("k-level").textContent = "1";
       $("k-gates").textContent = "0";
       $("k-coins").textContent = "+0";
       renderQuestion();
@@ -394,7 +402,7 @@ const Arcade = (() => {
         k.aim = Math.random() < 0.8 ? answerIndex : (answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
         k.aimAt = 0.25 + Math.random() * 0.4;
       }
-      const seconds = Math.max(5, 11 - k.gates * 0.3); // gates come faster as you go
+      const seconds = Math.max(4, 11 - (levelFor(k.gates) - 1) * 1.2); // gates come faster every level
       k.speed = (SPAWN - 1) / seconds;
       k.gate = { z: k.pos + SPAWN, judged: false };
       renderQuestion();
@@ -407,6 +415,7 @@ const Arcade = (() => {
       if (right) {
         const coins = q.difficulty === "hard" ? 10 : 5;
         k.gates++;
+        if (ui && k.gates % LEVEL_EVERY === 0) { levelBanner($("k-road"), levelFor(k.gates), "Faster karts!"); setTimeout(() => sfx("arrive"), 450); }
         k.streak++;
         k.coins += coins;
         if (ui) earn(coins);
@@ -427,6 +436,7 @@ const Arcade = (() => {
         k.wait = k.lives ? 2.6 : 1.6;
       }
       if (ui) {
+        $("k-level").textContent = levelFor(k.gates);
         $("k-gates").textContent = k.gates;
         $("k-coins").textContent = `+${k.coins}`;
       }
@@ -446,6 +456,7 @@ const Arcade = (() => {
       const tries = k.gates + k.misses;
       card(`<div class="card message">
         <h2>${record && k.gates ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <p>You reached <b>level ${levelFor(k.gates)}</b>.</p>
         <div class="stats">
           <div><b>${k.gates}</b><span>gates cleared</span></div>
           <div><b>${tries ? Math.round((100 * k.gates) / tries) : 0}%</b><span>accuracy</span></div>
@@ -783,7 +794,7 @@ const Arcade = (() => {
       <div class="fight">
         <div class="arc-bar">
           <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
-          <div class="hud-stat"><span class="k">ROUND</span><span class="v" id="f-round">1</span></div>
+          <div class="hud-stat"><span class="k">LEVEL</span><span class="v" id="f-round">1</span></div>
           <div class="hud-stat"><span class="k">KOs</span><span class="v" id="f-kos">0</span></div>
           <div class="hud-stat"><span class="k">COINS</span><span class="v" id="f-coins">+0</span></div>
         </div>
@@ -919,8 +930,9 @@ const Arcade = (() => {
       bars();
       $("f-clock").textContent = "KO";
       setQ(`<div class="message">
-        <h2>K.O.! YOU WIN ROUND ${f.round}</h2>
-        <p>${escapeHTML(boss.name)} is down. +${prize} coins. You catch your breath (+30 HP) before the next fight.</p>
+        <h2>K.O.! LEVEL ${f.round} CLEARED</h2>
+        <p>${escapeHTML(boss.name)} is down. +${prize} coins. You catch your breath (+30 HP) before level ${f.round + 1}:
+        a tougher fighter, a shorter clock and harder hits.</p>
         <button class="btn-next" data-pad="0">NEXT FIGHT<span class="hint" aria-hidden="true">A</span></button>
         <button class="btn-ghost" data-pad="1">MENU</button></div>`, { 0: nextRound, 1: openMenu });
     }
@@ -935,6 +947,7 @@ const Arcade = (() => {
       $("f-scene").innerHTML = stageSVG(boss);
       bars();
       Sound.play("go");
+      levelBanner($("f-scene"), f.round, `vs ${boss.name}`);
       nextQuestion();
     }
 
@@ -986,6 +999,7 @@ const Arcade = (() => {
         <div class="arc-bar">
           <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
           <div class="lives" id="k-lives"></div>
+          <div class="hud-stat"><span class="k">LEVEL</span><span class="v" id="k-level">1</span></div>
           <div class="hud-stat"><span class="k">WALLS</span><span class="v" id="k-gates">0</span></div>
           <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
         </div>
@@ -1025,7 +1039,7 @@ const Arcade = (() => {
       return [0, 1, 2, 3].map((i) => ({ top: solid * (i + 1) + gapH * i, bottom: solid * (i + 1) + gapH * (i + 1) }));
     };
     // a wall takes about 8 seconds to reach the bird, a little less after each one you clear
-    const speed = () => ((b.W - birdX()) / 8) * (1 + Math.min(0.8, b.walls * 0.05));
+    const speed = () => ((b.W - birdX()) / 8) * (1 + Math.min(0.6, (levelFor(b.walls) - 1) * 0.1)); // a bit faster every level
     const active = () => b.list.find((w) => !w.judged);
 
     const renderLives = () => {
@@ -1077,6 +1091,7 @@ const Arcade = (() => {
       $("k-card").hidden = true;
       Object.assign(b, { phase: "ready", lives: 3, walls: 0, misses: 0, coins: 0, list: [], q: null, next: 0, blink: 0 });
       renderLives();
+      $("k-level").textContent = "1";
       $("k-gates").textContent = "0";
       $("k-coins").textContent = "+0";
       renderQuestion();
@@ -1115,6 +1130,7 @@ const Arcade = (() => {
       if (right) {
         const coins = q.difficulty === "hard" ? 10 : 5;
         b.walls++;
+        if (ui && b.walls % LEVEL_EVERY === 0) { levelBanner($("k-road"), levelFor(b.walls), "The walls come faster!"); setTimeout(() => sfx("arrive"), 450); }
         b.coins += coins;
         if (ui) earn(coins);
         b.flash = 1; b.flashColor = "31,157,85";
@@ -1163,6 +1179,7 @@ const Arcade = (() => {
 
     function updateStats() {
       if (!ui) return;
+      $("k-level").textContent = levelFor(b.walls);
       $("k-gates").textContent = b.walls;
       $("k-coins").textContent = `+${b.coins}`;
     }
@@ -1178,6 +1195,7 @@ const Arcade = (() => {
       const tries = b.walls + b.misses;
       card(`<div class="card message">
         <h2>${record && b.walls ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <p>You reached <b>level ${levelFor(b.walls)}</b>.</p>
         <div class="stats">
           <div><b>${b.walls}</b><span>walls cleared</span></div>
           <div><b>${tries ? Math.round((100 * b.walls) / tries) : 0}%</b><span>accuracy</span></div>
@@ -1492,7 +1510,9 @@ const Arcade = (() => {
       if (full) {
         t.board = t.board.filter((row) => !row.every(Boolean));
         while (t.board.length < ROWS) t.board.unshift(Array(COLS).fill(null));
+        const before = Math.floor(t.lines / 5);
         t.lines += full;
+        if (ui && Math.floor(t.lines / 5) > before) { levelBanner($("k-road"), Math.floor(t.lines / 5) + 1, "Blocks fall faster!"); setTimeout(() => sfx("arrive"), 450); }
         t.flash = 1; t.flashColor = "255,255,255";
         sfx(full >= 4 ? "win" : "right");
         if (ui) $("k-gates").textContent = t.lines;
@@ -1650,6 +1670,7 @@ const Arcade = (() => {
       const tries = t.right + t.wrong;
       card(`<div class="card message">
         <h2>${record && t.lines ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <p>You reached <b>level ${Math.floor(t.lines / 5) + 1}</b>.</p>
         <div class="stats">
           <div><b>${t.lines}</b><span>lines cleared</span></div>
           <div><b>${tries ? Math.round((100 * t.right) / tries) : 0}%</b><span>quiz accuracy</span></div>
@@ -1830,11 +1851,25 @@ const Arcade = (() => {
     };
   }
 
-  // ---------- shared cabinet for the classic canvas games (Snake, Invaders, Penalty, Whack-a-Fact, Crossy, Maze, Asteroids) ----------
+  // ---------- levels ----------
+  // Every few right answers is a new level, and each game gets harder its own way.
+  const LEVEL_EVERY = 3;
+  const levelFor = (score) => 1 + Math.floor(score / LEVEL_EVERY);
+  // the LEVEL 2! banner over a game's play area
+  function levelBanner(box, n, note) {
+    const el = document.createElement("div");
+    el.className = "k-levelup";
+    el.innerHTML = `<b>LEVEL ${n}!</b>${note ? `<span>${escapeHTML(note)}</span>` : ""}`;
+    box.append(el);
+    setTimeout(() => el.remove(), 1900);
+  }
+
+  // ---------- shared cabinet for the classic canvas games (Snake through Dino Dash) ----------
   // Builds the top bar, the question panel and the canvas; handles lives, coins, pop-up text,
   // the intro and game-over cards and the game loop. demo: an element to play a silent demo in.
 
-  function cabinet({ u, demo, cls, stat, lives, minW, minH, intro: introHTML, bestKey, bestWord }) {
+  // levelNote(n): what gets harder at level n, shown under the LEVEL n! banner
+  function cabinet({ u, demo, cls, stat, lives, minW, minH, intro: introHTML, bestKey, bestWord, levelNote = () => "Faster!" }) {
     const ui = !demo;
     const deck = ui ? makeDeck(u) : null;
     const c = {
@@ -1847,6 +1882,7 @@ const Arcade = (() => {
         <div class="arc-bar">
           <button class="hud-btn" data-act="menu" aria-label="Back to the game menu">&lt;<span class="lbl"> MENU</span></button>
           <div class="lives" id="k-lives"></div>
+          <div class="hud-stat"><span class="k">LEVEL</span><span class="v" id="k-level">1</span></div>
           <div class="hud-stat"><span class="k">${stat}</span><span class="v" id="k-gates">0</span></div>
           <div class="hud-stat"><span class="k">COINS</span><span class="v" id="k-coins">+0</span></div>
         </div>
@@ -1879,8 +1915,10 @@ const Arcade = (() => {
       $("k-lives").innerHTML = heartsHTML(c.lives, lives);
       $("k-lives").setAttribute("aria-label", `${c.lives} of ${lives} lives left`);
     };
+    c.level = () => levelFor(c.score);
     c.stats = () => {
       if (!ui) return;
+      $("k-level").textContent = c.level();
       $("k-gates").textContent = c.score;
       $("k-coins").textContent = `+${c.coins}`;
     };
@@ -1929,7 +1967,12 @@ const Arcade = (() => {
     // scored: false when it doesn't count toward the score (a goal the keeper luckily saved)
     c.right = (picked, pay = null, scored = true) => {
       const coins = pay ?? (c.q?.difficulty === "hard" ? 10 : 5);
+      const before = c.level();
       if (scored) c.score++;
+      if (c.level() > before) {
+        levelBanner(box, c.level(), levelNote(c.level()));
+        setTimeout(() => c.alive && c.sfx("arrive"), 450);
+      }
       c.coins += coins;
       if (ui) earn(coins);
       c.flash = 1; c.flashColor = "31,157,85";
@@ -1960,6 +2003,7 @@ const Arcade = (() => {
       const tries = c.score + c.misses;
       c.card(`<div class="card message">
         <h2>${record && c.score ? "NEW RECORD!" : "GAME OVER"}</h2>
+        <p>You reached <b>level ${c.level()}</b>.</p>
         <div class="stats">
           <div><b>${c.score}</b><span>${bestWord}</span></div>
           <div><b>${tries ? Math.round((100 * c.score) / tries) : 0}%</b><span>accuracy</span></div>
@@ -2014,11 +2058,12 @@ const Arcade = (() => {
     const GW = 24, GH = 16, CS = 10;
     const c = cabinet({
       u, demo, cls: "snake", stat: "SNACKS", lives: 3, minW: 260, minH: 190, bestKey: "snake", bestWord: "right snacks",
+      levelNote: (n) => n === 2 ? "Faster snake! Rocks appear" : "Faster! More rocks",
       intro: `<h2>SNAKE SMARTS</h2><p>Four snacks are on the board, marked A, B, C and D. Steer the snake to the one with the right answer.
         A wrong snack, a wall or your own tail costs a life. You have 3.
         Steer with <b>WASD</b> or the arrow keys, a swipe, or the buttons (each one points its way: A up, B right, C down, D left).</p>`,
     });
-    const s = { phase: "intro", body: [], dir: [1, 0], turns: [], foods: [], grow: 0, step: 0, wait: 0, blink: 0 };
+    const s = { phase: "intro", body: [], dir: [1, 0], turns: [], foods: [], rocks: [], grow: 0, step: 0, wait: 0, blink: 0 };
     const ox = () => Math.round((c.W - GW * CS) / 2);
     const oy = () => Math.round((c.H - GH * CS) / 2);
     const DIRS = { left: [-1, 0], up: [0, -1], down: [0, 1], right: [1, 0] };
@@ -2028,7 +2073,9 @@ const Arcade = (() => {
       s.dir = [1, 0];
       s.turns = [];
     }
-    const occupied = (x, y) => s.body.some(([bx, by]) => bx === x && by === y) || s.foods.some((f) => f.x === x && f.y === y);
+    const occupied = (x, y) => s.body.some(([bx, by]) => bx === x && by === y) || s.foods.some((f) => f.x === x && f.y === y) ||
+      s.rocks.some((r) => r.x === x && r.y === y);
+    const rockAt = (x, y) => s.rocks.some((r) => r.x === x && r.y === y);
     function placeFoods() {
       s.foods = [];
       const [hx, hy] = s.body[0];
@@ -2040,6 +2087,15 @@ const Arcade = (() => {
           tries++;
         } while (tries < 200 && (occupied(x, y) || Math.abs(x - hx) + Math.abs(y - hy) < 5 || s.foods.some((f) => Math.abs(f.x - x) + Math.abs(f.y - y) < 4)));
         s.foods.push({ x, y, i });
+      }
+      // from level 2, rocks: one more each level (up to 6), never right in front of the head
+      s.rocks = [];
+      const want = Math.min(6, c.level() - 1);
+      for (let n = 0, tries = 0; n < want && tries < 300; tries++) {
+        const x = 1 + Math.floor(Math.random() * (GW - 2)), y = 1 + Math.floor(Math.random() * (GH - 2));
+        if (occupied(x, y) || Math.abs(x - hx) + Math.abs(y - hy) < 4 || s.foods.some((f) => Math.abs(f.x - x) + Math.abs(f.y - y) < 2)) continue;
+        s.rocks.push({ x, y });
+        n++;
       }
     }
     function newRound() {
@@ -2073,6 +2129,7 @@ const Arcade = (() => {
       if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) return crash("WALL! -1 LIFE");
       const solid = s.grow > 0 ? s.body : s.body.slice(0, -1); // a growing tail doesn't move out of the way
       if (solid.some(([bx, by]) => bx === nx && by === ny)) return crash("OUCH! -1 LIFE");
+      if (rockAt(nx, ny)) return crash("ROCK! -1 LIFE");
       s.body.unshift([nx, ny]);
       const food = s.foods.find((f) => f.x === nx && f.y === ny);
       if (food) {
@@ -2109,7 +2166,7 @@ const Arcade = (() => {
       const [hx, hy] = s.body[0];
       const safe = (d) => {
         const nx = hx + d[0], ny = hy + d[1];
-        return nx >= 0 && ny >= 0 && nx < GW && ny < GH && !s.body.slice(0, -1).some(([bx, by]) => bx === nx && by === ny) &&
+        return nx >= 0 && ny >= 0 && nx < GW && ny < GH && !s.body.slice(0, -1).some(([bx, by]) => bx === nx && by === ny) && !rockAt(nx, ny) &&
           !s.foods.some((f) => f !== target && f.x === nx && f.y === ny);
       };
       const options = Object.values(DIRS).filter((d) => !(d[0] === -s.dir[0] && d[1] === -s.dir[1]) && safe(d));
@@ -2127,7 +2184,7 @@ const Arcade = (() => {
       }
       if (s.phase !== "play") return;
       s.step += dt;
-      const interval = Math.max(0.09, 0.16 - c.score * 0.004);
+      const interval = Math.max(0.075, 0.16 - (c.level() - 1) * 0.015); // a little faster every level
       if (s.step >= interval) {
         s.step = 0;
         if (!c.ui) demoSteer();
@@ -2141,6 +2198,12 @@ const Arcade = (() => {
       const x0 = ox(), y0 = oy();
       rect(x0 - 3, y0 - 3, GW * CS + 6, GH * CS + 6, "#5b6577");
       for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) rect(x0 + x * CS, y0 + y * CS, CS, CS, (x + y) % 2 ? "#a9d39a" : "#9fca8f");
+      for (const r of s.rocks) {
+        const rx = x0 + r.x * CS, ry = y0 + r.y * CS;
+        rect(rx, ry + 1, CS, CS - 1, INK);
+        rect(rx + 1, ry + 2, CS - 2, CS - 3, "#7d838f");
+        rect(rx + 2, ry + 3, 3, 2, "#a7adb8");
+      }
       for (const f of s.foods) {
         const fx = x0 + f.x * CS, fy = y0 + f.y * CS;
         rect(fx - 1, fy - 1, CS + 2, CS + 2, INK);
@@ -2191,11 +2254,13 @@ const Arcade = (() => {
   function startInvaders(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "invaders", stat: "HITS", lives: 3, minW: 240, minH: 220, bestKey: "invaders", bestWord: "right hits",
+      levelNote: (n) => n === 2 ? "They march faster and drop bombs!" : "Faster! More bombs",
       intro: `<h2>QUIZ INVADERS</h2><p>Four invaders, marked A, B, C and D, are marching down. Shoot the one with the right answer.
         Hitting a wrong one, or letting them reach you, costs a life. You have 3.
-        Move with <b>A</b>/<b>D</b> (or the arrows), fire with <b>W</b> or <b>Space</b>. Buttons: D left, B right, A or C fire. On a phone, tap where to shoot.</p>`,
+        Move with <b>A</b>/<b>D</b> (or the arrows), fire with <b>W</b> or <b>Space</b>. Buttons: D left, B right, A or C fire. On a phone, tap where to shoot.
+        From level 2 they drop bombs: dodge them!</p>`,
     });
-    const v = { phase: "intro", x: 0, shot: null, inv: [], dirX: 1, speed: 14, drop: 0, wait: 0, target: null, stars: [], t: 0, booms: [] };
+    const v = { phase: "intro", x: 0, shot: null, inv: [], bombs: [], bombIn: 2, dirX: 1, speed: 14, drop: 0, wait: 0, target: null, stars: [], t: 0, booms: [] };
     for (let i = 0; i < 40; i++) v.stars.push([Math.random(), Math.random(), Math.random() < 0.3]);
     const ground = () => c.H - 18;
     const IW = 22, IH = 16;
@@ -2206,9 +2271,11 @@ const Arcade = (() => {
       const left = c.W / 2 - gap * 1.5;
       v.inv = [0, 1, 2, 3].map((i) => ({ i, x: left + gap * i, y: 34, alive: true }));
       v.dirX = Math.random() < 0.5 ? 1 : -1;
-      const sweep = Math.max(2.6, 4.5 - c.score * 0.15); // seconds to cross the screen once
+      const sweep = Math.max(2, 4.5 - (c.level() - 1) * 0.4); // seconds to cross the screen once
       v.speed = Math.max(10, (c.W - 28 - gap * 3 - IW) / sweep);
       v.shot = null;
+      v.bombs = [];
+      v.bombIn = 1.5;
       v.phase = "play";
       if (!c.ui) v.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
@@ -2255,6 +2322,25 @@ const Arcade = (() => {
       let dx = v.dirX * v.speed * dt;
       if (minX + dx < 14 || maxX + dx > c.W - 14) { v.dirX *= -1; dx = 0; for (const n of v.inv) n.y += 14; }
       for (const n of v.inv) n.x += dx;
+      // from level 2 a random invader drops a bomb now and then; more often each level
+      const L = c.level();
+      if (c.ui && L >= 2 && alive.length) {
+        v.bombIn -= dt;
+        if (v.bombIn <= 0) {
+          const n = alive[Math.floor(Math.random() * alive.length)];
+          v.bombs.push({ x: n.x, y: n.y + IH / 2, vy: 55 + L * 8 });
+          v.bombIn = Math.max(0.7, 2.4 - (L - 2) * 0.3) * (0.7 + Math.random() * 0.6);
+        }
+      }
+      for (const b of v.bombs) b.y += b.vy * dt;
+      v.bombs = v.bombs.filter((b) => b.y < c.H);
+      if (v.bombs.some((b) => Math.abs(b.x - v.x) < 11 && b.y > ground() - 10 && b.y < ground() + 6)) {
+        boom(v.x, ground(), "#ff8a7a");
+        v.bombs = [];
+        v.shot = null;
+        v.inv.forEach((n) => (n.alive = false));
+        return finish(c.wrong(-1, "BOMBED! -1 LIFE", "Hit by a bomb! "));
+      }
       if (alive.some((n) => n.y + IH / 2 >= ground() - 14)) {
         for (const n of alive) boom(n.x, n.y, "#ff8a7a");
         v.inv.forEach((n) => (n.alive = false));
@@ -2321,6 +2407,7 @@ const Arcade = (() => {
         }
       }
       if (v.shot) rect(v.shot.x - 1, v.shot.y - 5, 2, 7, "#ffd23f");
+      for (const b of v.bombs) { rect(b.x - 2, b.y - 4, 4, 8, "#ff6b5a"); rect(b.x - 1, b.y - 3, 2, 2, "#ffd0c8"); }
       // the cannon and the ground
       rect(0, ground() + 6, c.W, 2, "#3ce070");
       const gx = v.x, gy = ground();
@@ -2374,12 +2461,13 @@ const Arcade = (() => {
   function startPenalty(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "penalty", stat: "GOALS", lives: 3, minW: 260, minH: 230, bestKey: "penalty", bestWord: "goals",
+      levelNote: () => "Quicker keeper, shorter shot clock",
       intro: `<h2>PENALTY SHOOTOUT</h2><p>The goal has four corners: <b>A</b> top-left, <b>B</b> top-right, <b>C</b> bottom-left, <b>D</b> bottom-right.
         Shoot at the corner with the right answer before the shot clock runs out. A wrong corner gets saved (or hits the post) and costs a life. You have 3.
         Watch the keeper: once in a while he saves even a right answer (you still get 2 coins).
         Press A-D, or tap a corner.</p>`,
     });
-    const s = { phase: "intro", clock: 15, t: 0, kick: 0, target: -1, dive: null, outcome: "", banner: "", bannerT: 0, wait: 0, keeperX: 0, keeperY: 0, arms: 0, demoT: 0 };
+    const s = { phase: "intro", clock: 15, t: 0, kt: 0, kick: 0, target: -1, dive: null, outcome: "", banner: "", bannerT: 0, wait: 0, keeperX: 0, keeperY: 0, arms: 0, demoT: 0 };
     const goal = () => {
       const gw = Math.min(c.W * 0.72, 320), gh = gw * 0.4;
       return { x: c.W / 2 - gw / 2, y: Math.round(c.H * 0.17), w: gw, h: gh };
@@ -2392,7 +2480,8 @@ const Arcade = (() => {
 
     function nextKick() {
       c.nextQuestion();
-      Object.assign(s, { phase: "aim", clock: clockFor(c.q), kick: 0, target: -1, dive: null, outcome: "", demoT: 1 + Math.random() * 1.2 });
+      // each level takes 1.5s off the shot clock (down to 8s)
+      Object.assign(s, { phase: "aim", clock: Math.max(8, clockFor(c.q) - (c.level() - 1) * 1.5), kick: 0, target: -1, dive: null, outcome: "", demoT: 1 + Math.random() * 1.2 });
       if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     function shoot(i) {
@@ -2445,8 +2534,9 @@ const Arcade = (() => {
         s.clock -= dt;
         // the keeper won't stand still: he shuffles across the goal and hops, arms up
         const g = goal();
-        s.keeperX = Math.sin(s.t * 1.7) * g.w * 0.28 + Math.sin(s.t * 4.6) * g.w * 0.06;
-        const hop = (s.t * 1.3) % 1;
+        s.kt += dt * (1 + (c.level() - 1) * 0.25); // he gets livelier every level
+        s.keeperX = Math.sin(s.kt * 1.7) * g.w * 0.28 + Math.sin(s.kt * 4.6) * g.w * 0.06;
+        const hop = (s.kt * 1.3) % 1;
         s.keeperY = hop < 0.3 ? -Math.sin((hop / 0.3) * Math.PI) * 14 : 0;
         s.arms = s.keeperY < -2 ? 1 : 0;
         if (!c.ui && (s.demoT -= dt) <= 0) return shoot(s.aim);
@@ -2568,6 +2658,7 @@ const Arcade = (() => {
   function startMoles(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "moles", stat: "WHACKS", lives: 3, minW: 260, minH: 210, bestKey: "moles", bestWord: "right whacks",
+      levelNote: () => "Moles duck back down quicker!",
       intro: `<h2>WHACK-A-FACT</h2><p>Moles pop out of four holes, <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>.
         Whack the mole in the hole with the right answer while it's up: press its button, or tap it.
         Whacking a wrong mole, or running out of time, costs a life. You have 3.</p>`,
@@ -2644,7 +2735,7 @@ const Arcade = (() => {
         return after(left, 2.6);
       }
       // moles pop up for a moment; the right one turns up often enough to catch
-      const upTime = Math.max(0.85, 1.5 - c.score * 0.04);
+      const upTime = Math.max(0.6, 1.5 - (c.level() - 1) * 0.15); // shorter every level
       for (const h of s.holes) if (h.up && (h.life -= dt) <= 0) h.up = false;
       s.pop -= dt;
       if (s.pop <= 0) {
@@ -2751,6 +2842,7 @@ const Arcade = (() => {
     const LANES = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 }; // road rows and their direction (row 4 is the median)
     const c = cabinet({
       u, demo, cls: "crossy", stat: "CROSSINGS", lives: 3, minW: 240, minH: 170, bestKey: "crossy", bestWord: "right pads",
+      levelNote: (n) => n === 3 ? "Faster traffic, more cars!" : "Faster traffic!",
       intro: `<h2>CROSSY QUIZ</h2><p>Hop across the road to the lily pad with the right answer: pads <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b> along the top.
         Cars, a wrong pad, or running out of time cost a life. You have 3.
         Hop with <b>WASD</b> or the arrow keys, a swipe, or the buttons (A up, B right, C down, D left).</p>`,
@@ -2761,11 +2853,12 @@ const Arcade = (() => {
 
     function makeTraffic() {
       s.cars = {};
-      const level = Math.min(10, c.score);
+      const L = Math.min(8, c.level());
       for (const [row, dir] of Object.entries(LANES)) {
-        const speed = (22 + Number(row) * 4 + level * 3) * dir;
+        const speed = (22 + Number(row) * 4 + (L - 1) * 8) * dir; // faster every level
         const cars = [];
-        const count = 2; // two cars a lane leaves real gaps to hop through
+        // two cars a lane leaves real gaps to hop through; from level 3 the outer lanes get a third
+        const count = L >= 3 && (row === "1" || row === "6") ? 3 : 2;
         for (let k = 0; k < count; k++) cars.push({ x: (k * COLS * CS) / count + Math.random() * 20, len: Number(row) === 3 ? 3 : 2, color: ["#e5484d", "#3b6fe0", "#ffc94d", "#8e5bd6", "#ff8a3d"][(Number(row) + k) % 5] });
         s.cars[row] = { speed, cars };
       }
@@ -2938,6 +3031,7 @@ const Arcade = (() => {
     const MW = MAZE[0].length, MH = MAZE.length, CS = 14;
     const c = cabinet({
       u, demo, cls: "maze", stat: "FRUIT", lives: 3, minW: 230, minH: 180, bestKey: "maze", bestWord: "right fruit",
+      levelNote: (n) => n === 3 ? "A third ghost joins the hunt!" : "Faster ghosts!",
       intro: `<h2>MAZE MUNCHER</h2><p>Four fruits in the maze are marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Munch the one with the right answer
         and keep away from the ghosts. A ghost, a wrong fruit, or running out of time costs a life. You have 3.
         Steer with <b>WASD</b> or the arrow keys, a swipe, or the buttons (A up, B right, C down, D left).</p>`,
@@ -2951,10 +3045,11 @@ const Arcade = (() => {
     function newRound() {
       c.nextQuestion();
       s.me = mover(7, 5, 5.2);
-      const level = Math.min(8, c.score);
-      const ghostSpeed = (2.8 + level * 0.15) * (c.ui ? 1 : 0.75); // a little slower in the menu's demo
+      const L = c.level();
+      const ghostSpeed = Math.min(4.6, 2.8 + (L - 1) * 0.35) * (c.ui ? 1 : 0.75); // faster each level; a little slower in the menu's demo
       s.ghosts = [mover(1, 1, ghostSpeed), mover(13, 9, ghostSpeed)];
-      s.ghosts.forEach((g, i) => (g.color = ["#e5484d", "#ff8ad0"][i]));
+      if (L >= 3 && c.ui) s.ghosts.push(mover(1, 9, ghostSpeed * 0.9)); // a third ghost from level 3
+      s.ghosts.forEach((g, i) => (g.color = ["#e5484d", "#ff8ad0", "#3ad6e0"][i]));
       s.dots = new Set();
       for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (open(x, y)) s.dots.add(`${x},${y}`);
       // fruit in four spread-out spots, away from you
@@ -3128,6 +3223,7 @@ const Arcade = (() => {
   function startAsteroids(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "asteroids", stat: "HITS", lives: 3, minW: 250, minH: 210, bestKey: "asteroids", bestWord: "right hits",
+      levelNote: (n) => n >= 3 ? "Faster rocks! Grey space junk too" : "Faster rocks!",
       intro: `<h2>ASTEROID ANSWERS</h2><p>Four asteroids drift by, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Shoot the one with the right answer.
         Hitting a wrong one, crashing into one, or running out of time costs a life. You have 3.
         <b>A</b>/<b>D</b> turn, <b>W</b> thrust, <b>Space</b> or <b>S</b> fire (arrow keys work too). Buttons: D turn left, B turn right, A thrust, C fire. On a phone, tap where to shoot.</p>`,
@@ -3143,11 +3239,18 @@ const Arcade = (() => {
       s.rocks = [0, 1, 2, 3].map((i) => {
         const ang = (i / 4) * Math.PI * 2 + Math.random() * 0.8;
         const dist = Math.min(c.W, c.H) * 0.38;
-        const sp = 10 + Math.random() * 10 + Math.min(14, c.score * 1.2);
+        const sp = 10 + Math.random() * 10 + Math.min(24, (c.level() - 1) * 5); // faster every level
         const dir = Math.random() * Math.PI * 2;
         return { i, x: c.W / 2 + Math.cos(ang) * dist * 1.2, y: c.H / 2 + Math.sin(ang) * dist, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp, r: 13, spin: Math.random() * 6, alive: true,
           shape: Array.from({ length: 9 }, () => 0.75 + Math.random() * 0.35) };
       });
+      // from level 3: grey junk with no answer on it. Shooting it is safe; flying into it isn't.
+      const junk = c.ui ? Math.min(3, c.level() - 2) : 0;
+      for (let k = 0; k < junk; k++) {
+        const dir = Math.random() * Math.PI * 2, sp = 18 + Math.random() * 12 + c.level() * 2;
+        s.rocks.push({ i: -1, x: Math.random() * c.W, y: k % 2 ? 6 : c.H - 6, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp, r: 9, spin: 0, alive: true,
+          shape: Array.from({ length: 7 }, () => 0.7 + Math.random() * 0.4) });
+      }
       Object.assign(s, { phase: "play", clock: c.q?.difficulty === "hard" ? 25 : 20 });
       if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
@@ -3222,6 +3325,7 @@ const Arcade = (() => {
         if (!rock) continue;
         sh.life = 0;
         rock.alive = false;
+        if (rock.i < 0) { boom(rock.x, rock.y, "#9aa3b2"); c.sfx("crash"); continue; } // junk: just gone
         if (rock.i === c.q.answerIndex) {
           boom(rock.x, rock.y, "#7dffa8");
           c.right(rock.i);
@@ -3248,7 +3352,7 @@ const Arcade = (() => {
       for (const [sx, sy] of s.stars) rect(sx * c.W, sy * c.H, 1, 1, "#5b6577");
       ctx.lineWidth = 1.5;
       for (const r of s.rocks) if (r.alive) {
-        ctx.strokeStyle = LANE_COLORS[r.i];
+        ctx.strokeStyle = r.i < 0 ? "#7d838f" : LANE_COLORS[r.i];
         ctx.beginPath();
         r.shape.forEach((k, j) => {
           const a = (j / r.shape.length) * Math.PI * 2 + r.spin * 0.6;
@@ -3257,7 +3361,7 @@ const Arcade = (() => {
         });
         ctx.closePath();
         ctx.stroke();
-        text("ABCD"[r.i], r.x, r.y + 1, LANE_COLORS[r.i], 8);
+        if (r.i >= 0) text("ABCD"[r.i], r.x, r.y + 1, LANE_COLORS[r.i], 8);
       }
       for (const sh of s.shots) rect(sh.x - 1, sh.y - 1, 2, 2, "#ffd23f");
       for (const b of s.booms) {
@@ -3302,8 +3406,9 @@ const Arcade = (() => {
   function startHunt(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "hunt", stat: "DUCKS", lives: 3, minW: 260, minH: 210, bestKey: "hunt", bestWord: "right ducks",
+      levelNote: (n) => n % 2 ? "Faster ducks, one shell fewer!" : "Faster ducks!",
       intro: `<h2>QUIZ HUNT</h2><p>Four ducks fly around, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Shoot the one with the right answer.
-        You get 5 shells a round. A wrong duck, running out of shells, or running out of time costs a life. You have 3.
+        You get 5 shells a round (fewer at higher levels). A wrong duck, running out of shells, or running out of time costs a life. You have 3.
         Aim with <b>WASD</b> or the arrow keys (or the buttons: A up, B right, C down, D left) and fire with <b>Space</b> or the joystick's ball. Or just click or tap a duck.</p>`,
     });
     const s = { phase: "intro", ducks: [], cx: 0, cy: 0, shells: 5, clock: 20, wait: 0, banner: "", bannerT: 0, t: 0, flash: 0, demoT: 0 };
@@ -3312,11 +3417,12 @@ const Arcade = (() => {
     function newRound() {
       c.nextQuestion();
       s.ducks = [0, 1, 2, 3].map((i) => {
-        const speed = 34 + Math.random() * 18 + Math.min(30, c.score * 2.5);
+        const speed = 34 + Math.random() * 18 + Math.min(50, (c.level() - 1) * 9); // faster every level
         const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
         return { i, x: c.W * (0.2 + i * 0.2), y: groundY() - 10, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, alive: true, fall: 0, turn: 1 + Math.random() * 2 };
       });
-      Object.assign(s, { phase: "play", shells: 5, clock: c.q?.difficulty === "hard" ? 25 : 20, cx: c.W / 2, cy: c.H * 0.4, demoT: 0.8 });
+      // 5 shells at level 1-2, 4 at 3-4, 3 from level 5
+      Object.assign(s, { phase: "play", shells: Math.max(3, 5 - Math.floor((c.level() - 1) / 2)), clock: c.q?.difficulty === "hard" ? 25 : 20, cx: c.W / 2, cy: c.H * 0.4, demoT: 0.8 });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     function end(left, wait) {
@@ -3465,11 +3571,12 @@ const Arcade = (() => {
   function startBump(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "bump", stat: "BUMPS", lives: 3, minW: 260, minH: 200, bestKey: "bump", bestWord: "right bumps",
+      levelNote: (n) => n === 3 ? "A second beetle shows up!" : "Faster beetles!",
       intro: `<h2>BLOCK BUMP</h2><p>Four <b>?</b> blocks hang overhead, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Run under the one with the right answer and jump to bump it.
         Jump on the beetle to bounce off it; touching it from the side costs a life, and so do a wrong block and running out of time. You have 3.
         Run with <b>A</b>/<b>D</b> (or the arrows), jump with <b>W</b> or <b>Space</b>. Buttons: D left, B right, A jump.</p>`,
     });
-    const s = { phase: "intro", p: null, beetle: null, blocks: [], clock: 20, wait: 0, banner: "", bannerT: 0, t: 0, push: 0 };
+    const s = { phase: "intro", p: null, beetles: [], blocks: [], clock: 20, wait: 0, banner: "", bannerT: 0, t: 0, push: 0 };
     const floor = () => c.H - 26;
     const blockY = () => floor() - 62;
     const blockX = (i) => c.W / 2 + (i - 1.5) * Math.min(64, (c.W - 40) / 4);
@@ -3477,7 +3584,10 @@ const Arcade = (() => {
     function newRound() {
       c.nextQuestion();
       s.p = { x: c.W / 2, y: floor(), vx: 0, vy: 0, ground: true, face: 1 };
-      s.beetle = { x: Math.random() < 0.5 ? 20 : c.W - 20, vx: (Math.random() < 0.5 ? -1 : 1) * (26 + Math.min(30, c.score * 3)), flat: 0 };
+      // faster beetles every level; from level 3 a second one, on the other side
+      const L = c.level(), speed = 26 + Math.min(50, (L - 1) * 9), side = Math.random() < 0.5;
+      s.beetles = [{ x: side ? 20 : c.W - 20, vx: (Math.random() < 0.5 ? -1 : 1) * speed, flat: 0 }];
+      if (L >= 3 && c.ui) s.beetles.push({ x: side ? c.W - 20 : 20, vx: (side ? -1 : 1) * speed * 0.8, flat: 0 });
       s.blocks = [0, 1, 2, 3].map((i) => ({ i, bump: 0, used: false }));
       Object.assign(s, { phase: "play", clock: c.q?.difficulty === "hard" ? 25 : 20, push: 0 });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
@@ -3542,7 +3652,7 @@ const Arcade = (() => {
         if (Math.abs(dx) > 3) run = Math.sign(dx);
         else if (p.ground) jump();
         // hop over the beetle when it gets close
-        if (p.ground && !s.beetle.flat && Math.abs(s.beetle.x - p.x) < 26 && Math.sign(s.beetle.x - p.x) === Math.sign(s.beetle.vx) * -1) jump();
+        for (const bt of s.beetles) if (p.ground && !bt.flat && Math.abs(bt.x - p.x) < 26 && Math.sign(bt.x - p.x) === Math.sign(bt.vx) * -1) jump();
       }
       if (run) p.face = run;
       p.vx = run * 95;
@@ -3560,8 +3670,8 @@ const Arcade = (() => {
         }
       }
       if (p.y >= floor()) { p.y = floor(); p.vy = 0; p.ground = true; }
-      // the beetle walks back and forth; land on it to flatten it for a moment
-      const bt = s.beetle;
+      // the beetles walk back and forth; land on one to flatten it for a moment
+      for (const bt of s.beetles) {
       if (bt.flat > 0) bt.flat -= dt;
       else {
         bt.x += bt.vx * dt;
@@ -3574,6 +3684,7 @@ const Arcade = (() => {
             return end(left, 2.6);
           }
         }
+      }
       }
     }
 
@@ -3595,9 +3706,8 @@ const Arcade = (() => {
         text(b.used ? "" : "ABCD"[b.i], bx, by + 1, "#fff", 16);
         if (!b.used) text("?", bx + 8, by - 16, "#fff", 8);
       }
-      // the beetle
-      const bt = s.beetle;
-      if (bt) {
+      // the beetles
+      for (const bt of s.beetles) {
         const by = floor();
         if (bt.flat > 0) rect(bt.x - 9, by - 4, 18, 4, "#5a3a1a");
         else { rect(bt.x - 9, by - 12, 18, 10, "#8a5a32"); rect(bt.x - 7, by - 2, 4, 2, INK); rect(bt.x + 3, by - 2, 4, 2, INK); rect(bt.x - 5, by - 9, 3, 3, "#fff"); rect(bt.x + 2, by - 9, 3, 3, "#fff"); }
@@ -3647,10 +3757,11 @@ const Arcade = (() => {
   function startCannon(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "cannon", stat: "HITS", lives: 3, minW: 280, minH: 200, bestKey: "cannon", bestWord: "right hits",
+      levelNote: (n) => n % 2 ? "Stronger wind, one shell fewer!" : "Stronger wind!",
       intro: `<h2>CANNON CLASH</h2><p>Four targets stand across the field, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Lob a shell onto the one with the right answer.
         <b>W</b>/<b>S</b> raise and lower the barrel, <b>A</b>/<b>D</b> set the power, <b>Space</b> (or the joystick's ball) fires. The dotted line shows where the shot starts heading; mind the wind!
         On a phone, tap the field to aim there and tap FIRE. Buttons: A up, C down, D less power, B more power.
-        You get 4 shells a round. Hitting a wrong target, running out of shells, or running out of time costs a life. You have 3.</p>`,
+        You get 4 shells a round (fewer at higher levels, and the wind picks up). Hitting a wrong target, running out of shells, or running out of time costs a life. You have 3.</p>`,
     });
     const G = 160;
     const s = { phase: "intro", angle: 45, power: 0.6, shell: null, shells: 4, targets: [], wind: 0, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, puffs: [], demoPlan: null };
@@ -3663,7 +3774,10 @@ const Arcade = (() => {
       const span = c.W - 30 - c.W * 0.32;
       const xs = shuffle([0, 1, 2, 3]).map((k) => c.W * 0.32 + (span * (k + 0.5)) / 4);
       s.targets = [0, 1, 2, 3].map((i) => ({ i, x: xs[i], hit: false }));
-      Object.assign(s, { phase: "play", shells: 4, shell: null, angle: 45, power: 0.6, clock: c.q?.difficulty === "hard" ? 30 : 25, wind: Math.round((Math.random() - 0.5) * 30), demoPlan: null });
+      // the wind gets wilder every level (up to +/-35) and you lose a shell every other level (down to 2)
+      const L = c.level();
+      Object.assign(s, { phase: "play", shells: Math.max(2, 4 - Math.floor((L - 1) / 2)), shell: null, angle: 45, power: 0.6, clock: c.q?.difficulty === "hard" ? 30 : 25,
+        wind: Math.round((Math.random() - 0.5) * Math.min(70, 30 + (L - 1) * 10)), demoPlan: null });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     function end(left, wait) {
@@ -3845,6 +3959,7 @@ const Arcade = (() => {
   function startLander(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "lander", stat: "LANDINGS", lives: 3, minW: 280, minH: 220, bestKey: "lander", bestWord: "right landings",
+      levelNote: () => "Stronger gravity, less fuel!",
       intro: `<h2>MOON LANDER</h2><p>Four landing pads, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>, sit on the moon below. Touch down gently on the one with the right answer.
         <b>W</b> (or Space) fires the main engine, <b>A</b>/<b>D</b> fire the side jets. Land slowly: coming down too fast, or anywhere but a pad, is a crash.
         Fuel runs out, so don't waste it! Buttons: A main engine, D and B side jets. A wrong pad, a crash or running out of time costs a life. You have 3.</p>`,
@@ -3881,7 +3996,8 @@ const Arcade = (() => {
       c.nextQuestion();
       makeMoon();
       s.ship = { x: c.W / 2, y: 24, vx: (Math.random() - 0.5) * 20, vy: 0 };
-      Object.assign(s, { phase: "play", fuel: 100, clock: c.q?.difficulty === "hard" ? 35 : 30 });
+      // less fuel every level (down to 50) and, in update, stronger gravity
+      Object.assign(s, { phase: "play", fuel: c.ui ? Math.max(50, 100 - (c.level() - 1) * 10) : 100, clock: c.q?.difficulty === "hard" ? 35 : 30 });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     function end(left, wait) {
@@ -3951,7 +4067,7 @@ const Arcade = (() => {
       if (s.fuel <= 0) { up = 0; side = 0; }
       s.fuel = Math.max(0, s.fuel - (up * 9 + Math.abs(side) * 4) * dt);
       s.flame = up; s.side = side;
-      sh.vy += (GRAV - up * MAIN) * dt;
+      sh.vy += (GRAV + (c.ui ? Math.min(14, (c.level() - 1) * 3) : 0) - up * MAIN) * dt;
       sh.vx += side * SIDE * dt;
       sh.x += sh.vx * dt; sh.y += sh.vy * dt;
       if (sh.x < 6 || sh.x > c.W - 6) { sh.vx = 0; sh.x = Math.max(6, Math.min(c.W - 6, sh.x)); }
@@ -4039,9 +4155,10 @@ const Arcade = (() => {
   function startGolf(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "golf", stat: "PUTTS", lives: 3, minW: 260, minH: 220, bestKey: "golf", bestWord: "right holes",
+      levelNote: (n) => n === 2 ? "The bumpers start sliding!" : n === 3 ? "A third bumper!" : n === 4 ? "Only 2 strokes now!" : "Faster bumpers!",
       intro: `<h2>MINI GOLF</h2><p>Four holes on the green are marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Putt the ball into the one with the right answer.
         <b>A</b>/<b>D</b> aim, <b>W</b>/<b>S</b> set the power, <b>Space</b> putts. Or click/tap where to aim: the farther from the ball, the harder the putt.
-        Buttons: D aim left, B aim right, A more power, C putt. You get 3 strokes a round; a wrong hole, or running out of strokes or time, costs a life. You have 3.</p>`,
+        Buttons: D aim left, B aim right, A more power, C putt. You get 3 strokes a round (2 from level 4); a wrong hole, or running out of strokes or time, costs a life. You have 3.</p>`,
     });
     const s = { phase: "intro", ball: null, aimA: -Math.PI / 2, power: 0.5, holes: [], walls: [], strokes: 3, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, sink: null, demoT: 0 };
     const green = () => ({ x: 12, y: 10, w: c.W - 24, h: c.H - 20 });
@@ -4051,18 +4168,31 @@ const Arcade = (() => {
       const g = green();
       const spots = shuffle([[0.16, 0.18], [0.84, 0.18], [0.38, 0.12], [0.62, 0.12], [0.12, 0.45], [0.88, 0.45]]).slice(0, 4);
       s.holes = spots.map(([fx, fy], i) => ({ i, x: g.x + g.w * fx, y: g.y + g.h * fy }));
-      // a couple of bumpers to play around
+      // a couple of bumpers to play around. Levels: they slide from level 2, a third at level 3,
+      // and they speed up after that
+      const L = c.ui ? c.level() : 1;
       s.walls = [
-        { x: g.x + g.w * 0.3, y: g.y + g.h * 0.42, w: g.w * 0.14, h: 6 },
-        { x: g.x + g.w * 0.56, y: g.y + g.h * 0.58, w: g.w * 0.14, h: 6 },
+        { fx: 0.3, y: g.y + g.h * 0.42, w: g.w * 0.14, h: 6 },
+        { fx: 0.56, y: g.y + g.h * 0.58, w: g.w * 0.14, h: 6 },
       ];
+      if (L >= 3) s.walls.push({ fx: 0.43, y: g.y + g.h * 0.28, w: g.w * 0.12, h: 6 });
+      s.walls.forEach((w, k) => Object.assign(w, { x: g.x + g.w * w.fx, amp: L >= 2 ? 0.14 : 0, sp: 0.6 + (L - 2) * 0.2, ph: k * 2 }));
+    }
+    // slide the bumpers (between the side holes), pushing a resting ball out of the way
+    function moveWalls() {
+      const g = green(), b = s.ball;
+      for (const w of s.walls) {
+        if (!w.amp) continue;
+        w.x = g.x + g.w * (w.fx + Math.sin(s.t * w.sp + w.ph) * w.amp);
+        if (b && !rolling() && b.x + R > w.x && b.x - R < w.x + w.w && b.y + R > w.y && b.y - R < w.y + w.h) b.y = w.y + w.h + R;
+      }
     }
     function newRound() {
       c.nextQuestion();
       layout();
       const g = green();
       s.ball = { x: g.x + g.w / 2, y: g.y + g.h - 18, vx: 0, vy: 0 };
-      Object.assign(s, { phase: "play", strokes: 3, aimA: -Math.PI / 2, power: 0.5, clock: c.q?.difficulty === "hard" ? 30 : 25, sink: null, demoT: 1 });
+      Object.assign(s, { phase: "play", strokes: c.ui && c.level() >= 4 ? 2 : 3, aimA: -Math.PI / 2, power: 0.5, clock: c.q?.difficulty === "hard" ? 30 : 25, sink: null, demoT: 1 });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
     const rolling = () => Math.hypot(s.ball.vx, s.ball.vy) > 2;
@@ -4112,6 +4242,7 @@ const Arcade = (() => {
         s.banner = "TOO SLOW!"; s.bannerT = 1.4;
         return end(left, 2.6);
       }
+      moveWalls();
       if (s.sink) {
         s.sink.t -= dt;
         if (s.sink.t <= 0) sunk(s.sink.h);
@@ -4226,19 +4357,22 @@ const Arcade = (() => {
   function startFishing(u, demo = null) {
     const c = cabinet({
       u, demo, cls: "fishing", stat: "CATCHES", lives: 3, minW: 260, minH: 220, bestKey: "fishing", bestWord: "right catches",
+      levelNote: (n) => n === 3 ? "Faster fish, and another jellyfish!" : "Faster fish!",
       intro: `<h2>GONE FISHING</h2><p>Four fish swim below, marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Hook the one with the right answer and it's reeled in.
         <b>A</b>/<b>D</b> move the boat, <b>S</b> lowers the hook, <b>W</b> raises it. Or tap where to fish. Keep the hook away from the jellyfish!
         Buttons: D left, B right, C down, A up. A wrong fish, a sting, or running out of time costs a life. You have 3.</p>`,
     });
-    const s = { phase: "intro", boat: 0, depth: 0, fish: [], jelly: null, hooked: null, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, goal: null, push: { left: 0, right: 0, up: 0, down: 0 } };
+    const s = { phase: "intro", boat: 0, depth: 0, fish: [], jellies: [], hooked: null, clock: 25, wait: 0, banner: "", bannerT: 0, t: 0, goal: null, push: { left: 0, right: 0, up: 0, down: 0 } };
     const water = () => Math.round(c.H * 0.22);
     const hookY = () => water() + s.depth;
 
     function newRound() {
       c.nextQuestion();
       const depths = shuffle([0.3, 0.48, 0.66, 0.84]);
-      s.fish = [0, 1, 2, 3].map((i) => ({ i, x: 20 + Math.random() * (c.W - 40), y: water() + (c.H - water()) * depths[i], vx: (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 12 + Math.min(16, c.score * 1.5)), hooked: false }));
-      s.jelly = { x: Math.random() * c.W, y: water() + (c.H - water()) * 0.55, t: 0 };
+      s.fish = [0, 1, 2, 3].map((i) => ({ i, x: 20 + Math.random() * (c.W - 40), y: water() + (c.H - water()) * depths[i], vx: (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 12 + Math.min(36, (c.level() - 1) * 6)), hooked: false }));
+      // one jellyfish; a second, deeper and drifting the other way, from level 3
+      s.jellies = [{ x: Math.random() * c.W, y: water() + (c.H - water()) * 0.55, t: 0, vx: 10 }];
+      if (c.ui && c.level() >= 3) s.jellies.push({ x: Math.random() * c.W, y: water() + (c.H - water()) * 0.78, t: 1.5, vx: -14 });
       Object.assign(s, { phase: "play", boat: c.W / 2, depth: 0, hooked: null, goal: null, clock: c.q?.difficulty === "hard" ? 30 : 25 });
       if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
     }
@@ -4272,7 +4406,7 @@ const Arcade = (() => {
         f.x += f.vx * dt;
         if (f.x < 12 || f.x > c.W - 12) { f.vx *= -1; f.x = Math.max(12, Math.min(c.W - 12, f.x)); }
       }
-      if (s.jelly) { s.jelly.t += dt; s.jelly.x = (s.jelly.x + 10 * dt) % (c.W + 20); s.jelly.y += Math.sin(s.jelly.t * 1.5) * 12 * dt; }
+      for (const j of s.jellies) { j.t += dt; j.x = (((j.x + j.vx * dt + 30) % (c.W + 40)) + c.W + 40) % (c.W + 40) - 30; j.y += Math.sin(j.t * 1.5) * 12 * dt; }
       if (s.phase === "result" || s.phase === "dead") {
         s.wait -= dt;
         if (s.wait > 0) return;
@@ -4311,7 +4445,7 @@ const Arcade = (() => {
         const f = s.fish[s.aim];
         const lead = f.x + f.vx * 0.6;
         if (Math.abs(lead - s.boat) > 3) mx = Math.sign(lead - s.boat);
-        const safe = (!s.jelly || Math.abs(s.jelly.x - s.boat) > 26) &&
+        const safe = s.jellies.every((j) => Math.abs(j.x - s.boat) > 26) &&
           !s.fish.some((o) => o !== f && o.y < f.y && Math.abs(o.x - s.boat) < 20); // no other fish in the way down
         if (Math.abs(f.x - s.boat) < 30 && safe) my = Math.sign(f.y - hookY()); else my = s.depth > 10 ? -1 : 0;
       }
@@ -4319,8 +4453,9 @@ const Arcade = (() => {
       s.depth = Math.max(0, Math.min(maxDepth, s.depth + my * 75 * dt));
       // the hook catches whatever fish it touches; the jellyfish stings
       const hx = s.boat, hy = hookY();
-      if (s.jelly && Math.abs(s.jelly.x - hx) < 10 && Math.abs(s.jelly.y - hy) < 10) {
-        s.jelly.x = -30;
+      const sting = s.jellies.find((j) => Math.abs(j.x - hx) < 10 && Math.abs(j.y - hy) < 10);
+      if (sting) {
+        sting.x = -30;
         const left = c.wrong(-1, "STUNG! -1 LIFE", "The jellyfish stung you! ");
         s.banner = "STUNG!"; s.bannerT = 1.4;
         return end(left, 2.6);
@@ -4352,8 +4487,7 @@ const Arcade = (() => {
       for (let x = -8; x < c.W + 8; x += 12) rect(x + (Math.floor(s.t * 3) % 2) * 3, wy, 6, 2, "#cfeefa");
       for (let x = 6; x < c.W; x += 34) rect(x, c.H - 6 - (x % 3) * 3, 3, 6 + (x % 3) * 3, "#2f7d4f"); // weeds
       for (const f of s.fish) fishArt(f);
-      if (s.jelly) {
-        const j = s.jelly;
+      for (const j of s.jellies) {
         rect(j.x - 6, j.y - 5, 12, 6, "#ff8ad0"); rect(j.x - 4, j.y - 7, 8, 2, "#ff8ad0");
         for (let k = 0; k < 4; k++) rect(j.x - 5 + k * 3, j.y + 1, 1, 5 + (k % 2) * 2, "#ff8ad0");
       }
@@ -4379,6 +4513,534 @@ const Arcade = (() => {
       c.canvas.addEventListener("pointerdown", (e) => {
         const r = c.canvas.getBoundingClientRect();
         s.goal = { x: ((e.clientX - r.left) / r.width) * c.W, y: Math.max(water(), ((e.clientY - r.top) / r.height) * c.H) };
+      });
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- BEAT QUIZ ----------
+  // Rhythm style: notes fall down four lanes, A-D. Hit the right answer's lane as its note crosses
+  // the line. A wrong note or running out of time costs a life; hitting nothing just misses the beat.
+
+  function startBeat(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "beat", stat: "HITS", lives: 3, minW: 240, minH: 220, bestKey: "beat", bestWord: "right hits",
+      levelNote: (n) => (n >= 3 ? "Faster beat, extra notes!" : "Faster beat, tighter timing!"),
+      intro: `<h2>BEAT QUIZ</h2><p>Notes fall down four lanes, <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. When a note in the right answer's lane reaches the line, hit that lane:
+        press its button (or <b>1</b>-<b>4</b>), or tap the lane. Hitting a wrong note, or running out of time, costs a life; hitting nothing just misses the beat. You have 3.</p>`,
+    });
+    const s = { phase: "intro", notes: [], time: 0, nextAt: 0, order: [], clock: 15, wait: 0, banner: "", bannerT: 0, t: 0, cool: 0, glow: [0, 0, 0, 0] };
+    const laneW = () => Math.min(48, (c.W - 20) / 4);
+    const laneX = (i) => c.W / 2 + (i - 1.5) * laneW();
+    const topY = 8;
+    const hitY = () => c.H - 30;
+    // every level: notes fall faster, come closer together, and the timing window shrinks
+    const fall = () => Math.max(0.9, 2 - (c.level() - 1) * 0.15);
+    const gap = () => Math.max(0.32, 0.7 - (c.level() - 1) * 0.05);
+    const timing = () => Math.max(0.09, 0.16 - (c.level() - 1) * 0.012);
+    const noteY = (n) => hitY() - ((n.at - s.time) / fall()) * (hitY() - topY);
+
+    function newRound() {
+      c.nextQuestion();
+      Object.assign(s, { phase: "play", notes: [], time: 0, nextAt: fall() + 0.3, order: [], clock: clockFor(c.q), cool: 0 });
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    // one note per lane in a shuffled order; from level 3, extra notes mixed in
+    function refill() {
+      const lanes = shuffle([0, 1, 2, 3]);
+      const extra = c.level() >= 3 ? Math.min(3, c.level() - 2) : 0;
+      for (let k = 0; k < extra; k++) lanes.splice(1 + Math.floor(Math.random() * lanes.length), 0, Math.floor(Math.random() * 4));
+      s.order.push(...lanes);
+    }
+    function end(left, wait) {
+      s.notes = [];
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function hit(i) {
+      if (s.phase !== "play" || s.cool > 0) return;
+      s.glow[i] = 0.2;
+      const n = s.notes.find((n) => n.lane === i && Math.abs(n.at - s.time) < timing());
+      if (!n) { s.cool = 0.2; c.sfx("step"); return; } // off the beat: no harm, but a short pause
+      if (i === c.q.answerIndex) {
+        const perfect = Math.abs(n.at - s.time) < timing() * 0.4;
+        c.right(i);
+        s.banner = perfect ? "PERFECT!" : "NICE!"; s.bannerT = 1.3;
+        return end(true, 1.4);
+      }
+      const left = c.wrong(i, "WRONG NOTE! -1 LIFE");
+      s.banner = "WRONG NOTE!"; s.bannerT = 1.4;
+      end(left, 2.6);
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { hit(i); return true; };
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      s.cool = Math.max(0, s.cool - dt);
+      s.glow = s.glow.map((g) => Math.max(0, g - dt));
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.time += dt;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      while (s.nextAt - s.time < fall()) {
+        if (!s.order.length) refill();
+        s.notes.push({ lane: s.order.shift(), at: s.nextAt });
+        s.nextAt += gap();
+      }
+      s.notes = s.notes.filter((n) => n.at - s.time > -0.4);
+      // the demo hits its lane right on the beat
+      if (!c.ui && s.notes.some((n) => n.lane === s.aim && Math.abs(n.at - s.time) < 0.03)) hit(s.aim);
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#1a1030");
+      // stage lights pulse on the beat
+      const pulse = s.phase === "play" ? 1 - ((s.time / gap()) % 1) : 0;
+      for (let k = 0; k < 6; k++) {
+        const x = (c.W / 6) * (k + 0.5);
+        rect(x - 3, 4, 6, 6, k % 2 ? `rgba(255,138,208,${0.3 + pulse * 0.7})` : `rgba(58,214,224,${0.3 + pulse * 0.7})`);
+      }
+      const lw = laneW();
+      for (let i = 0; i < 4; i++) {
+        const x = laneX(i);
+        rect(x - lw / 2 + 1, topY, lw - 2, hitY() + 14 - topY, s.glow[i] ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)");
+        rect(x - lw / 2, topY, 1, hitY() + 14 - topY, "rgba(255,255,255,0.15)");
+      }
+      rect(laneX(0) - lw / 2, hitY() - 1, lw * 4, 2, "#fbfaf6");
+      for (let i = 0; i < 4; i++) {
+        const x = laneX(i);
+        rect(x - lw * 0.38, hitY() - 7, lw * 0.76, 14, s.glow[i] ? LANE_COLORS[i] : "rgba(17,20,24,0.6)");
+        rect(x - lw * 0.38, hitY() - 7, lw * 0.76, 2, LANE_COLORS[i]);
+        text("ABCD"[i], x, hitY() + 20, LANE_COLORS[i], 8);
+      }
+      for (const n of s.notes) {
+        const x = laneX(n.lane), y = noteY(n);
+        if (y < topY - 6) continue;
+        rect(x - lw * 0.36 - 1, y - 6, lw * 0.72 + 2, 12, INK);
+        rect(x - lw * 0.36, y - 5, lw * 0.72, 10, LANE_COLORS[n.lane]);
+        rect(x - lw * 0.36, y - 5, lw * 0.72, 2, "rgba(255,255,255,0.45)");
+        text("ABCD"[n.lane], x, y + 1, "#fff", 8);
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.4, s.banner === "PERFECT!" || s.banner === "NICE!" ? "#7dffa8" : "#ff8a7a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * c.W;
+        const i = Math.floor((x - (laneX(0) - laneW() / 2)) / laneW());
+        if (i >= 0 && i < 4) hit(i);
+      });
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- LIGHT RACER ----------
+  // Light-cycle style: you and a CPU rider leave walls of light behind you. Four gates in the
+  // arena walls (A top, B right, C bottom, D left) hold the answers: ride out through the right one.
+  // A wrong gate, a wall or any light trail costs a life. 3 lives.
+
+  function startRacer(u, demo = null) {
+    const GW = 30, GH = 20, CS = 8;
+    const c = cabinet({
+      u, demo, cls: "racer", stat: "GATES", lives: 3, minW: 260, minH: 190, bestKey: "racer", bestWord: "right gates",
+      levelNote: (n) => (n === 3 ? "Faster! A second rival joins" : "Faster riders!"),
+      intro: `<h2>LIGHT RACER</h2><p>Four gates in the arena walls hold the answers: <b>A</b> top, <b>B</b> right, <b>C</b> bottom, <b>D</b> left. Ride out through the right one.
+        You and your rival leave walls of light behind you. A wrong gate, the arena wall, a light trail, or running out of time costs a life. You have 3.
+        Steer with <b>WASD</b> or the arrow keys, a swipe, or the buttons (A up, B right, C down, D left).</p>`,
+    });
+    const s = { phase: "intro", grid: new Uint8Array(GW * GH), me: null, cpus: [], clock: 20, wait: 0, step: 0, banner: "", bannerT: 0, t: 0, booms: [] };
+    const ox = () => Math.round((c.W - GW * CS) / 2);
+    const oy = () => Math.round((c.H - GH * CS) / 2);
+    const DIRS = { left: [-1, 0], up: [0, -1], down: [0, 1], right: [1, 0] };
+    const COLORS = { 1: "#3ad6e0", 2: "#ff8a3d", 3: "#ff6bd0" };
+    const inside = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH;
+    const at = (x, y) => s.grid[y * GW + x];
+    // which gate (0-3) a step out of the arena goes through; -1 for solid wall
+    const gateAt = (x, y) => {
+      if (y < 0 && x >= 13 && x <= 16) return 0;
+      if (x >= GW && y >= 8 && y <= 11) return 1;
+      if (y >= GH && x >= 13 && x <= 16) return 2;
+      if (x < 0 && y >= 8 && y <= 11) return 3;
+      return -1;
+    };
+
+    function newRound() {
+      c.nextQuestion();
+      s.grid.fill(0);
+      const flip = Math.random() < 0.5;
+      const rider = (x, y, dir, id) => { s.grid[y * GW + x] = id; return { x, y, dir, id, turns: [], alive: true }; };
+      s.me = rider(flip ? 25 : 4, 16, flip ? [-1, 0] : [1, 0], 1);
+      s.cpus = [rider(flip ? 4 : 25, 3, flip ? [1, 0] : [-1, 0], 2)];
+      if (c.ui && c.level() >= 3) s.cpus.push(rider(flip ? 25 : 4, 3, [0, 1], 3)); // a second rival from level 3
+      Object.assign(s, { phase: "play", clock: clockFor(c.q) + 5, step: 0 });
+      if (!c.ui) s.aim = Math.random() < 0.8 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function turn(name) {
+      if (s.phase !== "play") return;
+      const d = DIRS[name], me = s.me;
+      const last = me.turns.length ? me.turns[me.turns.length - 1] : me.dir;
+      if ((d[0] === -last[0] && d[1] === -last[1]) || (d[0] === last[0] && d[1] === last[1])) return;
+      if (me.turns.length < 2) me.turns.push(d);
+    }
+    const boom = (x, y, color) => s.booms.push({ x, y, t: 0.6, color });
+    function end(left, wait) {
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function crash(label, why) {
+      boom(s.me.x, s.me.y, "#ffd23f");
+      s.me.alive = false;
+      const left = c.wrong(-1, label, why);
+      s.banner = "CRASH!"; s.bannerT = 1.4;
+      end(left, 2.6);
+    }
+    function tick() {
+      const me = s.me;
+      if (me.turns.length) me.dir = me.turns.shift();
+      const nx = me.x + me.dir[0], ny = me.y + me.dir[1];
+      if (!inside(nx, ny)) {
+        const g = gateAt(nx, ny);
+        if (g < 0) return crash("WALL! -1 LIFE", "You hit the wall! ");
+        me.x = nx; me.y = ny;
+        if (g === c.q.answerIndex) {
+          c.right(g);
+          s.banner = "THROUGH!"; s.bannerT = 1.3;
+          return end(true, 1.4);
+        }
+        const left = c.wrong(g, "WRONG GATE! -1 LIFE");
+        s.banner = "WRONG GATE!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      if (at(nx, ny)) return crash("CRASH! -1 LIFE", "You hit a light trail! ");
+      me.x = nx; me.y = ny;
+      s.grid[ny * GW + nx] = 1;
+      // the rivals ride straight, turning now and then, and away from anything in front of them
+      for (const r of s.cpus) {
+        if (!r.alive) continue;
+        const free = (d) => inside(r.x + d[0], r.y + d[1]) && !at(r.x + d[0], r.y + d[1]);
+        const sides = shuffle([[r.dir[1], -r.dir[0]], [-r.dir[1], r.dir[0]]]);
+        let d = r.dir;
+        if (!free(d) || Math.random() < 0.06) d = sides.find(free) || (free(r.dir) ? r.dir : null);
+        if (!d) {
+          r.alive = false;
+          boom(r.x, r.y, COLORS[r.id]);
+          for (let k = 0; k < s.grid.length; k++) if (s.grid[k] === r.id) s.grid[k] = 0; // its trail fades away
+          continue;
+        }
+        r.dir = d;
+        r.x += d[0]; r.y += d[1];
+        s.grid[r.y * GW + r.x] = r.id;
+      }
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      s.booms = [];
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { turn(PAD_DIRS[i]); return true; };
+    }
+
+    // demo: the shortest open path to its gate
+    function demoSteer() {
+      const me = s.me, goal = s.aim;
+      const prev = new Map([[`${me.x},${me.y}`, null]]);
+      const queue = [[me.x, me.y]];
+      let found = null;
+      while (queue.length && !found) {
+        const [x, y] = queue.shift();
+        for (const d of Object.values(DIRS)) {
+          const nx = x + d[0], ny = y + d[1], key = `${nx},${ny}`;
+          if (prev.has(key)) continue;
+          if (!inside(nx, ny)) { if (gateAt(nx, ny) === goal) { prev.set(key, `${x},${y}`); found = key; break; } continue; }
+          if (at(nx, ny)) continue;
+          prev.set(key, `${x},${y}`);
+          queue.push([nx, ny]);
+        }
+      }
+      if (!found) return;
+      let k = found;
+      while (prev.get(k) !== `${me.x},${me.y}`) k = prev.get(k);
+      const [nx, ny] = k.split(",").map(Number);
+      me.turns = [[nx - me.x, ny - me.y]];
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      s.booms.forEach((b) => (b.t -= dt));
+      s.booms = s.booms.filter((b) => b.t > 0);
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      s.clock -= dt;
+      if (s.clock <= 0) {
+        const left = c.wrong(-1, "TOO SLOW! -1 LIFE", "Time's up! ");
+        s.banner = "TOO SLOW!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      s.step += dt;
+      const interval = Math.max(0.05, 0.11 - (c.level() - 1) * 0.008); // faster every level
+      if (s.step >= interval) {
+        s.step = 0;
+        if (!c.ui) demoSteer();
+        tick();
+      }
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      rect(-8, -8, c.W + 16, c.H + 16, "#05070d");
+      const x0 = ox(), y0 = oy();
+      rect(x0, y0, GW * CS, GH * CS, "#0b1220");
+      for (let x = 0; x <= GW; x += 2) rect(x0 + x * CS, y0, 1, GH * CS, "#14233a");
+      for (let y = 0; y <= GH; y += 2) rect(x0, y0 + y * CS, GW * CS, 1, "#14233a");
+      // the arena wall, with the four gates cut into it
+      const wall = "#5b6577";
+      rect(x0 - 3, y0 - 3, GW * CS + 6, 3, wall); rect(x0 - 3, y0 + GH * CS, GW * CS + 6, 3, wall);
+      rect(x0 - 3, y0 - 3, 3, GH * CS + 6, wall); rect(x0 + GW * CS, y0 - 3, 3, GH * CS + 6, wall);
+      const gates = [[x0 + 13 * CS, y0 - 3, 4 * CS, 3], [x0 + GW * CS, y0 + 8 * CS, 3, 4 * CS], [x0 + 13 * CS, y0 + GH * CS, 4 * CS, 3], [x0 - 3, y0 + 8 * CS, 3, 4 * CS]];
+      const labels = [[x0 + 15 * CS, y0 + 7], [x0 + GW * CS - 8, y0 + 10 * CS], [x0 + 15 * CS, y0 + GH * CS - 6], [x0 + 8, y0 + 10 * CS]];
+      gates.forEach(([gx, gy, gw, gh], i) => {
+        rect(gx, gy, gw, gh, LANE_COLORS[i]);
+        text("ABCD"[i], labels[i][0], labels[i][1], LANE_COLORS[i], 8);
+      });
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+        const id = at(x, y);
+        if (id) rect(x0 + x * CS + 1, y0 + y * CS + 1, CS - 2, CS - 2, COLORS[id]);
+      }
+      for (const r of [s.me, ...s.cpus]) if (r?.alive && inside(r.x, r.y)) rect(x0 + r.x * CS, y0 + r.y * CS, CS, CS, "#fbfaf6");
+      for (const b of s.booms) {
+        const rr = (0.6 - b.t) * 30;
+        for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; rect(x0 + b.x * CS + 4 + Math.cos(a) * rr - 1, y0 + b.y * CS + 4 + Math.sin(a) * rr - 1, 3, 3, b.color); }
+      }
+      if (s.phase === "play") drawClock(c, s.clock);
+      if (s.bannerT) text(s.banner, c.W / 2, c.H / 2, s.banner === "THROUGH!" ? "#7dffa8" : "#ff8a7a", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      fourWay(c, turn);
+    } else newRound();
+    return c.stop;
+  }
+
+  // ---------- DINO DASH ----------
+  // An endless runner. Answer coins marked A-D come along, on the ground or up in the air: grab the
+  // right one, and jump over (or stay under) the wrong ones. Cacti and birds cost a life too. 3 lives.
+
+  function startDino(u, demo = null) {
+    const c = cabinet({
+      u, demo, cls: "dino", stat: "GRABS", lives: 3, minW: 260, minH: 170, bestKey: "dino", bestWord: "right coins",
+      levelNote: (n) => (n === 2 ? "Faster! Watch out for birds" : n === 3 ? "Faster! Double cacti" : "Faster!"),
+      intro: `<h2>DINO DASH</h2><p>Keep running! Coins marked <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b> come along, on the ground or up in the air. Grab the one with the right answer
+        and jump over (or stay under) the others. Missing the right coin, grabbing a wrong one, or hitting a cactus or a bird costs a life. You have 3.
+        Jump with <b>W</b>, <b>Space</b> or the up arrow; duck with <b>S</b> or the down arrow. Buttons: A or B jump, C or D duck. On a phone, tap the top half to jump, the bottom half to duck.</p>`,
+    });
+    const s = { phase: "intro", h: 0, vy: 0, duckT: 0, things: [], wait: 0, banner: "", bannerT: 0, t: 0, scroll: 0, poofs: [], hills: [] };
+    for (let i = 0; i < 6; i++) s.hills.push([Math.random(), 10 + Math.random() * 20]);
+    const ground = () => c.H - 24;
+    const DX = 44; // the dino's x
+    const speed = () => Math.min(230, 110 + (c.level() - 1) * 16); // faster every level
+    const ducking = () => s.h === 0 && (s.duckT > 0 || (c.ui && holding("down")));
+    const box = () => (ducking() ? { x0: DX - 9, x1: DX + 9, lo: s.h, hi: s.h + 10 } : { x0: DX - 7, x1: DX + 7, lo: s.h, hi: s.h + 18 });
+
+    function newRound() {
+      c.nextQuestion();
+      // lay out the round ahead: maybe an obstacle, then a coin, four times over
+      const L = c.level(), sp = speed();
+      let x = c.W + 30;
+      s.things = [];
+      for (const i of shuffle([0, 1, 2, 3])) {
+        if (Math.random() < 0.65) {
+          const bird = L >= 2 && Math.random() < 0.35;
+          if (bird) s.things.push({ kind: "bird", x, w: 14, lo: 12, hi: 22 });
+          else s.things.push({ kind: "cactus", x, w: L >= 3 && Math.random() < 0.4 ? 16 : 8, lo: 0, hi: 16 });
+          x += sp * 0.85;
+        }
+        const air = Math.random() < 0.5;
+        s.things.push({ kind: "coin", i, x, w: 12, lo: air ? 26 : 0, hi: air ? 38 : 12, air });
+        x += sp * 0.85;
+      }
+      s.phase = "play";
+      if (!c.ui) s.aim = Math.random() < 0.85 ? c.q.answerIndex : (c.q.answerIndex + 1 + Math.floor(Math.random() * 3)) % 4;
+    }
+    function jump() {
+      if (s.phase !== "play" || s.h > 0) return;
+      s.vy = 230;
+      s.h = 0.01;
+      s.duckT = 0;
+      c.sfx("flap");
+    }
+    const duck = () => { if (s.phase === "play") s.duckT = 0.4; };
+    function clearAway() {
+      for (const t of s.things) s.poofs.push({ x: t.x + t.w / 2, y: ground() - (t.lo + t.hi) / 2, t: 0.4 });
+      s.things = [];
+    }
+    function end(left, wait) {
+      clearAway();
+      s.phase = left ? "result" : "dead";
+      s.wait = left ? wait : 1.6;
+    }
+    function begin() {
+      c.hideCard();
+      c.reset();
+      Object.assign(s, { h: 0, vy: 0, duckT: 0, poofs: [] });
+      c.sfx("go");
+      newRound();
+      if (c.ui) onPad = (i) => { (i < 2 ? jump : duck)(); return true; };
+    }
+
+    // demo: jump the cacti and wrong ground coins, duck the birds, jump for its coin when it's up high
+    function demoRun() {
+      const ahead = s.things.filter((t) => t.x + t.w > DX - 7).sort((a, b) => a.x - b.x)[0];
+      if (!ahead) return;
+      const dist = ahead.x - (DX + 7), sp = speed();
+      if (ahead.kind === "bird") { if (dist < sp * 0.5) s.duckT = 0.15; return; }
+      const wantJump = ahead.kind === "cactus" || (ahead.kind === "coin" && (ahead.i === s.aim ? ahead.air : !ahead.air));
+      if (wantJump && dist < sp * 0.2 && dist > 0) jump();
+    }
+
+    function update(dt) {
+      s.t += dt;
+      s.bannerT = Math.max(0, s.bannerT - dt);
+      s.duckT = Math.max(0, s.duckT - dt);
+      s.poofs.forEach((p) => (p.t -= dt));
+      s.poofs = s.poofs.filter((p) => p.t > 0);
+      const sp = speed();
+      if (s.phase !== "intro" && s.phase !== "over") s.scroll += sp * dt;
+      // jumping: holding down mid-air drops you faster
+      if (s.h > 0) {
+        s.vy -= (c.ui && holding("down") ? 1400 : 700) * dt;
+        s.h = Math.max(0, s.h + s.vy * dt);
+        if (s.h === 0) s.vy = 0;
+      }
+      if (s.phase === "result" || s.phase === "dead") {
+        s.wait -= dt;
+        if (s.wait > 0) return;
+        if (s.phase === "dead") { s.phase = "over"; c.renderQuestion(); return c.gameOver(begin); }
+        return newRound();
+      }
+      if (s.phase !== "play") return;
+      if (!c.ui) demoRun();
+      for (const t of s.things) t.x -= sp * dt;
+      const b = box();
+      for (const t of s.things) {
+        if (t.x > b.x1 || t.x + t.w < b.x0 || t.lo > b.hi || t.hi < b.lo) continue;
+        if (t.kind !== "coin") {
+          const left = c.wrong(-1, "BONK! -1 LIFE", t.kind === "bird" ? "A bird got you! " : "You hit a cactus! ");
+          s.banner = "BONK!"; s.bannerT = 1.4;
+          return end(left, 2.6);
+        }
+        if (t.i === c.q.answerIndex) {
+          c.right(t.i);
+          s.banner = "GOT IT!"; s.bannerT = 1.3;
+          return end(true, 1.2);
+        }
+        const left = c.wrong(t.i, "WRONG COIN! -1 LIFE");
+        s.banner = "WRONG COIN!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      // the right coin went by without you
+      if (s.things.some((t) => t.kind === "coin" && t.i === c.q.answerIndex && t.x + t.w < b.x0 - 4)) {
+        const left = c.wrong(-1, "MISSED IT! -1 LIFE", "You ran past the right coin! ");
+        s.banner = "MISSED IT!"; s.bannerT = 1.4;
+        return end(left, 2.6);
+      }
+      s.things = s.things.filter((t) => t.x + t.w > -10);
+    }
+
+    function draw() {
+      const { rect, text } = c;
+      const gy = ground();
+      rect(-8, -8, c.W + 16, c.H + 16, "#fbe9c6");
+      rect(c.W * 0.8, c.H * 0.12, 18, 18, "#ffc94d");
+      for (const [hx, hh] of s.hills) {
+        const x = (((hx * (c.W + 80) - s.scroll * 0.25) % (c.W + 80)) + c.W + 80) % (c.W + 80) - 40;
+        rect(x, gy - hh, 40, hh, "#efd09a"); rect(x + 8, gy - hh - 6, 24, 6, "#efd09a");
+      }
+      rect(-8, gy, c.W + 16, c.H - gy + 8, "#d9a95f");
+      rect(-8, gy, c.W + 16, 2, "#8a5a32");
+      for (let x = -((s.scroll * 1) % 23); x < c.W; x += 23) rect(x, gy + 6 + (Math.floor(x + s.scroll) % 3) * 3, 3, 1, "#8a5a32");
+      for (const t of s.things) {
+        const top = gy - t.hi;
+        if (t.kind === "cactus") {
+          for (let k = 0; k < t.w; k += 8) {
+            rect(t.x + k + 2, top, 4, 16, "#2f8f4f"); rect(t.x + k, top + 5, 2, 5, "#2f8f4f"); rect(t.x + k + 6, top + 3, 2, 5, "#2f8f4f");
+          }
+        } else if (t.kind === "bird") {
+          const flap = Math.floor(s.t * 8) % 2;
+          rect(t.x, top + 4, 14, 4, "#4a3a5a"); rect(t.x - 3, top + 5, 3, 2, "#ff8a3d");
+          rect(t.x + 4, flap ? top : top + 8, 6, 4, "#4a3a5a");
+        } else {
+          const cx = t.x + 6, cy = top + 6;
+          rect(cx - 7, cy - 7, 14, 14, INK);
+          rect(cx - 6, cy - 6, 12, 12, LANE_COLORS[t.i]);
+          rect(cx - 6, cy - 6, 12, 2, "rgba(255,255,255,0.45)");
+          text("ABCD"[t.i], cx, cy + 1, "#fff", 8);
+        }
+      }
+      for (const p of s.poofs) for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2, r = (0.4 - p.t) * 30;
+        rect(p.x + Math.cos(a) * r - 1, p.y + Math.sin(a) * r - 1, 3, 3, "#9aa3b2");
+      }
+      // the dino
+      if (s.phase !== "over") {
+        const by = gy - s.h, step = s.h === 0 && s.phase !== "intro" && Math.floor(s.t * 10) % 2;
+        const green = "#3ca55c";
+        if (ducking()) {
+          rect(DX - 9, by - 9, 14, 7, green); rect(DX + 3, by - 10, 8, 6, green); rect(DX + 8, by - 9, 2, 2, INK);
+          rect(DX - 6, by - 2, 3, 2, green); rect(DX + 1, by - 2, 3, 2, green);
+        } else {
+          rect(DX - 7, by - 13, 10, 9, green);       // body
+          rect(DX - 1, by - 18, 9, 7, green);        // head
+          rect(DX + 4, by - 17, 2, 2, INK);          // eye
+          rect(DX - 10, by - 12, 3, 3, green);       // tail
+          rect(DX + 3, by - 9, 3, 2, green);         // arm
+          rect(DX - 5, by - 4, 3, step ? 2 : 4, green); rect(DX, by - 4, 3, step ? 4 : 2, green); // legs
+        }
+      }
+      if (s.bannerT) text(s.banner, c.W / 2, c.H * 0.3, s.banner === "GOT IT!" ? "#3ca55c" : "#e5484d", 16);
+    }
+
+    c.run(update, draw);
+    if (c.ui) {
+      c.intro(begin);
+      onKey = (key) => {
+        if (key === "ArrowUp" || key === " ") { jump(); return true; }
+        if (key === "ArrowDown") { duck(); return true; }
+        return false;
+      };
+      c.canvas.addEventListener("pointerdown", (e) => {
+        const r = c.canvas.getBoundingClientRect();
+        ((e.clientY - r.top) / r.height < 0.6 ? jump : duck)();
       });
     } else newRound();
     return c.stop;

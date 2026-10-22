@@ -1,10 +1,10 @@
 # Study Helper + Syllabus
 
-A study arcade. Upload your course syllabus and step up to the machine: the page zooms into the cabinet, and the AI (Claude) reads your syllabus on its screen, maps a journey from your first unit to the final exam, and writes a lesson and questions for each unit. Then pick one of three games, all built on those questions.
+A study arcade. Upload your course syllabus and step up to the machine: the page zooms into the cabinet, and the AI (Claude) reads your syllabus on its screen, maps a journey from your first unit to the final exam, and writes a lesson and questions for each unit. Then pick one of twenty-one games, all built on those questions.
 
 ## How it plays
 
-- **Eighteen games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
+- **Twenty-one games, one syllabus:** after loading, the machine shows an arcade-style SELECT GAME screen: one game at a time, with a live demo of it playing itself (a "trailer"), arrows (or the joystick / arrow keys) to flip to the next game, and PRESS A TO PLAY:
   - **Trail Quest:** the wagon journey below, a lesson then questions for each unit.
   - **Quiz Kart:** a pixel racer. A gate with four lanes (A-D) comes down the road while the question shows above it; steer into the lane with the right answer (A-D buttons, arrow keys, or tap an answer) before you reach the gate. A wrong lane costs one of 5 lives, and the gates come faster as you go.
   - **Syllabus Fighter:** a one-on-one fight against a boss that fits the subject (The Judge for law, Dr. Entropy for science...). Right answers land hits (hard questions hit harder, three in a row is a combo); a wrong answer or running out the clock lets the boss hit you. Knock out a boss to face the next one.
@@ -23,6 +23,10 @@ A study arcade. Upload your course syllabus and step up to the machine: the page
   - **Moon Lander:** lunar-lander style. Main engine (W), side jets (A/D) and limited fuel: touch down gently on the pad with the right answer. 3 lives.
   - **Mini Golf:** aim (A/D), set power (W/S) and putt (Space), or click where to aim; sink the ball in the hole with the right answer in 3 strokes. 3 lives.
   - **Gone Fishing:** move the boat (A/D), lower and raise the hook (S/W), or tap where to fish; catch the fish with the right answer and avoid the jellyfish. 3 lives.
+  - **Beat Quiz:** rhythm style. Notes fall down lanes A-D; hit the right answer's lane (its button, 1-4, or a tap) right as its note crosses the line. A wrong note or the clock running out costs a life. 3 lives.
+  - **Light Racer:** light-cycle style. You and a rival leave walls of light; ride out through the gate in the arena wall with the right answer (A top, B right, C bottom, D left). Walls, trails and wrong gates cost a life. 3 lives.
+  - **Dino Dash:** endless-runner style. Jump (W) and duck (S) past cacti and birds, grab the coin with the right answer and jump over (or stay under) the wrong ones. 3 lives.
+  - **Levels:** every game except Trail Quest has levels. Every 3 right answers you go up a level (Quiz Blocks: every 5 lines; Syllabus Fighter: every knockout), a LEVEL UP banner says what just got harder, and the top bar shows your level. Each game gets harder its own way: faster snakes, rocks on the snake board, bombing invaders, a quicker keeper and shorter shot clock, faster moles, more traffic, a third ghost, space junk, faster ducks and fewer shells, a second beetle, stronger wind, stronger moon gravity and less fuel, sliding golf bumpers, a second jellyfish, a faster beat with extra notes, a second light-cycle rival, birds and double cacti. The game-over card shows the level you reached.
   - Pick which unit the quiz games quiz you on from the menu (up/down arrow keys work too). Coins from every game go into the same wallet, and each game keeps a best score.
 - **Syllabus first:** upload a PDF (or paste the text). Nothing starts without one. A loading screen inside the machine shows each step.
 - **Lesson, then questions:** every unit opens with a short lesson summary (overview, key points, key terms), then questions on it. Each unit builds up a bank of at least 50 questions: the first 15 arrive with the lesson, and more are written in the background while you play (repeats are dropped), so missed questions have plenty of fresh ones around them. You can reopen the lesson from any question.
@@ -68,7 +72,7 @@ To turn the AI on, copy `.env.example` to `.env` and paste a key from https://co
 | `public/sprites.js` | All the pixel art: themed scenery and landmarks, the wagon, BYTE, the shopkeeper, the store and item icons. |
 | `public/sound.js` | Arcade sound effects, synthesized with the Web Audio API. |
 | `public/timer.js` | The study timer: focus and break sessions, saved in the browser. |
-| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders, Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher, Asteroid Answers, Quiz Hunt, Block Bump, Cannon Clash, Moon Lander, Mini Golf and Gone Fishing (canvas; the last thirteen share a `cabinet()` helper for the panel, lives and game loop). |
+| `public/arcade.js` | The SELECT GAME attract screen with each game's demo, Quiz Kart (a canvas racer), Syllabus Fighter and Flappy Facts, Quiz Blocks, Snake Smarts, Quiz Invaders, Penalty Shootout, Whack-a-Fact, Crossy Quiz, Maze Muncher, Asteroid Answers, Quiz Hunt, Block Bump, Cannon Clash, Moon Lander, Mini Golf, Gone Fishing, Beat Quiz, Light Racer and Dino Dash (canvas; the last sixteen share a `cabinet()` helper for the panel, lives and game loop). |
 | `public/game.js` | The game: lessons, questions, coins, streaks, the wagon scene, the sliding shop and the arcade buttons. |
 | `public/style.css` | The look: white and minimal outside the machine, a cream pixel screen inside. |
 | `demo-quests.json` | Sample data used when there's no API key. |
